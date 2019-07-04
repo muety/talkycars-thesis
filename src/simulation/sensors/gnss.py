@@ -1,5 +1,8 @@
-import carla
 import weakref
+
+import carla
+from tile_factory import TileFactory
+
 
 class GnssSensor(object):
     def __init__(self, parent_actor):
@@ -22,3 +25,5 @@ class GnssSensor(object):
             return
         self.lat = event.latitude
         self.lon = event.longitude
+
+        print(TileFactory.gnss_to_quadkey((self.lat, self.lon)))
