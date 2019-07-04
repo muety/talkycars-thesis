@@ -22,6 +22,12 @@ class CameraRGBSensor(object):
         self.sensor = world.spawn_actor(bp, carla.Transform(carla.Location(x=-5.5, z=2.8), carla.Rotation(pitch=-15)), attach_to=self._parent)
         self.sensor.listen(lambda event: CameraRGBSensor._on_image(weak_self, event))
 
+        calibration = np.identity(3)
+        calibration[0, 2] = hud.dim[0] / 2.0
+        calibration[1, 2] = hud.dim[1] / 2.0
+        calibration[0, 0] = calibration[1, 1] = hud.dim[0] / (2.0 * np.tan(90 * np.pi / 360.0))
+        self.sensor.calibration = calibration
+
     def toggle_recording(self):
         self.recording = not self.recording
 

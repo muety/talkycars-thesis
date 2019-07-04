@@ -31,6 +31,7 @@ from scene_layout import get_scene_layout, get_dynamic_objects
 
 from hud import HUD
 from keyboard_control import KeyboardControl
+from bbox_factory import BBoxFactory
 from sensors.gnss import GnssSensor
 from sensors.camera_rgb import CameraRGBSensor
 from sensors.lidar import LidarSensor
@@ -49,8 +50,10 @@ class World(object):
         self.lidar_sensor = None
         self._weather_index = 0
         self.npcs = [] # list of actor ids
+        self.bboxes = [] 
+        self.spawn_point = None
         
-        self.restart()
+        self.init()
         self.world.on_tick(hud.on_world_tick)
         self.recording_enabled = False
         self.recording_start = 0
@@ -60,7 +63,7 @@ class World(object):
         settings.synchronous_mode = True
         self.world.apply_settings(settings)
 
-    def restart(self):
+    def init(self):
         # Get a random blueprint.
         blueprint = self.world.get_blueprint_library().filter('vehicle.mini.cooperst')[0]
         blueprint.set_attribute('role_name', self.actor_role_name)
@@ -80,6 +83,8 @@ class World(object):
             spawn_point = spawn_points[0] if spawn_points else carla.Transform()
             self.player = self.world.try_spawn_actor(blueprint, spawn_point)
 
+        self.spawn_point = spawn_point
+
         # Set up the sensors.
         self.gnss_sensor = GnssSensor(self.player)
         self.camera_rgb_sensor = CameraRGBSensor(self.player, self.hud)
@@ -89,6 +94,7 @@ class World(object):
         self.init_scene() # TODO: use strategy pattern or so
 
     def init_scene(self):
+        # Closest NPC stuff
         available_vehicles = self.world.get_blueprint_library().filter('vehicle.*')
         location = self.player.get_location()
         spawn_points = sorted(self.map.get_spawn_points(), key=lambda x: abs(x.location.x - location.x) + abs(x.location.y - location.y))
@@ -98,28 +104,31 @@ class World(object):
         logging.debug(f'Spawned car 1 at {spawn_points[1].location} [{car1.bounding_box}]')
         self.npcs.append(car1)
 
+        # Bounding box stuff
+        bbox1 = BBoxFactory.construct_rectangular(
+            (self.spawn_point.location.x + 5, self.spawn_point.location.y + 5),
+            (self.spawn_point.location.x + 10, self.spawn_point.location.y + 10)
+        )
+        self.bboxes = [bbox1]        
+
     def tick(self, clock):
         clock.tick_busy_loop(60)
         self.world.tick()
         ts = self.world.wait_for_tick()
         self.hud.tick(self, clock)
 
-        if ts.frame_count % 100 == 0:
-            pass
-
-            # Lane information
-            # wp = self.map.get_waypoint(self.player.get_location())
-            # logging.debug(wp.get_right_lane())
-            # logging.debug(wp.get_left_lane())
-
-            # Vehicle bounds
-            # loc = self.map.transform_to_geolocation(self.player.get_location())
-            # bb = self.player.bounding_box
-            # logging.debug(f'({loc.latitude}, {loc.longitude}: [{bb.extent}])')
+    def render_bboxes(self, display):
+        bboxes = []
+        for bb in self.bboxes:
+            bb_cam = BBoxFactory.to_camera(bb.T, self.camera_rgb_sensor.sensor, self.camera_rgb_sensor.sensor)
+            if not all(bb_cam[:, 2] > 0): continue
+            bboxes.append(bb_cam)
+        BBoxFactory.draw_bounding_boxes(display, bboxes)
 
     def render(self, display):
         self.camera_rgb_sensor.render(display)
         self.hud.render(display)
+        self.render_bboxes(display)
 
     def destroy(self):
         actors = [

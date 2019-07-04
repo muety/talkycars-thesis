@@ -57,14 +57,6 @@ class KeyboardControl(object):
                     world.restart()
                 elif event.key == K_F1:
                     world.hud.toggle_info()
-                elif event.key == K_TAB:
-                    world.camera_manager.toggle_camera()
-                elif event.key == K_BACKQUOTE:
-                    world.camera_manager.next_sensor()
-                elif event.key > K_0 and event.key <= K_9:
-                    world.camera_manager.set_sensor(event.key - 1 - K_0)
-                elif event.key == K_r and not (pygame.key.get_mods() & KMOD_CTRL):
-                    world.camera_manager.toggle_recording()
                 elif event.key == K_r and (pygame.key.get_mods() & KMOD_CTRL):
                     if (world.recording_enabled):
                         client.stop_recorder()
@@ -77,14 +69,12 @@ class KeyboardControl(object):
                     client.stop_recorder()
                     world.recording_enabled = False
                     # work around to fix camera at start of replaying
-                    currentIndex = world.camera_manager.index
                     world.destroy_sensors()
                     # disable autopilot
                     self._autopilot_enabled = False
                     world.player.set_autopilot(self._autopilot_enabled)
                     # replayer
                     client.replay_file("manual_recording.rec", world.recording_start, 0, 0)
-                    world.camera_manager.set_sensor(currentIndex)
                 elif event.key == K_MINUS and (pygame.key.get_mods() & KMOD_CTRL):
                     if pygame.key.get_mods() & KMOD_SHIFT:
                         world.recording_start -= 10
