@@ -1,41 +1,22 @@
 #!/usr/bin/env python
 
-# Copyright (c) 2019 Computer Vision Center (CVC) at the Universitat Autonoma de
-# Barcelona (UAB).
-#
-# This work is licensed under the terms of the MIT license.
-# For a copy, see <https://opensource.org/licenses/MIT>.
-
-# Allows controlling a vehicle with a keyboard. For a simpler and more
-# documented example, please take a look at tutorial.py.
-
 from __future__ import print_function
 
 import argparse
-import collections
-import datetime
 import logging
-import math
 import random
-import re
-import weakref
-import os
-import sys
-import numpy as np
-
-import pygame
 
 import carla
-from carla import ColorConverter as cc
-from scene_layout import get_scene_layout, get_dynamic_objects
+import pygame
 
+from bbox_factory import BBoxFactory
+from geom import *
 from hud import HUD
 from keyboard_control import KeyboardControl
-from bbox_factory import BBoxFactory
-from sensors.gnss import GnssSensor
 from sensors.camera_rgb import CameraRGBSensor
+from sensors.gnss import GnssSensor
 from sensors.lidar import LidarSensor
-from geom import *
+
 
 class World(object):
     def __init__(self, client, hud, actor_role_name='hero'):

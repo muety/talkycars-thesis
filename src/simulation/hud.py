@@ -1,8 +1,9 @@
-import sys
+import datetime
+
+import carla
 import math
 import pygame
-import carla
-import datetime 
+
 
 def get_actor_display_name(actor, truncate=250):
     name = ' '.join(actor.type_id.replace('_', '.').title().split('.')[1:])

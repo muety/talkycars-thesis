@@ -1,4 +1,3 @@
-import carla
 import weakref
 import carla
 import pygame

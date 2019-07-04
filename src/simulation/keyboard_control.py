@@ -1,36 +1,28 @@
-import sys
-import math
 import carla
 import pygame
 from pygame.locals import KMOD_CTRL
 from pygame.locals import KMOD_SHIFT
-from pygame.locals import K_0
-from pygame.locals import K_9
-from pygame.locals import K_BACKQUOTE
 from pygame.locals import K_BACKSPACE
 from pygame.locals import K_COMMA
 from pygame.locals import K_DOWN
+from pygame.locals import K_EQUALS
 from pygame.locals import K_ESCAPE
 from pygame.locals import K_F1
 from pygame.locals import K_LEFT
+from pygame.locals import K_MINUS
 from pygame.locals import K_PERIOD
 from pygame.locals import K_RIGHT
-from pygame.locals import K_SLASH
 from pygame.locals import K_SPACE
-from pygame.locals import K_TAB
 from pygame.locals import K_UP
 from pygame.locals import K_a
-from pygame.locals import K_c
 from pygame.locals import K_d
-from pygame.locals import K_h
 from pygame.locals import K_m
 from pygame.locals import K_p
 from pygame.locals import K_q
 from pygame.locals import K_r
 from pygame.locals import K_s
 from pygame.locals import K_w
-from pygame.locals import K_MINUS
-from pygame.locals import K_EQUALS
+
 
 class KeyboardControl(object):
     def __init__(self, world, start_in_autopilot):

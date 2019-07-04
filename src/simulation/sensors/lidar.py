@@ -1,9 +1,8 @@
-import carla
 import weakref
+
 import carla
-import pygame
 import numpy as np
-from carla import ColorConverter as cc
+
 
 class LidarSensor(object):
     def __init__(self, parent_actor):
