@@ -35,6 +35,7 @@ from bbox_factory import BBoxFactory
 from sensors.gnss import GnssSensor
 from sensors.camera_rgb import CameraRGBSensor
 from sensors.lidar import LidarSensor
+from geom import *
 
 class World(object):
     def __init__(self, client, hud, actor_role_name='hero'):
@@ -109,7 +110,9 @@ class World(object):
             (self.spawn_point.location.x + 5, self.spawn_point.location.y + 5),
             (self.spawn_point.location.x + 10, self.spawn_point.location.y + 10)
         )
-        self.bboxes = [bbox1]        
+        self.bboxes = [bbox1] 
+
+        cube1 = Cube.from_points(*[ bbox1.min(axis=0)[:3], bbox1.max(axis=0)[:3] ])
 
     def tick(self, clock):
         clock.tick_busy_loop(60)
