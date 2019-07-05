@@ -1,26 +1,18 @@
-from lib.quadkey import TileSystem
-from tile_factory import TileFactory
-
-class C1:
-    def __init__(self, key):
-        self.key = key
-
-class C2(C1):
-    def __init__(self, key):
-        super(key).__init__(key)
-
-        print(self.key)
+from lib import quadkey
+from observation.observation import GnssObservation
 
 if __name__ == '__main__':
-    qk = TileFactory.gnss_to_quadkey((49.010852, 8.396301), 16)
-    print(qk.key)
-    print(qk.nearby(2))
-    print(len(qk.nearby(2)))
-    print('---')
-    print(qk.to_geo(TileSystem.ANCHOR_NW))
-    print(qk.to_geo(TileSystem.ANCHOR_NE))
-    print(qk.to_geo(TileSystem.ANCHOR_SW))
-    print(qk.to_geo(TileSystem.ANCHOR_SE))
-    print(qk.to_tile())
+    qk = quadkey.from_geo((49.010852, 8.396301), 16)
+    n1 = quadkey.from_str(qk.nearby(1)[0])
 
-    c2 = C2('blah')
+    print(n1.to_geo(quadkey.TileSystem.ANCHOR_NW))
+    print(n1.to_geo(quadkey.TileSystem.ANCHOR_NE))
+    print(n1.to_geo(quadkey.TileSystem.ANCHOR_SW))
+    print(n1.to_geo(quadkey.TileSystem.ANCHOR_SE))
+
+    obs = GnssObservation(0.0, (49.010852, 8.396301, 12.3))
+    print(len(obs.nearby_bboxes_world(radius=1)))
+    print(obs.nearby_bboxes_world(radius=1)[0])
+    print(obs.nearby_bboxes_world(radius=1)[1])
+    print(obs.nearby_bboxes_world(radius=1)[2])
+    print(obs.nearby_bboxes_world(radius=1)[3])

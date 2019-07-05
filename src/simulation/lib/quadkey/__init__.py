@@ -26,10 +26,9 @@ class QuadKey:
         return QuadKey(self.key[:-1])
 
     def nearby(self, n=1):
-        tiles = set()
         tile, level = TileSystem.quadkey_to_tile(self.key)
         perms = list(set(itertools.product(range(-n, n + 1), repeat=2)).difference({(0, 0)}))
-        tiles = tiles.union(set(map(lambda perm: (abs(tile[0] + perm[0]), abs(tile[1] + perm[1])), perms)))
+        tiles = set(map(lambda perm: (abs(tile[0] + perm[0]), abs(tile[1] + perm[1])), perms))
         return [TileSystem.tile_to_quadkey(tile, level) for tile in tiles]
 
     def is_ancestor(self, node):
@@ -92,12 +91,15 @@ class QuadKey:
     def to_tile(self):
         return TileSystem.quadkey_to_tile(self.key)
 
-    def to_geo(self, anchor=TileSystem.ANCHOR_NW):
+    def to_pixel(self, anchor=TileSystem.ANCHOR_NW):
         ret = TileSystem.quadkey_to_tile(self.key)
         tile = ret[0]
-        lvl = ret[1]
-        pixel = TileSystem.tile_to_pixel(tile, anchor)
-        return TileSystem.pixel_to_geo(pixel, lvl)
+        return TileSystem.tile_to_pixel(tile, anchor)
+
+    def to_geo(self, anchor=TileSystem.ANCHOR_NW):
+        ret = TileSystem.quadkey_to_tile(self.key)
+        pixel = TileSystem.tile_to_pixel(ret[0], anchor)
+        return TileSystem.pixel_to_geo(pixel, ret[1])
 
     def __eq__(self, other):
         return self.key == other.key

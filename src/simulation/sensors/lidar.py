@@ -17,7 +17,6 @@ class LidarSensor(Sensor):
         self.recording = False
         super().__init__(observation_manager)
 
-        observation_manager.register_key(OBS_LIDAR_POINTS, carla.LidarMeasurement)
         world = self._parent.get_world()
         bp = world.get_blueprint_library().find('sensor.lidar.ray_cast')
         bp.set_attribute('range', '5000')

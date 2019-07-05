@@ -9,11 +9,10 @@ import random
 import carla
 import pygame
 from bbox_factory import BBoxFactory
-from constants import OBS_POSITION_PLAYER
-from geom import *
+from constants import OBS_POSITION_PLAYER_POS, OBS_GNSS_PLAYER_POS, OBS_LIDAR_POINTS, OBS_CAMERA_RGB_IMAGE
 from hud import HUD
 from keyboard_control import KeyboardControl
-from observation.observation import PositionObservation
+from observation.observation import PositionObservation, GnssObservation, LidarObservation, CameraRGBObservation
 from observation.observation_manager import ObservationManager
 from sensors.camera_rgb import CameraRGBSensor
 from sensors.gnss import GnssSensor
@@ -37,7 +36,8 @@ class World(object):
             'gnss': None
         }
         self.npcs = [] # list of actor ids
-        self.bboxes = [] 
+        self.bboxes = []
+        self.box_key = None
 
         self.init()
         self.world.on_tick(hud.on_world_tick)
@@ -75,8 +75,14 @@ class World(object):
         self.sensors['lidar'] = LidarSensor(self.player, self.om)
         self.sensors['camera_rgb'] = CameraRGBSensor(self.player, self.hud)
 
-        # Set up observations
-        self.om.register_key(OBS_POSITION_PLAYER, PositionObservation)
+        # Type registrations
+        self.om.register_key(OBS_POSITION_PLAYER_POS, PositionObservation)
+        self.om.register_key(OBS_GNSS_PLAYER_POS, GnssObservation)
+        self.om.register_key(OBS_LIDAR_POINTS, LidarObservation)
+        self.om.register_key(OBS_CAMERA_RGB_IMAGE, CameraRGBObservation)
+
+        # Set up listeners
+        self.init_subscriptions()
 
         # Set up other actors, NPCs, ...
         self.init_scene() # TODO: use strategy pattern or so
@@ -99,7 +105,14 @@ class World(object):
         )
         self.bboxes = [bbox1] 
 
-        cube1 = Cube.from_points(*[ bbox1.min(axis=0)[:3], bbox1.max(axis=0)[:3] ])
+    def init_subscriptions(self):
+        def on_gnss(obs):
+            new_key = obs.to_quadkey(24)
+            if self.box_key is None or new_key != self.box_key:
+                self.box_key = new_key
+                obs.nearby_bboxes_world(radius=20, level=24)
+
+        self.om.subscribe(OBS_GNSS_PLAYER_POS, on_gnss)
 
     def tick(self, clock):
         clock.tick_busy_loop(60)
@@ -109,7 +122,7 @@ class World(object):
 
         player_location = self.player.get_location()
         position_obs = PositionObservation(ts.elapsed_seconds, (player_location.x, player_location.y, player_location.z))
-        self.om.add(OBS_POSITION_PLAYER, position_obs)
+        self.om.add(OBS_POSITION_PLAYER_POS, position_obs)
 
     def render_bboxes(self, display):
         bboxes = []

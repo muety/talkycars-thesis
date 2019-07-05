@@ -17,7 +17,6 @@ class GnssSensor(Sensor):
         self.lon = 0.0
         super().__init__(observation_manager)
 
-        observation_manager.register_key(OBS_GNSS_PLAYER_POS, GnssObservation)
         world = self._parent.get_world()
         bp = world.get_blueprint_library().find('sensor.other.gnss')
 
