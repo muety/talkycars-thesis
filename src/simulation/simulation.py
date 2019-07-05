@@ -21,7 +21,7 @@ from sensors.gnss import GnssSensor
 from sensors.lidar import LidarSensor
 from util import BBoxUtils
 
-OCCUPANCY_RADIUS = 10
+OCCUPANCY_RADIUS = 20
 OCCUPANCY_TILE_LEVEL = 24
 
 class World(object):
