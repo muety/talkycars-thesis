@@ -20,15 +20,18 @@ class SurroundingTileManager:
         self.convert: Callable = TransformUtils.get_tile2world_conversion(self.level)
 
     def update_gnss(self, obs: GnssObservation):
+        key = obs.to_quadkey(self.level)
         self.gnss_current = obs
-        self.quadkey_current = obs.to_quadkey(self.level)
-        self._recompute()
+
+        if self.quadkey_current is None or key != self.quadkey_current:
+            self.quadkey_current = key
+            self._recompute(key)
 
     def get_surrounding(self) -> Set[BBox3D]:
         return self.surrounding_tiles[self.quadkey_current.key] if self.quadkey_current.key in self.surrounding_tiles else set()
 
-    def _recompute(self):
-        key = self.quadkey_current
+    def _recompute(self, key=None):
+        key = key if key is not None else self.quadkey_current
         if key.key in self.surrounding_tiles:
             return
         self.surrounding_tiles[key.key] = self._nearby_bboxes_world()
