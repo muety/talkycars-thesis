@@ -9,9 +9,11 @@ import random
 import carla
 import pygame
 from bbox_factory import BBoxFactory
+from constants import OBS_POSITION_PLAYER
 from geom import *
 from hud import HUD
 from keyboard_control import KeyboardControl
+from observation.observation import PositionObservation
 from observation.observation_manager import ObservationManager
 from sensors.camera_rgb import CameraRGBSensor
 from sensors.gnss import GnssSensor
@@ -24,6 +26,7 @@ class World(object):
         self.client = client
         self.world = client.get_world()
         self.actor_name = actor_name
+        self.spawn_point = None
         self.map = self.world.get_map()
         self.hud = hud
         self.om = ObservationManager()
@@ -35,8 +38,7 @@ class World(object):
         }
         self.npcs = [] # list of actor ids
         self.bboxes = [] 
-        self.spawn_point = None
-        
+
         self.init()
         self.world.on_tick(hud.on_world_tick)
         self.recording_enabled = False
@@ -66,13 +68,15 @@ class World(object):
             spawn_points = self.map.get_spawn_points()
             spawn_point = spawn_points[0] if spawn_points else carla.Transform()
             self.player = self.world.try_spawn_actor(blueprint, spawn_point)
-
         self.spawn_point = spawn_point
 
         # Set up the sensors.
-        self.sensors['gnss'] = GnssSensor(self.player,self.om)
+        self.sensors['gnss'] = GnssSensor(self.player, self.om)
         self.sensors['lidar'] = LidarSensor(self.player, self.om)
         self.sensors['camera_rgb'] = CameraRGBSensor(self.player, self.hud)
+
+        # Set up observations
+        self.om.register_key(OBS_POSITION_PLAYER, PositionObservation)
 
         # Set up other actors, NPCs, ...
         self.init_scene() # TODO: use strategy pattern or so
@@ -102,6 +106,10 @@ class World(object):
         self.world.tick()
         ts = self.world.wait_for_tick()
         self.hud.tick(self, clock)
+
+        player_location = self.player.get_location()
+        position_obs = PositionObservation(ts.elapsed_seconds, (player_location.x, player_location.y, player_location.z))
+        self.om.add(OBS_POSITION_PLAYER, position_obs)
 
     def render_bboxes(self, display):
         bboxes = []

@@ -3,7 +3,7 @@ import weakref
 import carla
 import numpy as np
 from constants import OBS_LIDAR_POINTS
-from observation.lidar import LidarObservation
+from observation.observation import LidarObservation
 from observation.observation_manager import ObservationManager
 from sensors.sensor import Sensor
 

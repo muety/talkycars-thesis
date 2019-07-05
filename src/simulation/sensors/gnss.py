@@ -2,7 +2,7 @@ import weakref
 
 import carla
 from constants import OBS_GNSS_PLAYER_POS
-from observation.gnss import GnssObservation
+from observation.observation import GnssObservation
 from observation.observation_manager import ObservationManager
 from sensors.sensor import Sensor
 
@@ -32,5 +32,5 @@ class GnssSensor(Sensor):
         self.lat = event.latitude
         self.lon = event.longitude
 
-        obs = GnssObservation(event.timestamp, (event.latitude, event.longitude))
+        obs = GnssObservation(event.timestamp, (event.latitude, event.longitude, event.altitude))
         self.om.add(OBS_GNSS_PLAYER_POS, obs)
