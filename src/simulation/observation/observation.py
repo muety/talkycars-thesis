@@ -2,10 +2,10 @@ from datetime import datetime
 from typing import Tuple, List, Callable
 
 import numpy as np
-from geom import BBox3D
+from geom import BBox2D
 from lib import quadkey
 from lib.quadkey.tile_system import TileSystem
-from util import TileUtils
+from util import TransformUtils
 
 
 class Observation:
@@ -33,10 +33,10 @@ class GnssObservation(Observation):
         qk = self.to_quadkey(level)
         return qk.nearby(radius)
 
-    def nearby_bboxes_world(self, radius=10, level=24, height=3) -> List[BBox3D]:
+    def nearby_bboxes_world(self, radius=10, level=24) -> List[BBox2D]:
         quadkeys: List[quadkey.QuadKey]
         pixel_boxes: List[List[Tuple[float, float], Tuple[float, float], Tuple[float, float], Tuple[float, float]]]
-        convert: Callable = TileUtils.get_tile2world_conversion(level)
+        convert: Callable = TransformUtils.get_tile2world_conversion(level)
 
         assert convert is not None
 
@@ -48,17 +48,17 @@ class GnssObservation(Observation):
                 qk.to_pixel(TileSystem.ANCHOR_SE)
             ]
 
-        def map_to_bbox(pixel_box: List[Tuple[float, float]]) -> BBox3D:
-            return BBox3D.from_points(*[
-                tuple(np.min(pixel_box, axis=0)) + (0,),
-                tuple(np.max(pixel_box, axis=0)) + (height,)
+        def map_to_bbox(pixel_box: List[Tuple[float, float]]) -> BBox2D:
+            return BBox2D.from_points(*[
+                tuple(np.min(pixel_box, axis=0)),
+                tuple(np.max(pixel_box, axis=0))
             ])
 
-        def map_to_world(bbox: BBox3D) -> BBox3D:
-            zipped = tuple(zip(bbox.xrange, bbox.yrange, bbox.zrange))
+        def map_to_world(bbox: BBox2D) -> BBox2D:
+            zipped = bbox.to_points()
             c1 = zipped[0]
             c2 = zipped[1]
-            return BBox3D.from_points(convert(c1), convert(c2))
+            return BBox2D.from_points(convert(c1), convert(c2))
 
         quadkeys = list(map(lambda k: quadkey.QuadKey(k), self.nearby_tiles(radius, level)))
         pixel_boxes = list(map(map_to_pixel_box, quadkeys))

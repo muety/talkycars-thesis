@@ -5,11 +5,12 @@ from __future__ import print_function
 import argparse
 import logging
 import random
+from typing import List
 
 import carla
 import pygame
-from bbox_factory import BBoxFactory
 from constants import OBS_POSITION_PLAYER_POS, OBS_GNSS_PLAYER_POS, OBS_LIDAR_POINTS, OBS_CAMERA_RGB_IMAGE
+from geom import BBox2D, BBox3D
 from hud import HUD
 from keyboard_control import KeyboardControl
 from observation.observation import PositionObservation, GnssObservation, LidarObservation, CameraRGBObservation
@@ -17,7 +18,11 @@ from observation.observation_manager import ObservationManager
 from sensors.camera_rgb import CameraRGBSensor
 from sensors.gnss import GnssSensor
 from sensors.lidar import LidarSensor
+from util import BBoxUtils
 
+OCCUPANCY_RADIUS = 10
+OCCUPANCY_TILE_LEVEL = 24
+OCCUPANCY_BBOX_HEIGHT = 3.5
 
 class World(object):
     def __init__(self, client, hud, actor_name='hero'):
@@ -36,8 +41,9 @@ class World(object):
             'gnss': None
         }
         self.npcs = [] # list of actor ids
-        self.bboxes = []
+        self.bboxes_3d: List[BBox3D] = []
         self.box_key = None
+        self.debug = False
 
         self.init()
         self.world.on_tick(hud.on_world_tick)
@@ -98,19 +104,14 @@ class World(object):
         logging.debug(f'Spawned car 1 at {spawn_points[1].location} [{car1.bounding_box}]')
         self.npcs.append(car1)
 
-        # Bounding box stuff
-        bbox1 = BBoxFactory.construct_rectangular(
-            (self.spawn_point.location.x + 5, self.spawn_point.location.y + 5),
-            (self.spawn_point.location.x + 10, self.spawn_point.location.y + 10)
-        )
-        self.bboxes = [bbox1] 
-
     def init_subscriptions(self):
         def on_gnss(obs):
-            new_key = obs.to_quadkey(24)
+            new_key = obs.to_quadkey(OCCUPANCY_TILE_LEVEL)
             if self.box_key is None or new_key != self.box_key:
                 self.box_key = new_key
-                obs.nearby_bboxes_world(radius=20, level=24)
+                bboxes_2d: List[BBox2D] = obs.nearby_bboxes_world(radius=OCCUPANCY_RADIUS, level=OCCUPANCY_TILE_LEVEL)
+                bboxes_3d: List[BBox3D] = [b.to_3d(height=OCCUPANCY_BBOX_HEIGHT) for b in bboxes_2d]
+                self.bboxes_3d = bboxes_3d
 
         self.om.subscribe(OBS_GNSS_PLAYER_POS, on_gnss)
 
@@ -125,12 +126,16 @@ class World(object):
         self.om.add(OBS_POSITION_PLAYER_POS, position_obs)
 
     def render_bboxes(self, display):
+        if not self.debug:
+            return
+
         bboxes = []
-        for bb in self.bboxes:
-            bb_cam = BBoxFactory.to_camera(bb.T, self.sensors['camera_rgb'].sensor, self.sensors['camera_rgb'].sensor)
+        for bb in self.bboxes_3d:
+            bb = bb.to_coords()
+            bb_cam = BBoxUtils.to_camera(bb.T, self.sensors['camera_rgb'].sensor, self.sensors['camera_rgb'].sensor)
             if not all(bb_cam[:, 2] > 0): continue
             bboxes.append(bb_cam)
-        BBoxFactory.draw_bounding_boxes(display, bboxes)
+        BBoxUtils.draw_bounding_boxes(display, bboxes)
 
     def render(self, display):
         self.sensors['camera_rgb'].render(display)
