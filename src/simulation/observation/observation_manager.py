@@ -10,7 +10,7 @@ class ObservationManager:
         self.observations = {}
         self.key_types = {}
         self.subscribers = {}
-        self.lock = Lock()
+        self.locks = {}
 
     def register_key(self, key, obs_type, keep=10):
         assert isinstance(key, str)
@@ -18,6 +18,7 @@ class ObservationManager:
 
         self.observations[key] = deque(maxlen=keep)
         self.key_types[key] = obs_type
+        self.locks[key] = Lock()
 
     def subscribe(self, key, callable: Callable):
         if not key in self.subscribers:
@@ -32,21 +33,19 @@ class ObservationManager:
         assert isinstance(key, str)
         assert isinstance(observation, Observation)
 
-        if self.lock.locked():
+        lock = self.locks[key]
+        if lock.locked():
             return
 
-        self.lock.acquire()
+        lock.acquire()
 
         self.observations[key].append(observation)
 
-        if not key in self.subscribers:
-            self.lock.release()
-            return
+        if key in self.subscribers:
+            for f in self.subscribers[key]:
+                f(observation)
 
-        for f in self.subscribers[key]:
-            f(observation)
-
-        self.lock.release()
+        lock.release()
 
     def latest(self, key):
         return self.observations[key][-1]

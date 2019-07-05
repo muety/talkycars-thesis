@@ -16,6 +16,7 @@ class SurroundingTileManager:
         self.radius = radius
         self.gnss_current: GnssObservation = None
         self.quadkey_current: quadkey.QuadKey = None
+        # TODO: Prevent memory leak
         self.surrounding_tiles: Dict[str, Set[BBox3D]] = dict()
         self.convert: Callable = TransformUtils.get_tile2world_conversion(self.level)
 
