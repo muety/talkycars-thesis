@@ -34,8 +34,3 @@ class Point(object):
         self.x = x
         self.y = y
         self.z = z
-
-if __name__ == '__main__':
-    rect = Cube.from_points(*[(2,2,1), (4,4,2)])
-    p = Point(3,3,.99)
-    print(rect.contains_point(p))

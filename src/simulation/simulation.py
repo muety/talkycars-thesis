@@ -8,29 +8,31 @@ import random
 
 import carla
 import pygame
-
 from bbox_factory import BBoxFactory
 from geom import *
 from hud import HUD
 from keyboard_control import KeyboardControl
+from observation.observation_manager import ObservationManager
 from sensors.camera_rgb import CameraRGBSensor
 from sensors.gnss import GnssSensor
 from sensors.lidar import LidarSensor
 
 
 class World(object):
-    def __init__(self, client, hud, actor_role_name='hero'):
+    def __init__(self, client, hud, actor_name='hero'):
         # Attributes
         self.client = client
         self.world = client.get_world()
-        self.actor_role_name = actor_role_name
+        self.actor_name = actor_name
         self.map = self.world.get_map()
         self.hud = hud
+        self.om = ObservationManager()
         self.player = None
-        self.gnss_sensor = None
-        self.camera_rgb_sensor = None
-        self.lidar_sensor = None
-        self._weather_index = 0
+        self.sensors = {
+            'lidar': None,
+            'camera_rgb': None,
+            'gnss': None
+        }
         self.npcs = [] # list of actor ids
         self.bboxes = [] 
         self.spawn_point = None
@@ -48,7 +50,7 @@ class World(object):
     def init(self):
         # Get a random blueprint.
         blueprint = self.world.get_blueprint_library().filter('vehicle.mini.cooperst')[0]
-        blueprint.set_attribute('role_name', self.actor_role_name)
+        blueprint.set_attribute('role_name', self.actor_name)
         if blueprint.has_attribute('color'):
             color = random.choice(blueprint.get_attribute('color').recommended_values)
             blueprint.set_attribute('color', color)
@@ -68,9 +70,9 @@ class World(object):
         self.spawn_point = spawn_point
 
         # Set up the sensors.
-        self.gnss_sensor = GnssSensor(self.player)
-        self.camera_rgb_sensor = CameraRGBSensor(self.player, self.hud)
-        self.lidar_sensor = LidarSensor(self.player)
+        self.sensors['gnss'] = GnssSensor(self.player,self.om)
+        self.sensors['lidar'] = LidarSensor(self.player, self.om)
+        self.sensors['camera_rgb'] = CameraRGBSensor(self.player, self.hud)
 
         # Set up other actors, NPCs, ...
         self.init_scene() # TODO: use strategy pattern or so
@@ -104,21 +106,21 @@ class World(object):
     def render_bboxes(self, display):
         bboxes = []
         for bb in self.bboxes:
-            bb_cam = BBoxFactory.to_camera(bb.T, self.camera_rgb_sensor.sensor, self.camera_rgb_sensor.sensor)
+            bb_cam = BBoxFactory.to_camera(bb.T, self.sensors['camera_rgb'].sensor, self.sensors['camera_rgb'].sensor)
             if not all(bb_cam[:, 2] > 0): continue
             bboxes.append(bb_cam)
         BBoxFactory.draw_bounding_boxes(display, bboxes)
 
     def render(self, display):
-        self.camera_rgb_sensor.render(display)
+        self.sensors['camera_rgb'].render(display)
         self.hud.render(display)
         self.render_bboxes(display)
 
     def destroy(self):
         actors = [
-            self.camera_rgb_sensor.sensor,
-            self.lidar_sensor.sensor,
-            self.gnss_sensor.sensor,
+            self.sensors['camera_rgb'].sensor,
+            self.sensors['lidar'].sensor,
+            self.sensors['gnss'].sensor,
             self.player] + self.npcs
         for actor in actors:
             if actor is not None:
