@@ -1,18 +1,22 @@
 from lib import quadkey
+from lib.quadkey import TileSystem
+from lib.tiling.surrounding_tile_manager import SurroundingTileManager
 from observation.observation import GnssObservation
 
 if __name__ == '__main__':
-    qk = quadkey.from_geo((49.010852, 8.396301), 16)
-    n1 = quadkey.from_str(qk.nearby(1)[0])
+    obs1 = GnssObservation(0.0, (49.010852, 8.396301, 12.3))
+    obs2 = GnssObservation(0.0, (49.013590, 8.396387, 12.3))
 
-    print(n1.to_geo(quadkey.TileSystem.ANCHOR_NW))
-    print(n1.to_geo(quadkey.TileSystem.ANCHOR_NE))
-    print(n1.to_geo(quadkey.TileSystem.ANCHOR_SW))
-    print(n1.to_geo(quadkey.TileSystem.ANCHOR_SE))
+    m = SurroundingTileManager(24, 1)
 
-    obs = GnssObservation(0.0, (49.010852, 8.396301, 12.3))
-    print(len(obs.nearby_bboxes_world(radius=1)))
-    print(obs.nearby_bboxes_world(radius=1)[0])
-    print(obs.nearby_bboxes_world(radius=1)[1])
-    print(obs.nearby_bboxes_world(radius=1)[2])
-    print(obs.nearby_bboxes_world(radius=1)[3])
+    m.update_gnss(obs1)
+    print(list(m.get_surrounding())[0])
+    print(list(m.get_surrounding())[1])
+    print(list(m.get_surrounding())[2])
+    print(list(m.get_surrounding())[3])
+
+    m.update_gnss(obs2)
+    print(list(m.get_surrounding())[0])
+    print(list(m.get_surrounding())[1])
+    print(list(m.get_surrounding())[2])
+    print(list(m.get_surrounding())[3])

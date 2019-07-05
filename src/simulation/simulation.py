@@ -10,9 +10,10 @@ from typing import List
 import carla
 import pygame
 from constants import OBS_POSITION_PLAYER_POS, OBS_GNSS_PLAYER_POS, OBS_LIDAR_POINTS, OBS_CAMERA_RGB_IMAGE
-from geom import BBox2D, BBox3D
+from lib.geom import BBox2D, BBox3D
 from hud import HUD
 from keyboard_control import KeyboardControl
+from lib.tiling.surrounding_tile_manager import SurroundingTileManager
 from observation.observation import PositionObservation, GnssObservation, LidarObservation, CameraRGBObservation
 from observation.observation_manager import ObservationManager
 from sensors.camera_rgb import CameraRGBSensor
@@ -20,9 +21,8 @@ from sensors.gnss import GnssSensor
 from sensors.lidar import LidarSensor
 from util import BBoxUtils
 
-OCCUPANCY_RADIUS = 10
+OCCUPANCY_RADIUS = 20
 OCCUPANCY_TILE_LEVEL = 24
-OCCUPANCY_BBOX_HEIGHT = 3.5
 
 class World(object):
     def __init__(self, client, hud, actor_name='hero'):
@@ -34,6 +34,7 @@ class World(object):
         self.map = self.world.get_map()
         self.hud = hud
         self.om = ObservationManager()
+        self.tm = SurroundingTileManager(OCCUPANCY_TILE_LEVEL, OCCUPANCY_RADIUS)
         self.player = None
         self.sensors = {
             'lidar': None,
@@ -105,15 +106,7 @@ class World(object):
         self.npcs.append(car1)
 
     def init_subscriptions(self):
-        def on_gnss(obs):
-            new_key = obs.to_quadkey(OCCUPANCY_TILE_LEVEL)
-            if self.box_key is None or new_key != self.box_key:
-                self.box_key = new_key
-                bboxes_2d: List[BBox2D] = obs.nearby_bboxes_world(radius=OCCUPANCY_RADIUS, level=OCCUPANCY_TILE_LEVEL)
-                bboxes_3d: List[BBox3D] = [b.to_3d(height=OCCUPANCY_BBOX_HEIGHT) for b in bboxes_2d]
-                self.bboxes_3d = bboxes_3d
-
-        self.om.subscribe(OBS_GNSS_PLAYER_POS, on_gnss)
+        self.om.subscribe(OBS_GNSS_PLAYER_POS, self.tm.update_gnss)
 
     def tick(self, clock):
         clock.tick_busy_loop(60)

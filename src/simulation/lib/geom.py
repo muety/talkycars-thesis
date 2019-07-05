@@ -21,6 +21,9 @@ class BBox2D(object):
     def __str__(self):
         return str(list(zip(self.xrange, self.yrange)))
 
+    def __hash__(self):
+        return hash(str(self))
+
     def to_3d(self, offset=0, height=3):
         p1, p2 = self.to_points()
         p1 += (offset,)
@@ -82,6 +85,9 @@ class BBox3D(object):
 
     def __str__(self):
         return str(list(zip(self.xrange, self.yrange, self.zrange)))
+
+    def __hash__(self):
+        return hash(str(self))
 
     @classmethod
     def from_points(cls, firstcorner, secondcorner):
