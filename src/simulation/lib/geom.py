@@ -84,10 +84,16 @@ class BBox3D(object):
         pass
 
     def __str__(self):
-        return str(list(zip(self.xrange, self.yrange, self.zrange)))
+        return str(sorted(list(zip(self.xrange, self.yrange, self.zrange))))
+
+    def __repr__(self):
+        return self.__str__()
 
     def __hash__(self):
-        return hash(str(self))
+        return hash(hash(self.xrange[0]) + hash(self.xrange[1]) + hash(self.yrange[0]) + hash(self.yrange[1]) + hash(self.zrange[0]) + hash(self.zrange[1]))
+
+    def __eq__(self, other):
+        return self.__hash__() == other.__hash__()
 
     @classmethod
     def from_points(cls, firstcorner, secondcorner):
