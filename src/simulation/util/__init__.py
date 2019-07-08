@@ -5,9 +5,8 @@ BB_COLOR = (248, 64, 24)
 
 class TransformUtils:
     @staticmethod
-    def get_tile2world_conversion(level):
-        # TODO
-        return lambda x: (x[0] * 1e-10 + 10, x[1] * 0.2 + 20)
+    def get_tile2world_conversion(level=31):
+        return lambda x: (x[0] * 4.78296128064646e-5 - 13731628.4846192, x[1] * -4.7799656322138e-5 + 9024494.06807157)
 
 class BBoxUtils(object):
     @staticmethod

@@ -10,9 +10,9 @@ from typing import List
 import carla
 import pygame
 from constants import OBS_POSITION_PLAYER_POS, OBS_GNSS_PLAYER_POS, OBS_LIDAR_POINTS, OBS_CAMERA_RGB_IMAGE
-from lib.geom import BBox2D, BBox3D
 from hud import HUD
 from keyboard_control import KeyboardControl
+from lib.geom import BBox3D
 from lib.tiling.surrounding_tile_manager import SurroundingTileManager
 from observation.observation import PositionObservation, GnssObservation, LidarObservation, CameraRGBObservation
 from observation.observation_manager import ObservationManager
@@ -117,6 +117,8 @@ class World(object):
         player_location = self.player.get_location()
         position_obs = PositionObservation(ts.elapsed_seconds, (player_location.x, player_location.y, player_location.z))
         self.om.add(OBS_POSITION_PLAYER_POS, position_obs)
+
+        self.bboxes_3d = self.tm.get_surrounding()
 
     def render_bboxes(self, display):
         if not self.debug:

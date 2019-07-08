@@ -1,7 +1,6 @@
-import numpy as np
-
 from typing import Tuple, List, Set, Dict, Callable
 
+import numpy as np
 from lib import quadkey
 from lib.geom import BBox3D, BBox2D
 from lib.quadkey import TileSystem
@@ -44,24 +43,22 @@ class SurroundingTileManager:
     def _quadkeys_to_bboxes3d(self, quadkeys) -> Set[BBox3D]:
         pixel_boxes: List[List[Tuple[float, float], Tuple[float, float], Tuple[float, float], Tuple[float, float]]]
 
+        base_z = self.gnss_current.value[2]
         pixel_boxes = list(map(self._map_to_pixel_box, quadkeys))
-        pixel_bboxes = list(map(self._map_to_bbox, pixel_boxes))
-        bboxes_2d = list(map(self._map_to_world, pixel_bboxes))
-        return set([b.to_3d(height=OCCUPANCY_BBOX_HEIGHT) for b in bboxes_2d])
+        world_boxes = list(map(self._map_to_world, pixel_boxes))
+        bboxes_2d = list(map(self._map_to_bbox, world_boxes))
+        return set([b.to_3d(offset=base_z - OCCUPANCY_BBOX_HEIGHT, height=OCCUPANCY_BBOX_HEIGHT) for b in bboxes_2d])
 
-    def _map_to_world(self, bbox: BBox2D) -> BBox2D:
-        zipped = bbox.to_points()
-        c1 = zipped[0]
-        c2 = zipped[1]
-        return BBox2D.from_points(self.convert(c1), self.convert(c2))
+    def _map_to_world(self, coords: List[Tuple[float, float]]) -> List[Tuple[float, float]]:
+        return list(map(lambda c: self.convert(c), coords))
 
     @staticmethod
     def _map_to_pixel_box(qk: quadkey.QuadKey) -> List[Tuple[float, float]]:
         return [
-            qk.to_pixel(TileSystem.ANCHOR_NW),
-            qk.to_pixel(TileSystem.ANCHOR_NE),
-            qk.to_pixel(TileSystem.ANCHOR_SW),
-            qk.to_pixel(TileSystem.ANCHOR_SE)
+            quadkey.from_geo(qk.to_geo(TileSystem.ANCHOR_NW), 31).to_pixel(TileSystem.ANCHOR_CENTER),
+            quadkey.from_geo(qk.to_geo(TileSystem.ANCHOR_NE), 31).to_pixel(TileSystem.ANCHOR_CENTER),
+            quadkey.from_geo(qk.to_geo(TileSystem.ANCHOR_SW), 31).to_pixel(TileSystem.ANCHOR_CENTER),
+            quadkey.from_geo(qk.to_geo(TileSystem.ANCHOR_SE), 31).to_pixel(TileSystem.ANCHOR_CENTER)
         ]
 
     @staticmethod
