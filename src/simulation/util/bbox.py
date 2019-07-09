@@ -84,3 +84,12 @@ class BBoxUtils(object):
         world_sensor_matrix = np.linalg.inv(sensor_world_matrix)
         sensor_cords = np.dot(world_sensor_matrix, cords)
         return sensor_cords
+
+    @staticmethod
+    def _sensor_to_world(cords, sensor):
+        """
+        Transforms world coordinates to sensor.
+        """
+        sensor_world_matrix = BBoxUtils.get_matrix(sensor.get_transform())
+        world_cords = np.dot(sensor_world_matrix, cords.T)
+        return world_cords

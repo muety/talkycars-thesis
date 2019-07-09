@@ -1,3 +1,4 @@
+from enum import Enum
 from typing import Callable, List, Tuple
 
 import numpy as np
@@ -6,12 +7,18 @@ from lib.geom import BBox3D, Point3D, Point2D
 from lib.quadkey import QuadKey
 
 
+class GridCellState(Enum):
+    FREE = 0
+    OCCUPIED = 1
+    UNKNOWN = 2
+
 class GridCell(BBox3D):
     def __init__(self, quad_key: QuadKey, convert: Callable, offset: float = 0, height: float = 3):
-        self.quad_key = quad_key
-        self.convert = convert
-        self.offset = offset
-        self.height = height
+        self.quad_key: QuadKey = quad_key
+        self.convert: Callable = convert
+        self.offset: float = offset
+        self.height: float = height
+        self.state: GridCellState = GridCellState.UNKNOWN
 
         pixel_corners: List[Point2D] = self._quadkey_to_box(quad_key)
         world_corners: List[Point2D] = list(map(self._map_to_world, pixel_corners))
@@ -25,7 +32,7 @@ class GridCell(BBox3D):
     def _map_to_bbox_corners(self, corners: List[Point2D]) -> Tuple[Point3D, Point3D]:
         c1 = np.min(list(map(lambda c: c.components(), corners)), axis=0)
         c2 = np.max(list(map(lambda c: c.components(), corners)), axis=0)
-        return Point3D(*c1, self.offset), Point3D(*c2, self.height)
+        return Point3D(*c1, self.offset), Point3D(*c2, self.offset + self.height)
 
     @staticmethod
     def _quadkey_to_box(qk: QuadKey) -> List[Point2D]:

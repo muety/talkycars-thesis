@@ -1,7 +1,28 @@
-from typing import Callable, Tuple
+from typing import Callable, Tuple, Iterable
 
 import numpy as np
 
+
+class Point:
+    def components(self) -> Tuple:
+        raise NotImplementedError('subclasses must override components()!')
+
+class Point2D(Point):
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+
+    def components(self) -> Tuple[float, float]:
+        return self.x, self.y
+
+class Point3D(Point):
+    def __init__(self, x, y, z):
+        self.x = x
+        self.y = y
+        self.z = z
+
+    def components(self) -> Tuple[float, float, float]:
+        return self.x, self.y, self.z
 
 # https://stackoverflow.com/a/29720938
 
@@ -11,12 +32,17 @@ class BBox3D(object):
         self.yrange = yrange
         self.zrange = zrange
 
-    def contains_point(self, p):
+    def contains(self, p: Point3D):
         if not all(hasattr(p, loc) for loc in 'xyz'):
             raise TypeError("Can only check if 3D points are in the rect")
         return all([self.xrange[0] <= p.x <= self.xrange[1],
                     self.yrange[0] <= p.y <= self.yrange[1],
                     self.zrange[0] <= p.z <= self.zrange[1]])
+
+    def contains_point(self, p: Iterable[float]):
+        return all([self.xrange[0] <= p[0] <= self.xrange[1],
+                    self.yrange[0] <= p[1] <= self.yrange[1],
+                    self.zrange[0] <= p[2] <= self.zrange[1]])
 
     def to_points(self):
         return tuple(zip(self.xrange, self.yrange, self.zrange))
@@ -53,24 +79,3 @@ class BBox3D(object):
     @classmethod
     def from_points(cls, firstcorner, secondcorner):
         return cls(*zip(firstcorner, secondcorner))
-
-class Point:
-    def components(self) -> Tuple:
-        raise NotImplementedError('subclasses must override components()!')
-
-class Point2D(Point):
-    def __init__(self, x, y):
-        self.x = x
-        self.y = y
-
-    def components(self) -> Tuple[float, float]:
-        return self.x, self.y
-
-class Point3D(Point):
-    def __init__(self, x, y, z):
-        self.x = x
-        self.y = y
-        self.z = z
-
-    def components(self) -> Tuple[float, float, float]:
-        return self.x, self.y, self.z

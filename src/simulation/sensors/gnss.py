@@ -4,7 +4,7 @@ import carla
 from constants import OBS_GNSS_PLAYER_POS
 from observation import GnssObservation
 from observation import ObservationManager
-from sensors import Sensor
+from sensors.sensor import Sensor
 
 
 class GnssSensor(Sensor):

@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Tuple
+from typing import Tuple, Iterable
 
 import numpy as np
 from lib import quadkey
@@ -30,9 +30,7 @@ class GnssObservation(Observation):
         return f'[{self.timestamp}] GPS Position: {self.value}'
 
 class LidarObservation(Observation):
-    def __init__(self, timestamp, points: np.ndarray):
-        assert isinstance(points, np.ndarray)
-
+    def __init__(self, timestamp, points: Iterable):
         super().__init__(timestamp)
         self.value = points
 

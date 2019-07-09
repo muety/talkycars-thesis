@@ -1,7 +1,6 @@
 import weakref
 
 import carla
-import numpy as np
 from constants import OBS_LIDAR_POINTS
 from observation import LidarObservation
 from observation import ObservationManager
@@ -9,7 +8,7 @@ from sensors import Sensor
 
 
 class LidarSensor(Sensor):
-    def __init__(self, parent_actor, observation_manager: ObservationManager = None):
+    def __init__(self, parent_actor, observation_manager: ObservationManager = None, range_m = 5):
         weak_self = weakref.ref(self)
 
         self.sensor = None
@@ -19,9 +18,9 @@ class LidarSensor(Sensor):
 
         world = self._parent.get_world()
         bp = world.get_blueprint_library().find('sensor.lidar.ray_cast')
-        bp.set_attribute('range', '5000')
+        bp.set_attribute('range', str(int(range_m * 100)))
 
-        self.sensor = world.spawn_actor(bp, carla.Transform(carla.Location(x=-5.5, z=2.8), carla.Rotation(pitch=-15)), attach_to=self._parent)
+        self.sensor = world.spawn_actor(bp, carla.Transform(carla.Location(z=2.8), carla.Rotation(pitch=-15)), attach_to=self._parent)
         self.sensor.listen(lambda event: LidarSensor._on_image(weak_self, event))
 
     def toggle_recording(self):
@@ -32,8 +31,9 @@ class LidarSensor(Sensor):
         self = weak_self()
         if not self:
             return
-        points = np.frombuffer(image.raw_data, dtype=np.dtype('f4'))
-        points = np.reshape(points, (int(points.shape[0] / 3), 3))
+
+        points = map(image.transform.transform, image)
+        points = list(map(lambda p: (p.x, p.y, p.z), points))
 
         obs = LidarObservation(image.timestamp, points)
         self.om.add(OBS_LIDAR_POINTS, obs)

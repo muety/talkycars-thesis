@@ -12,6 +12,7 @@ from constants import OBS_POSITION_PLAYER_POS, OBS_GNSS_PLAYER_POS, OBS_LIDAR_PO
 from hud import HUD
 from keyboard_control import KeyboardControl
 from lib.occupancy.grid_manager import OccupancyGridManager
+from lib.quadkey import QuadKey
 from observation import ObservationManager
 from observation import PositionObservation, GnssObservation, LidarObservation, CameraRGBObservation
 from sensors import CameraRGBSensor
@@ -21,6 +22,7 @@ from util import BBoxUtils
 
 OCCUPANCY_RADIUS = 5
 OCCUPANCY_TILE_LEVEL = 24
+LIDAR_MAX_RANGE = 100
 
 class World(object):
     def __init__(self, client, hud, actor_name='hero'):
@@ -74,16 +76,19 @@ class World(object):
             self.player = self.world.try_spawn_actor(blueprint, spawn_point)
         self.spawn_point = spawn_point
 
-        # Set up the sensors.
-        self.sensors['gnss'] = GnssSensor(self.player, self.om)
-        self.sensors['lidar'] = LidarSensor(self.player, self.om)
-        self.sensors['camera_rgb'] = CameraRGBSensor(self.player, self.hud)
-
         # Type registrations
         self.om.register_key(OBS_POSITION_PLAYER_POS, PositionObservation)
         self.om.register_key(OBS_GNSS_PLAYER_POS, GnssObservation)
         self.om.register_key(OBS_LIDAR_POINTS, LidarObservation)
         self.om.register_key(OBS_CAMERA_RGB_IMAGE, CameraRGBObservation)
+
+        # Set up the sensors.
+        lidar_range = min(OCCUPANCY_RADIUS * QuadKey('0' * OCCUPANCY_TILE_LEVEL).side(), LIDAR_MAX_RANGE)
+        self.sensors['gnss'] = GnssSensor(self.player, self.om)
+        self.sensors['lidar'] = LidarSensor(self.player, self.om, range_m=lidar_range)
+        self.sensors['camera_rgb'] = CameraRGBSensor(self.player, self.hud)
+
+        self.gm.offset_z = 2.8 # GNSS Z-transform
 
         # Set up listeners
         self.init_subscriptions()
@@ -114,6 +119,9 @@ class World(object):
         player_location = self.player.get_location()
         position_obs = PositionObservation(ts.elapsed_seconds, (player_location.x, player_location.y, player_location.z))
         self.om.add(OBS_POSITION_PLAYER_POS, position_obs)
+
+        if ts.frame_count % 10 == 0:
+            self.gm.match_with_lidar(self.om.latest(OBS_LIDAR_POINTS))
 
     def render_bboxes(self, display):
         if not self.debug or self.gm.get_grid() is None:
