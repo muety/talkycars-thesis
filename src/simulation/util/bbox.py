@@ -1,11 +1,13 @@
 import numpy as np
 import pygame
+from lib.occupancy.grid import GridCellState
 
 BB_COLOR = (248, 64, 24)
+BB_COLOR_OCCUPIED = (24, 64, 248)
 
 class BBoxUtils(object):
     @staticmethod
-    def draw_bounding_boxes(display, bounding_boxes):
+    def draw_bounding_boxes(display, bounding_boxes, states):
         """
         Draws bounding boxes on pygame display.
         """
@@ -14,25 +16,30 @@ class BBoxUtils(object):
 
         bb_surface = pygame.Surface((info.current_w, info.current_h))
         bb_surface.set_colorkey((0, 0, 0))
-        for bbox in bounding_boxes:
+        for k, bbox in enumerate(bounding_boxes):
+            color = BB_COLOR_OCCUPIED if states[k] is GridCellState.OCCUPIED else BB_COLOR
+            if states[k] is not GridCellState.OCCUPIED:
+                continue
+                pass
+
             points = [(int(bbox[i, 0]), int(bbox[i, 1])) for i in range(8)]
             # draw lines
             # base
-            pygame.draw.line(bb_surface, BB_COLOR, points[0], points[1])
-            pygame.draw.line(bb_surface, BB_COLOR, points[0], points[1])
-            pygame.draw.line(bb_surface, BB_COLOR, points[1], points[2])
-            pygame.draw.line(bb_surface, BB_COLOR, points[2], points[3])
-            pygame.draw.line(bb_surface, BB_COLOR, points[3], points[0])
+            pygame.draw.line(bb_surface, color, points[0], points[1])
+            pygame.draw.line(bb_surface, color, points[0], points[1])
+            pygame.draw.line(bb_surface, color, points[1], points[2])
+            pygame.draw.line(bb_surface, color, points[2], points[3])
+            pygame.draw.line(bb_surface, color, points[3], points[0])
             # top
-            pygame.draw.line(bb_surface, BB_COLOR, points[4], points[5])
-            pygame.draw.line(bb_surface, BB_COLOR, points[5], points[6])
-            pygame.draw.line(bb_surface, BB_COLOR, points[6], points[7])
-            pygame.draw.line(bb_surface, BB_COLOR, points[7], points[4])
+            pygame.draw.line(bb_surface, color, points[4], points[5])
+            pygame.draw.line(bb_surface, color, points[5], points[6])
+            pygame.draw.line(bb_surface, color, points[6], points[7])
+            pygame.draw.line(bb_surface, color, points[7], points[4])
             # base-top
-            pygame.draw.line(bb_surface, BB_COLOR, points[0], points[4])
-            pygame.draw.line(bb_surface, BB_COLOR, points[1], points[5])
-            pygame.draw.line(bb_surface, BB_COLOR, points[2], points[6])
-            pygame.draw.line(bb_surface, BB_COLOR, points[3], points[7])
+            pygame.draw.line(bb_surface, color, points[0], points[4])
+            pygame.draw.line(bb_surface, color, points[1], points[5])
+            pygame.draw.line(bb_surface, color, points[2], points[6])
+            pygame.draw.line(bb_surface, color, points[3], points[7])
         display.blit(bb_surface, (0, 0))
 
     @classmethod

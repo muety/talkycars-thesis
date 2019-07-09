@@ -37,4 +37,6 @@ class ObservationManager:
                 f(observation)
 
     def latest(self, key):
+        if not key in self.observations or len(self.observations[key]) == 0:
+            return None
         return self.observations[key][-1]

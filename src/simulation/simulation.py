@@ -20,7 +20,7 @@ from sensors import GnssSensor
 from sensors import LidarSensor
 from util import BBoxUtils
 
-OCCUPANCY_RADIUS = 5
+OCCUPANCY_RADIUS = 2
 OCCUPANCY_TILE_LEVEL = 24
 LIDAR_MAX_RANGE = 100
 
@@ -120,20 +120,21 @@ class World(object):
         position_obs = PositionObservation(ts.elapsed_seconds, (player_location.x, player_location.y, player_location.z))
         self.om.add(OBS_POSITION_PLAYER_POS, position_obs)
 
-        if ts.frame_count % 10 == 0:
-            self.gm.match_with_lidar(self.om.latest(OBS_LIDAR_POINTS))
+        self.gm.match_with_lidar(self.om.latest(OBS_LIDAR_POINTS))
 
     def render_bboxes(self, display):
         if not self.debug or self.gm.get_grid() is None:
             return
 
         bboxes = []
-        for bb in self.gm.get_grid().cells:
-            bb = bb.to_vertices()
+        states = []
+        for cell in self.gm.get_grid().cells:
+            bb = cell.to_vertices()
             bb_cam = BBoxUtils.to_camera(bb.T, self.sensors['camera_rgb'].sensor, self.sensors['camera_rgb'].sensor)
             if not all(bb_cam[:, 2] > 0): continue
             bboxes.append(bb_cam)
-        BBoxUtils.draw_bounding_boxes(display, bboxes)
+            states.append(cell.state)
+        BBoxUtils.draw_bounding_boxes(display, bboxes, states)
 
     def render(self, display):
         self.sensors['camera_rgb'].render(display)

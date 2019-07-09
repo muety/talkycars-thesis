@@ -38,7 +38,7 @@ class LidarSensor(Sensor):
 
         # TODO: Make sure transformations are actually correct
         points = map(image.transform.transform, image)
-        points = list(map(lambda p: (p.x, p.y, p.z - 2 * self.offset_z), points))
+        points = list(map(lambda p: (p.x, p.y, p.z - self.offset_z), points))
 
         obs = LidarObservation(image.timestamp, points)
         self.om.add(OBS_LIDAR_POINTS, obs)

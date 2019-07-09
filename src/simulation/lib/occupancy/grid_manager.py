@@ -4,7 +4,7 @@ from lib import quadkey
 from lib.occupancy.grid import Grid, GridCell, GridCellState
 from observation import GnssObservation, LidarObservation
 
-OCCUPANCY_BBOX_OFFSET = .1
+OCCUPANCY_BBOX_OFFSET = .3
 OCCUPANCY_BBOX_HEIGHT = 3.5
 
 class OccupancyGridManager:
@@ -31,7 +31,7 @@ class OccupancyGridManager:
 
     def match_with_lidar(self, obs: LidarObservation):
         grid = self.get_grid()
-        if grid is None:
+        if grid is None or obs is None:
             return
 
         # TODO: Use KD-Tree for lookup ?
@@ -40,12 +40,13 @@ class OccupancyGridManager:
         n_matches = 0
 
         for cell in grid.cells:
+            cell.state = GridCellState.UNKNOWN
+
             for point in obs.value:
                 if cell.contains_point(point):
                     cell.state = GridCellState.OCCUPIED
                     n_matches += 1
                     break
-            cell.state = GridCellState.UNKNOWN
 
         # print(n_matches)
 
