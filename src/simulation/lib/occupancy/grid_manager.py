@@ -4,7 +4,7 @@ from lib import quadkey
 from lib.occupancy.grid import Grid, GridCell, GridCellState
 from observation import GnssObservation, LidarObservation
 
-OCCUPANCY_BBOX_OFFSET = .3
+OCCUPANCY_BBOX_OFFSET = .1
 OCCUPANCY_BBOX_HEIGHT = 3.5
 
 class OccupancyGridManager:

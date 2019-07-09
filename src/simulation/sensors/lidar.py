@@ -21,8 +21,8 @@ class LidarSensor(Sensor):
         bp = world.get_blueprint_library().find('sensor.lidar.ray_cast')
         bp.set_attribute('range', str(int(range_m * 100)))
         bp.set_attribute('upper_fov', '10')
-        bp.set_attribute('lower_fov', '-30')
-        bp.set_attribute('channels', '64')
+        bp.set_attribute('lower_fov', '-10')
+        bp.set_attribute('sensor_tick', '0.1')
 
         self.sensor = world.spawn_actor(bp, carla.Transform(carla.Location(z=self.offset_z), carla.Rotation()), attach_to=self._parent)
         self.sensor.listen(lambda event: LidarSensor._on_image(weak_self, event))
@@ -36,9 +36,16 @@ class LidarSensor(Sensor):
         if not self:
             return
 
+        # Dirty hack and idk why it's needed, but it works
+        t = carla.Transform(
+            image.transform.location,
+            carla.Rotation(roll=image.transform.rotation.roll, pitch=image.transform.rotation.pitch, yaw=image.transform.rotation.yaw + 90)
+        )
+
         # TODO: Make sure transformations are actually correct
-        points = map(image.transform.transform, image)
-        points = list(map(lambda p: (p.x, p.y, p.z - self.offset_z), points))
+        points = map(t.transform, image)
+        points = map(lambda p: (p.x, p.y, p.z - self.offset_z), points)
+        points = list(filter(lambda p: p[2] >= 0, points))
 
         obs = LidarObservation(image.timestamp, points)
         self.om.add(OBS_LIDAR_POINTS, obs)

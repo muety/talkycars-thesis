@@ -20,7 +20,7 @@ from sensors import GnssSensor
 from sensors import LidarSensor
 from util import BBoxUtils
 
-OCCUPANCY_RADIUS = 2
+OCCUPANCY_RADIUS = 5
 OCCUPANCY_TILE_LEVEL = 24
 LIDAR_MAX_RANGE = 100
 
