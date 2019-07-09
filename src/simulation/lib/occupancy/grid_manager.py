@@ -4,6 +4,7 @@ from lib import quadkey
 from lib.occupancy.grid import Grid, GridCell, GridCellState
 from observation import GnssObservation, LidarObservation
 
+OCCUPANCY_BBOX_OFFSET = .1
 OCCUPANCY_BBOX_HEIGHT = 3.5
 
 class OccupancyGridManager:
@@ -36,12 +37,17 @@ class OccupancyGridManager:
         # TODO: Use KD-Tree for lookup ?
         # TODO: Detect free cells by intersecting every lidar ray with every box
         # TODO: Multi-threading
+        n_matches = 0
+
         for cell in grid.cells:
             for point in obs.value:
                 if cell.contains_point(point):
                     cell.state = GridCellState.OCCUPIED
+                    n_matches += 1
                     break
             cell.state = GridCellState.UNKNOWN
+
+        # print(n_matches)
 
     def _recompute(self):
         key = self.quadkey_current
@@ -50,7 +56,7 @@ class OccupancyGridManager:
         self.grids[key.key] = self._compute_grid()
 
     def _compute_grid(self) -> Grid:
-        base_z = self.gnss_current.value[2] - self.offset_z
+        base_z = (self.gnss_current.value[2] - self.offset_z) + OCCUPANCY_BBOX_OFFSET
         quadkeys: List[quadkey.QuadKey] = list(map(lambda k: quadkey.QuadKey(k), self.quadkey_current.nearby(self.radius)))
         cells: Set[GridCell] = set(map(lambda q: GridCell(q, self.convert, base_z, OCCUPANCY_BBOX_HEIGHT), quadkeys))
         return Grid(cells)
