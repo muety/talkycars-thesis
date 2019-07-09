@@ -5,20 +5,18 @@ from __future__ import print_function
 import argparse
 import logging
 import random
-from typing import List
 
 import carla
 import pygame
 from constants import OBS_POSITION_PLAYER_POS, OBS_GNSS_PLAYER_POS, OBS_LIDAR_POINTS, OBS_CAMERA_RGB_IMAGE
 from hud import HUD
 from keyboard_control import KeyboardControl
-from lib.geom import BBox3D
-from lib.tiling.surrounding_tile_manager import SurroundingTileManager
-from observation.observation import PositionObservation, GnssObservation, LidarObservation, CameraRGBObservation
-from observation.observation_manager import ObservationManager
-from sensors.camera_rgb import CameraRGBSensor
-from sensors.gnss import GnssSensor
-from sensors.lidar import LidarSensor
+from lib.occupancy.grid_manager import OccupancyGridManager
+from observation import ObservationManager
+from observation import PositionObservation, GnssObservation, LidarObservation, CameraRGBObservation
+from sensors import CameraRGBSensor
+from sensors import GnssSensor
+from sensors import LidarSensor
 from util import BBoxUtils
 
 OCCUPANCY_RADIUS = 5
@@ -34,7 +32,7 @@ class World(object):
         self.map = self.world.get_map()
         self.hud = hud
         self.om = ObservationManager()
-        self.tm = SurroundingTileManager(OCCUPANCY_TILE_LEVEL, OCCUPANCY_RADIUS)
+        self.gm = OccupancyGridManager(OCCUPANCY_TILE_LEVEL, OCCUPANCY_RADIUS)
         self.player = None
         self.sensors = {
             'lidar': None,
@@ -42,9 +40,8 @@ class World(object):
             'gnss': None
         }
         self.npcs = [] # list of actor ids
-        self.bboxes_3d: List[BBox3D] = []
         self.box_key = None
-        self.debug = False
+        self.debug = True
 
         self.init()
         self.world.on_tick(hud.on_world_tick)
@@ -106,7 +103,7 @@ class World(object):
         self.npcs.append(car1)
 
     def init_subscriptions(self):
-        self.om.subscribe(OBS_GNSS_PLAYER_POS, self.tm.update_gnss)
+        self.om.subscribe(OBS_GNSS_PLAYER_POS, self.gm.update_gnss)
 
     def tick(self, clock):
         clock.tick_busy_loop(60)
@@ -118,15 +115,13 @@ class World(object):
         position_obs = PositionObservation(ts.elapsed_seconds, (player_location.x, player_location.y, player_location.z))
         self.om.add(OBS_POSITION_PLAYER_POS, position_obs)
 
-        self.bboxes_3d = self.tm.get_surrounding()
-
     def render_bboxes(self, display):
-        if not self.debug:
+        if not self.debug or self.gm.get_grid() is None:
             return
 
         bboxes = []
-        for bb in self.bboxes_3d:
-            bb = bb.to_coords()
+        for bb in self.gm.get_grid().cells:
+            bb = bb.to_vertices()
             bb_cam = BBoxUtils.to_camera(bb.T, self.sensors['camera_rgb'].sensor, self.sensors['camera_rgb'].sensor)
             if not all(bb_cam[:, 2] > 0): continue
             bboxes.append(bb_cam)

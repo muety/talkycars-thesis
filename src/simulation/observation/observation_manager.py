@@ -1,7 +1,7 @@
 from collections import deque
 from typing import Callable
 
-from observation.observation import Observation
+from observation import Observation
 
 
 class ObservationManager:

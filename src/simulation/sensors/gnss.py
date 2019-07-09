@@ -2,9 +2,9 @@ import weakref
 
 import carla
 from constants import OBS_GNSS_PLAYER_POS
-from observation.observation import GnssObservation
-from observation.observation_manager import ObservationManager
-from sensors.sensor import Sensor
+from observation import GnssObservation
+from observation import ObservationManager
+from sensors import Sensor
 
 
 class GnssSensor(Sensor):

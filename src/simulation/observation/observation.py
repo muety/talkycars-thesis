@@ -1,11 +1,8 @@
 from datetime import datetime
-from typing import Tuple, List, Callable
+from typing import Tuple
 
 import numpy as np
-from lib.geom import BBox2D
 from lib import quadkey
-from lib.quadkey.tile_system import TileSystem
-from util import TransformUtils
 
 
 class Observation:
