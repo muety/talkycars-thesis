@@ -1,7 +1,9 @@
-from typing import Callable, Tuple, Iterable
+from typing import Callable, Tuple
 
 import math
 import numpy as np
+
+from .raycast import raycast
 
 
 class Point:
@@ -32,7 +34,7 @@ class Point3D(Point):
         return self.x, self.y, self.z
 
 class Ray3D:
-    def __init__(self, origin: Point3D, direction: Point3D):
+    def __init__(self, origin, direction):
         self.origin = origin
         self.direction = direction
         self.invdir = [1 / d if d > 0 else math.inf for d in direction]
@@ -45,7 +47,7 @@ class BBox3D(object):
         self.xrange = xrange  # (xmin, xmax)
         self.yrange = yrange
         self.zrange = zrange
-        self.bounds = [Point3D(*(self.to_points()[0])), Point3D(*(self.to_points()[1]))]
+        self.bounds = self.to_points()
 
     def contains(self, p: Point3D):
         if not all(hasattr(p, loc) for loc in 'xyz'):
@@ -54,30 +56,11 @@ class BBox3D(object):
                     self.yrange[0] <= p.y <= self.yrange[1],
                     self.zrange[0] <= p.z <= self.zrange[1]])
 
-    def contains_point(self, p: Iterable[float]):
-        return all([self.xrange[0] <= p[0] <= self.xrange[1],
-                    self.yrange[0] <= p[1] <= self.yrange[1],
-                    self.zrange[0] <= p[2] <= self.zrange[1]])
+    def contains_point(self, p):
+        return raycast.aabb_contains(self.bounds, p)
 
-    def intersects(self, r: Ray3D):
-        tmin = (self.bounds[r.sign[0]].x - r.origin[0]) * r.invdir[0]
-        tmax = (self.bounds[1 - r.sign[0]].x - r.origin[0]) * r.invdir[0]
-        tymin = (self.bounds[r.sign[1]].y - r.origin[1]) * r.invdir[1]
-        tymax = (self.bounds[1 - r.sign[1]].y - r.origin[1]) * r.invdir[1]
-
-        if tmin > tymax or tymin > tmax:
-            return False
-
-        tmin = max([tmin, tymin])
-        tmax = min([tmax, tymax])
-
-        tzmin = (self.bounds[r.sign[2]].z - r.origin[2]) * r.invdir[2]
-        tzmax = (self.bounds[1 - r.sign[2]].z - r.origin[2]) * r.invdir[2]
-
-        if tmin > tzmax or tzmin > tmax:
-            return False
-
-        return True
+    def intersects(self, r: raycast.Ray3D):
+        return raycast.aabb_intersect(self.bounds, r)
 
     def to_points(self):
         return tuple(zip(self.xrange, self.yrange, self.zrange))

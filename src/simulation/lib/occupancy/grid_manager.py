@@ -1,10 +1,9 @@
 from multiprocessing.pool import ThreadPool
 from typing import List, Set, Dict, Callable
 
-import math
 from lib import quadkey
-from lib.geom import Ray3D
 from lib.occupancy.grid import Grid, GridCell, GridCellState
+from lib.raycast import raycast
 from observation import GnssObservation, LidarObservation, PositionObservation
 
 OCCUPANCY_BBOX_OFFSET = .1
@@ -46,9 +45,7 @@ class OccupancyGridManager:
         # TODO: Use KD-Tree for lookup ?
         n = len(grid.cells)
         grid_cells = list(grid.cells)
-        batch_size = math.ceil(n / N_THREADS)
-        batches = [grid_cells[i*batch_size:min(i*batch_size+batch_size, n)] for i in range(n)]
-        self.pool1.map(self._match_cells, list(map(lambda b: (b, obs, self.location), batches)))
+        self._match_cells((grid_cells, obs, self.location))
 
     def _match_cells(self, args):
         cells, obs, loc = args
@@ -61,7 +58,7 @@ class OccupancyGridManager:
                     cell.state = GridCellState.OCCUPIED
                     break
 
-                if cell.intersects(Ray3D(loc, direction)):
+                if cell.intersects(raycast.Ray3D(loc, direction)):
                     cell.state = GridCellState.FREE
                     break
 
