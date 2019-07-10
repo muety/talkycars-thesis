@@ -2,8 +2,9 @@ import numpy as np
 import pygame
 from lib.occupancy.grid import GridCellState
 
-BB_COLOR = (248, 64, 24)
-BB_COLOR_OCCUPIED = (24, 64, 248)
+BB_COLOR = (24, 64, 248)
+BB_COLOR_OCCUPIED = (248, 64, 24)
+BB_COLOR_FREE = (24, 248, 64)
 
 class BBoxUtils(object):
     @staticmethod
@@ -17,10 +18,13 @@ class BBoxUtils(object):
         bb_surface = pygame.Surface((info.current_w, info.current_h))
         bb_surface.set_colorkey((0, 0, 0))
         for k, bbox in enumerate(bounding_boxes):
-            color = BB_COLOR_OCCUPIED if states[k] is GridCellState.OCCUPIED else BB_COLOR
-            if states[k] is not GridCellState.OCCUPIED:
+            if states[k] is GridCellState.FREE:
+                color = BB_COLOR_FREE
+            elif states[k] is GridCellState.OCCUPIED:
+                color = BB_COLOR_OCCUPIED
+            else:
+                color = BB_COLOR
                 continue
-                pass
 
             points = [(int(bbox[i, 0]), int(bbox[i, 1])) for i in range(8)]
             # draw lines

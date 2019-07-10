@@ -21,8 +21,9 @@ from sensors import GnssSensor
 from sensors import LidarSensor
 from util import BBoxUtils
 
-OCCUPANCY_RADIUS = 3
+OCCUPANCY_RADIUS = 5
 OCCUPANCY_TILE_LEVEL = 24
+LIDAR_ANGLE = 10            # Caution: Choose Lidar angle depending on grid size
 LIDAR_MAX_RANGE = 100
 
 class World(object):
@@ -84,14 +85,16 @@ class World(object):
         self.om.register_key(OBS_CAMERA_RGB_IMAGE, CameraRGBObservation)
 
         # Set up the sensors.
+        grid_range = OCCUPANCY_RADIUS * QuadKey('0' * OCCUPANCY_TILE_LEVEL).side()
         lidar_offset_z = 2.8
-        lidar_range = min(OCCUPANCY_RADIUS * QuadKey('0' * OCCUPANCY_TILE_LEVEL).side(), LIDAR_MAX_RANGE)
-        lidar_angle = min(30, 90 - math.degrees(math.atan(lidar_range / (lidar_offset_z + .04)))) # 0.4 is player offset in z
+        lidar_min_range = (grid_range + .5) / math.cos(math.radians(LIDAR_ANGLE))
+        lidar_range = min(LIDAR_MAX_RANGE, max(lidar_min_range, lidar_offset_z / math.sin(math.radians(LIDAR_ANGLE))) + 1)
+
         self.sensors['gnss'] = GnssSensor(self.player, self.om)
-        self.sensors['lidar'] = LidarSensor(self.player, self.om, offset_z=lidar_offset_z, range=lidar_range, angle=lidar_angle)
+        self.sensors['lidar'] = LidarSensor(self.player, self.om, offset_z=lidar_offset_z, range=lidar_range, angle=LIDAR_ANGLE)
         self.sensors['camera_rgb'] = CameraRGBSensor(self.player, self.hud)
 
-        self.gm.offset_z = 2.8 # GNSS Z-transform
+        self.gm.offset_z = lidar_offset_z
 
         # Set up listeners
         self.init_subscriptions()
@@ -112,6 +115,7 @@ class World(object):
 
     def init_subscriptions(self):
         self.om.subscribe(OBS_GNSS_PLAYER_POS, self.gm.update_gnss)
+        self.om.subscribe(OBS_POSITION_PLAYER_POS, self.gm.set_position)
 
     def tick(self, clock):
         clock.tick_busy_loop(60)

@@ -1,8 +1,9 @@
 from typing import List, Set, Dict, Callable
 
 from lib import quadkey
+from lib.geom import Ray3D, Point3D
 from lib.occupancy.grid import Grid, GridCell, GridCellState
-from observation import GnssObservation, LidarObservation
+from observation import GnssObservation, LidarObservation, PositionObservation
 
 OCCUPANCY_BBOX_OFFSET = .1
 OCCUPANCY_BBOX_HEIGHT = 3.5
@@ -11,6 +12,7 @@ class OccupancyGridManager:
     def __init__(self, level, radius, offset_z=0):
         self.level = level
         self.radius = radius
+        self.location = None
         self.gnss_current: GnssObservation = None
         self.quadkey_current: quadkey.QuadKey = None
         self.offset_z = offset_z
@@ -26,6 +28,9 @@ class OccupancyGridManager:
             self.quadkey_current = key
             self._recompute()
 
+    def set_position(self, obs: PositionObservation):
+        self.location = obs.value
+
     def get_grid(self) -> Grid:
         return self.grids[self.quadkey_current.key] if self.quadkey_current.key in self.grids else None
 
@@ -37,18 +42,19 @@ class OccupancyGridManager:
         # TODO: Use KD-Tree for lookup ?
         # TODO: Detect free cells by intersecting every lidar ray with every box
         # TODO: Multi-threading
-        n_matches = 0
-
         for cell in grid.cells:
             cell.state = GridCellState.UNKNOWN
 
             for point in obs.value:
+                direction = Point3D(point[0] - self.location[0], point[1] - self.location[1], point[2] - self.location[2])
+
                 if cell.contains_point(point):
                     cell.state = GridCellState.OCCUPIED
-                    n_matches += 1
                     break
 
-        print(n_matches)
+                if cell.intersects(Ray3D(Point3D(*self.location), direction)):
+                    cell.state = GridCellState.FREE
+                    break
 
     def _recompute(self):
         key = self.quadkey_current
