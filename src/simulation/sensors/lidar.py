@@ -8,20 +8,19 @@ from sensors import Sensor
 
 
 class LidarSensor(Sensor):
-    def __init__(self, parent_actor, observation_manager: ObservationManager = None, range_m = 5):
+    def __init__(self, parent_actor, observation_manager: ObservationManager = None, offset_z = 2.8, range = 5, angle = 15):
         weak_self = weakref.ref(self)
-
+        print(angle)
         self.sensor = None
         self._parent = parent_actor
         self.recording = False
-        self.offset_z = 2.8
+        self.offset_z = offset_z
         super().__init__(observation_manager)
-
         world = self._parent.get_world()
         bp = world.get_blueprint_library().find('sensor.lidar.ray_cast')
-        bp.set_attribute('range', str(int(range_m * 100)))
+        bp.set_attribute('range', str(int(range * 100)))
         bp.set_attribute('upper_fov', '10')
-        bp.set_attribute('lower_fov', '-10')
+        bp.set_attribute('lower_fov', str(int(-angle)))
         bp.set_attribute('sensor_tick', '0.1')
 
         self.sensor = world.spawn_actor(bp, carla.Transform(carla.Location(z=self.offset_z), carla.Rotation()), attach_to=self._parent)

@@ -7,6 +7,7 @@ import logging
 import random
 
 import carla
+import math
 import pygame
 from constants import OBS_POSITION_PLAYER_POS, OBS_GNSS_PLAYER_POS, OBS_LIDAR_POINTS, OBS_CAMERA_RGB_IMAGE
 from hud import HUD
@@ -20,7 +21,7 @@ from sensors import GnssSensor
 from sensors import LidarSensor
 from util import BBoxUtils
 
-OCCUPANCY_RADIUS = 5
+OCCUPANCY_RADIUS = 3
 OCCUPANCY_TILE_LEVEL = 24
 LIDAR_MAX_RANGE = 100
 
@@ -83,9 +84,11 @@ class World(object):
         self.om.register_key(OBS_CAMERA_RGB_IMAGE, CameraRGBObservation)
 
         # Set up the sensors.
+        lidar_offset_z = 2.8
         lidar_range = min(OCCUPANCY_RADIUS * QuadKey('0' * OCCUPANCY_TILE_LEVEL).side(), LIDAR_MAX_RANGE)
+        lidar_angle = min(30, 90 - math.degrees(math.atan(lidar_range / (lidar_offset_z + .04)))) # 0.4 is player offset in z
         self.sensors['gnss'] = GnssSensor(self.player, self.om)
-        self.sensors['lidar'] = LidarSensor(self.player, self.om, range_m=lidar_range)
+        self.sensors['lidar'] = LidarSensor(self.player, self.om, offset_z=lidar_offset_z, range=lidar_range, angle=lidar_angle)
         self.sensors['camera_rgb'] = CameraRGBSensor(self.player, self.hud)
 
         self.gm.offset_z = 2.8 # GNSS Z-transform

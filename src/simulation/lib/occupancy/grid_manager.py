@@ -48,7 +48,7 @@ class OccupancyGridManager:
                     n_matches += 1
                     break
 
-        # print(n_matches)
+        print(n_matches)
 
     def _recompute(self):
         key = self.quadkey_current
