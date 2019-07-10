@@ -43,11 +43,11 @@ class Ray3D:
 # https://stackoverflow.com/a/29720938
 
 class BBox3D(object):
-    def __init__(self, xrange, yrange, zrange):
+    def __init__(self, xrange, yrange, zrange, precomputed_bounds=None):
         self.xrange = xrange  # (xmin, xmax)
         self.yrange = yrange
         self.zrange = zrange
-        self.bounds = self.to_points()
+        self.bounds = precomputed_bounds if precomputed_bounds is not None else self.to_points()
 
     def contains(self, p: Point3D):
         if not all(hasattr(p, loc) for loc in 'xyz'):
@@ -96,4 +96,4 @@ class BBox3D(object):
 
     @classmethod
     def from_points(cls, firstcorner, secondcorner):
-        return cls(*zip(firstcorner, secondcorner))
+        return cls(*zip(firstcorner, secondcorner), precomputed_bounds=[firstcorner, secondcorner])

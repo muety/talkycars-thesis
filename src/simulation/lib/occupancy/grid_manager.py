@@ -43,9 +43,7 @@ class OccupancyGridManager:
             return
 
         # TODO: Use KD-Tree for lookup ?
-        n = len(grid.cells)
-        grid_cells = list(grid.cells)
-        self._match_cells((grid_cells, obs, self.location))
+        self._match_cells((grid.cells, obs, self.location))
 
     def _match_cells(self, args):
         cells, obs, loc = args
