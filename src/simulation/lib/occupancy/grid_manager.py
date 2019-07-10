@@ -1,12 +1,15 @@
+from multiprocessing.pool import ThreadPool
 from typing import List, Set, Dict, Callable
 
+import math
 from lib import quadkey
-from lib.geom import Ray3D, Point3D
+from lib.geom import Ray3D
 from lib.occupancy.grid import Grid, GridCell, GridCellState
 from observation import GnssObservation, LidarObservation, PositionObservation
 
 OCCUPANCY_BBOX_OFFSET = .1
 OCCUPANCY_BBOX_HEIGHT = 3.5
+N_THREADS = 4
 
 class OccupancyGridManager:
     def __init__(self, level, radius, offset_z=0):
@@ -19,6 +22,7 @@ class OccupancyGridManager:
         # TODO: Prevent memory leak
         self.grids: Dict[str, Grid] = dict()
         self.convert: Callable = lambda x: (x[0] * 4.78296128064646e-5 - 13731628.4846192, x[1] * -4.7799656322138e-5 + 9024494.06807157)
+        self.pool1 = ThreadPool(processes=N_THREADS)
 
     def update_gnss(self, obs: GnssObservation):
         key = obs.to_quadkey(self.level)
@@ -40,19 +44,24 @@ class OccupancyGridManager:
             return
 
         # TODO: Use KD-Tree for lookup ?
-        # TODO: Detect free cells by intersecting every lidar ray with every box
-        # TODO: Multi-threading
-        for cell in grid.cells:
-            cell.state = GridCellState.UNKNOWN
+        n = len(grid.cells)
+        grid_cells = list(grid.cells)
+        batch_size = math.ceil(n / N_THREADS)
+        batches = [grid_cells[i*batch_size:min(i*batch_size+batch_size, n)] for i in range(n)]
+        self.pool1.map(self._match_cells, list(map(lambda b: (b, obs, self.location), batches)))
 
+    def _match_cells(self, args):
+        cells, obs, loc = args
+
+        for cell in cells:
             for point in obs.value:
-                direction = Point3D(point[0] - self.location[0], point[1] - self.location[1], point[2] - self.location[2])
+                direction = point - loc
 
                 if cell.contains_point(point):
                     cell.state = GridCellState.OCCUPIED
                     break
 
-                if cell.intersects(Ray3D(Point3D(*self.location), direction)):
+                if cell.intersects(Ray3D(loc, direction)):
                     cell.state = GridCellState.FREE
                     break
 

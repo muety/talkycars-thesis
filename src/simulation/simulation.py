@@ -23,7 +23,7 @@ from util import BBoxUtils
 
 OCCUPANCY_RADIUS = 5
 OCCUPANCY_TILE_LEVEL = 24
-LIDAR_ANGLE = 10            # Caution: Choose Lidar angle depending on grid size
+LIDAR_ANGLE = 12            # Caution: Choose Lidar angle depending on grid size
 LIDAR_MAX_RANGE = 100
 
 class World(object):

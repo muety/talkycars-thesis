@@ -1,6 +1,7 @@
 import weakref
 
 import carla
+import numpy as np
 from constants import OBS_LIDAR_POINTS
 from observation import LidarObservation
 from observation import ObservationManager
@@ -21,8 +22,9 @@ class LidarSensor(Sensor):
         bp = world.get_blueprint_library().find('sensor.lidar.ray_cast')
         bp.set_attribute('range', str(int(range * 100)))
         bp.set_attribute('upper_fov', '10')
+        bp.set_attribute('channels', '16')
         bp.set_attribute('lower_fov', str(int(-angle)))
-        bp.set_attribute('sensor_tick', '0.1')
+        bp.set_attribute('points_per_second', '4096')
 
         print(f'Lidar Angle: {int(-angle)}')
 
@@ -48,7 +50,7 @@ class LidarSensor(Sensor):
         # TODO: Make sure transformations are actually correct
         points = map(t.transform, image)
         points = map(lambda p: (p.x, p.y, p.z - self.offset_z), points)
-        points = list(filter(lambda p: p[2] >= 0, points))
+        points = np.array(list(filter(lambda p: 0 <= p[2] < 30, points)))
 
         obs = LidarObservation(image.timestamp, points)
         self.om.add(OBS_LIDAR_POINTS, obs)

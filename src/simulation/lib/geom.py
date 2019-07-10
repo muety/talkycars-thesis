@@ -35,8 +35,8 @@ class Ray3D:
     def __init__(self, origin: Point3D, direction: Point3D):
         self.origin = origin
         self.direction = direction
-        self.invdir = Point3D(*[1 / d if d > 0 else math.inf for d in [direction.x, direction.y, direction.z]])
-        self.sign = [self.invdir.x < 0, self.invdir.y < 0, self.invdir.z < 0]
+        self.invdir = [1 / d if d > 0 else math.inf for d in direction]
+        self.sign = [v < 0 for v in self.invdir]
 
 # https://stackoverflow.com/a/29720938
 
@@ -60,22 +60,19 @@ class BBox3D(object):
                     self.zrange[0] <= p[2] <= self.zrange[1]])
 
     def intersects(self, r: Ray3D):
-        tmin = (self.bounds[int(r.sign[0])].x - r.origin.x) * r.invdir.x
-        tmax = (self.bounds[1 - int(r.sign[0])].x - r.origin.x) * r.invdir.x
-        tymin = (self.bounds[int(r.sign[1])].y - r.origin.y) * r.invdir.y
-        tymax = (self.bounds[1 - int(r.sign[1])].y - r.origin.y) * r.invdir.y
+        tmin = (self.bounds[r.sign[0]].x - r.origin[0]) * r.invdir[0]
+        tmax = (self.bounds[1 - r.sign[0]].x - r.origin[0]) * r.invdir[0]
+        tymin = (self.bounds[r.sign[1]].y - r.origin[1]) * r.invdir[1]
+        tymax = (self.bounds[1 - r.sign[1]].y - r.origin[1]) * r.invdir[1]
 
         if tmin > tymax or tymin > tmax:
             return False
 
-        if tymin > tmin:
-            tmin = tymin
+        tmin = max([tmin, tymin])
+        tmax = min([tmax, tymax])
 
-        if tymax < tmax:
-            tmax = tymax
-
-        tzmin = (self.bounds[int(r.sign[2])].z - r.origin.z) * r.invdir.z
-        tzmax = (self.bounds[1 - int(r.sign[2])].z - r.origin.z) * r.invdir.z
+        tzmin = (self.bounds[r.sign[2]].z - r.origin[2]) * r.invdir[2]
+        tzmax = (self.bounds[1 - r.sign[2]].z - r.origin[2]) * r.invdir[2]
 
         if tmin > tzmax or tzmin > tmax:
             return False
