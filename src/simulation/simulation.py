@@ -114,7 +114,12 @@ class World(object):
         self.npcs.append(car1)
 
     def init_subscriptions(self):
-        self.om.subscribe(OBS_GNSS_PLAYER_POS, self.gm.update_gnss)
+        def on_lidar(obs):
+            executed = self.gm.update_gnss(obs)
+            if executed:
+                self.gm.match_with_lidar(self.om.latest(OBS_LIDAR_POINTS))
+
+        self.om.subscribe(OBS_GNSS_PLAYER_POS, on_lidar)
         self.om.subscribe(OBS_POSITION_PLAYER_POS, self.gm.set_position)
 
     def tick(self, clock):
@@ -126,8 +131,6 @@ class World(object):
         player_location = self.player.get_location()
         position_obs = PositionObservation(ts.elapsed_seconds, (player_location.x, player_location.y, player_location.z))
         self.om.add(OBS_POSITION_PLAYER_POS, position_obs)
-
-        self.gm.match_with_lidar(self.om.latest(OBS_LIDAR_POINTS))
 
     def render_bboxes(self, display):
         if not self.debug or self.gm.get_grid() is None:

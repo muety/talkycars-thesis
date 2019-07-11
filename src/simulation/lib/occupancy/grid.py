@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Callable, List, Tuple
+from typing import Callable, List, Tuple, Set
 
 import numpy as np
 from lib import quadkey
@@ -62,3 +62,9 @@ class Grid:
 
     def add(self, cell: GridCell):
         self.cells.add(cell)
+
+    def to_quadkeys(self) -> Set[QuadKey]:
+        return set(map(lambda c: c.quad_key, self.cells))
+
+    def to_quadkeys_str(self) -> Set[str]:
+        return set(map(lambda c: c.quad_key.key, self.cells))

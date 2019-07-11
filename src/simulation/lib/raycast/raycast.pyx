@@ -10,6 +10,7 @@ cdef class Ray3D:
         self.origin = origin
         self.direction = direction
 
+# https://gamedev.stackexchange.com/a/103714
 def aabb_intersect(list bounds, Ray3D ray):
     cdef float t[9]
     cdef float vmin[3], vmax[3]

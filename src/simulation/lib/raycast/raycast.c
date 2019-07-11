@@ -1098,8 +1098,8 @@ typedef npy_clongdouble __pyx_t_5numpy_clongdouble_t;
  */
 typedef npy_cdouble __pyx_t_5numpy_complex_t;
 
-/* "raycast.pyx":4
- * import math
+/* "raycast.pyx":3
+ * cimport numpy as np
  * 
  * cdef class Ray3D:             # <<<<<<<<<<<<<<
  *     cdef public float origin[3]
@@ -1398,9 +1398,6 @@ enum __Pyx_ImportType_CheckSize {
 static PyTypeObject *__Pyx_ImportType(PyObject* module, const char *module_name, const char *class_name, size_t size, enum __Pyx_ImportType_CheckSize check_size);
 #endif
 
-/* Import.proto */
-static PyObject *__Pyx_Import(PyObject *name, PyObject *from_list, int level);
-
 /* PyDictVersioning.proto */
 #if CYTHON_USE_DICT_VERSIONS && CYTHON_USE_TYPE_SLOTS
 #define __PYX_DICT_VERSION_INIT  ((PY_UINT64_T) -1)
@@ -1644,7 +1641,6 @@ static const char __pyx_k_t[] = "t";
 static const char __pyx_k_all[] = "all";
 static const char __pyx_k_ray[] = "ray";
 static const char __pyx_k_main[] = "__main__";
-static const char __pyx_k_math[] = "math";
 static const char __pyx_k_name[] = "__name__";
 static const char __pyx_k_test[] = "__test__";
 static const char __pyx_k_vmax[] = "vmax";
@@ -1653,7 +1649,6 @@ static const char __pyx_k_Ray3D[] = "Ray3D";
 static const char __pyx_k_point[] = "point";
 static const char __pyx_k_range[] = "range";
 static const char __pyx_k_bounds[] = "bounds";
-static const char __pyx_k_import[] = "__import__";
 static const char __pyx_k_origin[] = "origin";
 static const char __pyx_k_reduce[] = "__reduce__";
 static const char __pyx_k_raycast[] = "raycast";
@@ -1701,9 +1696,7 @@ static PyObject *__pyx_n_s_cline_in_traceback;
 static PyObject *__pyx_n_s_direction;
 static PyObject *__pyx_n_s_enumerate;
 static PyObject *__pyx_n_s_getstate;
-static PyObject *__pyx_n_s_import;
 static PyObject *__pyx_n_s_main;
-static PyObject *__pyx_n_s_math;
 static PyObject *__pyx_n_s_name;
 static PyObject *__pyx_kp_u_ndarray_is_not_C_contiguous;
 static PyObject *__pyx_kp_u_ndarray_is_not_Fortran_contiguou;
@@ -1757,7 +1750,7 @@ static PyObject *__pyx_codeobj__11;
 static PyObject *__pyx_codeobj__13;
 /* Late includes */
 
-/* "raycast.pyx":10
+/* "raycast.pyx":9
  *     cdef public int sign[3]
  * 
  *     def __cinit__(self, object origin, object direction):             # <<<<<<<<<<<<<<
@@ -1796,11 +1789,11 @@ static int __pyx_pw_7raycast_5Ray3D_1__cinit__(PyObject *__pyx_v_self, PyObject 
         case  1:
         if (likely((values[1] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_direction)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("__cinit__", 1, 2, 2, 1); __PYX_ERR(1, 10, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("__cinit__", 1, 2, 2, 1); __PYX_ERR(1, 9, __pyx_L3_error)
         }
       }
       if (unlikely(kw_args > 0)) {
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "__cinit__") < 0)) __PYX_ERR(1, 10, __pyx_L3_error)
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "__cinit__") < 0)) __PYX_ERR(1, 9, __pyx_L3_error)
       }
     } else if (PyTuple_GET_SIZE(__pyx_args) != 2) {
       goto __pyx_L5_argtuple_error;
@@ -1813,7 +1806,7 @@ static int __pyx_pw_7raycast_5Ray3D_1__cinit__(PyObject *__pyx_v_self, PyObject 
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("__cinit__", 1, 2, 2, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(1, 10, __pyx_L3_error)
+  __Pyx_RaiseArgtupleInvalid("__cinit__", 1, 2, 2, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(1, 9, __pyx_L3_error)
   __pyx_L3_error:;
   __Pyx_AddTraceback("raycast.Ray3D.__cinit__", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
@@ -1832,27 +1825,27 @@ static int __pyx_pf_7raycast_5Ray3D___cinit__(struct __pyx_obj_7raycast_Ray3D *_
   float __pyx_t_1[3];
   __Pyx_RefNannySetupContext("__cinit__", 0);
 
-  /* "raycast.pyx":11
+  /* "raycast.pyx":10
  * 
  *     def __cinit__(self, object origin, object direction):
  *         self.origin = origin             # <<<<<<<<<<<<<<
  *         self.direction = direction
  * 
  */
-  if (unlikely(__Pyx_carray_from_py_float(__pyx_v_origin, __pyx_t_1, 3) < 0)) __PYX_ERR(1, 11, __pyx_L1_error)
+  if (unlikely(__Pyx_carray_from_py_float(__pyx_v_origin, __pyx_t_1, 3) < 0)) __PYX_ERR(1, 10, __pyx_L1_error)
   memcpy(&(__pyx_v_self->origin[0]), __pyx_t_1, sizeof(__pyx_v_self->origin[0]) * (3));
 
-  /* "raycast.pyx":12
+  /* "raycast.pyx":11
  *     def __cinit__(self, object origin, object direction):
  *         self.origin = origin
  *         self.direction = direction             # <<<<<<<<<<<<<<
  * 
- * def aabb_intersect(list bounds, Ray3D ray):
+ * # https://gamedev.stackexchange.com/a/103714
  */
-  if (unlikely(__Pyx_carray_from_py_float(__pyx_v_direction, __pyx_t_1, 3) < 0)) __PYX_ERR(1, 12, __pyx_L1_error)
+  if (unlikely(__Pyx_carray_from_py_float(__pyx_v_direction, __pyx_t_1, 3) < 0)) __PYX_ERR(1, 11, __pyx_L1_error)
   memcpy(&(__pyx_v_self->direction[0]), __pyx_t_1, sizeof(__pyx_v_self->direction[0]) * (3));
 
-  /* "raycast.pyx":10
+  /* "raycast.pyx":9
  *     cdef public int sign[3]
  * 
  *     def __cinit__(self, object origin, object direction):             # <<<<<<<<<<<<<<
@@ -1871,7 +1864,7 @@ static int __pyx_pf_7raycast_5Ray3D___cinit__(struct __pyx_obj_7raycast_Ray3D *_
   return __pyx_r;
 }
 
-/* "raycast.pyx":5
+/* "raycast.pyx":4
  * 
  * cdef class Ray3D:
  *     cdef public float origin[3]             # <<<<<<<<<<<<<<
@@ -1898,7 +1891,7 @@ static PyObject *__pyx_pf_7raycast_5Ray3D_6origin___get__(struct __pyx_obj_7rayc
   PyObject *__pyx_t_1 = NULL;
   __Pyx_RefNannySetupContext("__get__", 0);
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_1 = __Pyx_carray_to_py_float(__pyx_v_self->origin, 3); if (unlikely(!__pyx_t_1)) __PYX_ERR(1, 5, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_carray_to_py_float(__pyx_v_self->origin, 3); if (unlikely(!__pyx_t_1)) __PYX_ERR(1, 4, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __pyx_r = __pyx_t_1;
   __pyx_t_1 = 0;
@@ -1933,7 +1926,7 @@ static int __pyx_pf_7raycast_5Ray3D_6origin_2__set__(struct __pyx_obj_7raycast_R
   __Pyx_RefNannyDeclarations
   float __pyx_t_1[3];
   __Pyx_RefNannySetupContext("__set__", 0);
-  if (unlikely(__Pyx_carray_from_py_float(__pyx_v_value, __pyx_t_1, 3) < 0)) __PYX_ERR(1, 5, __pyx_L1_error)
+  if (unlikely(__Pyx_carray_from_py_float(__pyx_v_value, __pyx_t_1, 3) < 0)) __PYX_ERR(1, 4, __pyx_L1_error)
   memcpy(&(__pyx_v_self->origin[0]), __pyx_t_1, sizeof(__pyx_v_self->origin[0]) * (3));
 
   /* function exit code */
@@ -1947,7 +1940,7 @@ static int __pyx_pf_7raycast_5Ray3D_6origin_2__set__(struct __pyx_obj_7raycast_R
   return __pyx_r;
 }
 
-/* "raycast.pyx":6
+/* "raycast.pyx":5
  * cdef class Ray3D:
  *     cdef public float origin[3]
  *     cdef public float direction[3]             # <<<<<<<<<<<<<<
@@ -1974,7 +1967,7 @@ static PyObject *__pyx_pf_7raycast_5Ray3D_9direction___get__(struct __pyx_obj_7r
   PyObject *__pyx_t_1 = NULL;
   __Pyx_RefNannySetupContext("__get__", 0);
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_1 = __Pyx_carray_to_py_float(__pyx_v_self->direction, 3); if (unlikely(!__pyx_t_1)) __PYX_ERR(1, 6, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_carray_to_py_float(__pyx_v_self->direction, 3); if (unlikely(!__pyx_t_1)) __PYX_ERR(1, 5, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __pyx_r = __pyx_t_1;
   __pyx_t_1 = 0;
@@ -2009,7 +2002,7 @@ static int __pyx_pf_7raycast_5Ray3D_9direction_2__set__(struct __pyx_obj_7raycas
   __Pyx_RefNannyDeclarations
   float __pyx_t_1[3];
   __Pyx_RefNannySetupContext("__set__", 0);
-  if (unlikely(__Pyx_carray_from_py_float(__pyx_v_value, __pyx_t_1, 3) < 0)) __PYX_ERR(1, 6, __pyx_L1_error)
+  if (unlikely(__Pyx_carray_from_py_float(__pyx_v_value, __pyx_t_1, 3) < 0)) __PYX_ERR(1, 5, __pyx_L1_error)
   memcpy(&(__pyx_v_self->direction[0]), __pyx_t_1, sizeof(__pyx_v_self->direction[0]) * (3));
 
   /* function exit code */
@@ -2023,7 +2016,7 @@ static int __pyx_pf_7raycast_5Ray3D_9direction_2__set__(struct __pyx_obj_7raycas
   return __pyx_r;
 }
 
-/* "raycast.pyx":7
+/* "raycast.pyx":6
  *     cdef public float origin[3]
  *     cdef public float direction[3]
  *     cdef public float invdir[3]             # <<<<<<<<<<<<<<
@@ -2050,7 +2043,7 @@ static PyObject *__pyx_pf_7raycast_5Ray3D_6invdir___get__(struct __pyx_obj_7rayc
   PyObject *__pyx_t_1 = NULL;
   __Pyx_RefNannySetupContext("__get__", 0);
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_1 = __Pyx_carray_to_py_float(__pyx_v_self->invdir, 3); if (unlikely(!__pyx_t_1)) __PYX_ERR(1, 7, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_carray_to_py_float(__pyx_v_self->invdir, 3); if (unlikely(!__pyx_t_1)) __PYX_ERR(1, 6, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __pyx_r = __pyx_t_1;
   __pyx_t_1 = 0;
@@ -2085,7 +2078,7 @@ static int __pyx_pf_7raycast_5Ray3D_6invdir_2__set__(struct __pyx_obj_7raycast_R
   __Pyx_RefNannyDeclarations
   float __pyx_t_1[3];
   __Pyx_RefNannySetupContext("__set__", 0);
-  if (unlikely(__Pyx_carray_from_py_float(__pyx_v_value, __pyx_t_1, 3) < 0)) __PYX_ERR(1, 7, __pyx_L1_error)
+  if (unlikely(__Pyx_carray_from_py_float(__pyx_v_value, __pyx_t_1, 3) < 0)) __PYX_ERR(1, 6, __pyx_L1_error)
   memcpy(&(__pyx_v_self->invdir[0]), __pyx_t_1, sizeof(__pyx_v_self->invdir[0]) * (3));
 
   /* function exit code */
@@ -2099,7 +2092,7 @@ static int __pyx_pf_7raycast_5Ray3D_6invdir_2__set__(struct __pyx_obj_7raycast_R
   return __pyx_r;
 }
 
-/* "raycast.pyx":8
+/* "raycast.pyx":7
  *     cdef public float direction[3]
  *     cdef public float invdir[3]
  *     cdef public int sign[3]             # <<<<<<<<<<<<<<
@@ -2126,7 +2119,7 @@ static PyObject *__pyx_pf_7raycast_5Ray3D_4sign___get__(struct __pyx_obj_7raycas
   PyObject *__pyx_t_1 = NULL;
   __Pyx_RefNannySetupContext("__get__", 0);
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_1 = __Pyx_carray_to_py_int(__pyx_v_self->sign, 3); if (unlikely(!__pyx_t_1)) __PYX_ERR(1, 8, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_carray_to_py_int(__pyx_v_self->sign, 3); if (unlikely(!__pyx_t_1)) __PYX_ERR(1, 7, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __pyx_r = __pyx_t_1;
   __pyx_t_1 = 0;
@@ -2161,7 +2154,7 @@ static int __pyx_pf_7raycast_5Ray3D_4sign_2__set__(struct __pyx_obj_7raycast_Ray
   __Pyx_RefNannyDeclarations
   int __pyx_t_1[3];
   __Pyx_RefNannySetupContext("__set__", 0);
-  if (unlikely(__Pyx_carray_from_py_int(__pyx_v_value, __pyx_t_1, 3) < 0)) __PYX_ERR(1, 8, __pyx_L1_error)
+  if (unlikely(__Pyx_carray_from_py_int(__pyx_v_value, __pyx_t_1, 3) < 0)) __PYX_ERR(1, 7, __pyx_L1_error)
   memcpy(&(__pyx_v_self->sign[0]), __pyx_t_1, sizeof(__pyx_v_self->sign[0]) * (3));
 
   /* function exit code */
@@ -2283,8 +2276,8 @@ static PyObject *__pyx_pf_7raycast_5Ray3D_4__setstate_cython__(CYTHON_UNUSED str
 }
 
 /* "raycast.pyx":14
- *         self.direction = direction
  * 
+ * # https://gamedev.stackexchange.com/a/103714
  * def aabb_intersect(list bounds, Ray3D ray):             # <<<<<<<<<<<<<<
  *     cdef float t[9]
  *     cdef float vmin[3], vmax[3]
@@ -2605,8 +2598,8 @@ static PyObject *__pyx_pf_7raycast_aabb_intersect(CYTHON_UNUSED PyObject *__pyx_
   goto __pyx_L0;
 
   /* "raycast.pyx":14
- *         self.direction = direction
  * 
+ * # https://gamedev.stackexchange.com/a/103714
  * def aabb_intersect(list bounds, Ray3D ray):             # <<<<<<<<<<<<<<
  *     cdef float t[9]
  *     cdef float vmin[3], vmax[3]
@@ -6591,9 +6584,7 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {&__pyx_n_s_direction, __pyx_k_direction, sizeof(__pyx_k_direction), 0, 0, 1, 1},
   {&__pyx_n_s_enumerate, __pyx_k_enumerate, sizeof(__pyx_k_enumerate), 0, 0, 1, 1},
   {&__pyx_n_s_getstate, __pyx_k_getstate, sizeof(__pyx_k_getstate), 0, 0, 1, 1},
-  {&__pyx_n_s_import, __pyx_k_import, sizeof(__pyx_k_import), 0, 0, 1, 1},
   {&__pyx_n_s_main, __pyx_k_main, sizeof(__pyx_k_main), 0, 0, 1, 1},
-  {&__pyx_n_s_math, __pyx_k_math, sizeof(__pyx_k_math), 0, 0, 1, 1},
   {&__pyx_n_s_name, __pyx_k_name, sizeof(__pyx_k_name), 0, 0, 1, 1},
   {&__pyx_kp_u_ndarray_is_not_C_contiguous, __pyx_k_ndarray_is_not_C_contiguous, sizeof(__pyx_k_ndarray_is_not_C_contiguous), 0, 1, 0, 0},
   {&__pyx_kp_u_ndarray_is_not_Fortran_contiguou, __pyx_k_ndarray_is_not_Fortran_contiguou, sizeof(__pyx_k_ndarray_is_not_Fortran_contiguou), 0, 1, 0, 0},
@@ -6734,8 +6725,8 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
   __Pyx_GIVEREF(__pyx_tuple__9);
 
   /* "raycast.pyx":14
- *         self.direction = direction
  * 
+ * # https://gamedev.stackexchange.com/a/103714
  * def aabb_intersect(list bounds, Ray3D ray):             # <<<<<<<<<<<<<<
  *     cdef float t[9]
  *     cdef float vmin[3], vmax[3]
@@ -6806,15 +6797,15 @@ static int __Pyx_modinit_type_init_code(void) {
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("__Pyx_modinit_type_init_code", 0);
   /*--- Type init code ---*/
-  if (PyType_Ready(&__pyx_type_7raycast_Ray3D) < 0) __PYX_ERR(1, 4, __pyx_L1_error)
+  if (PyType_Ready(&__pyx_type_7raycast_Ray3D) < 0) __PYX_ERR(1, 3, __pyx_L1_error)
   #if PY_VERSION_HEX < 0x030800B1
   __pyx_type_7raycast_Ray3D.tp_print = 0;
   #endif
   if ((CYTHON_USE_TYPE_SLOTS && CYTHON_USE_PYTYPE_LOOKUP) && likely(!__pyx_type_7raycast_Ray3D.tp_dictoffset && __pyx_type_7raycast_Ray3D.tp_getattro == PyObject_GenericGetAttr)) {
     __pyx_type_7raycast_Ray3D.tp_getattro = __Pyx_PyObject_GenericGetAttr;
   }
-  if (PyObject_SetAttr(__pyx_m, __pyx_n_s_Ray3D, (PyObject *)&__pyx_type_7raycast_Ray3D) < 0) __PYX_ERR(1, 4, __pyx_L1_error)
-  if (__Pyx_setup_reduce((PyObject*)&__pyx_type_7raycast_Ray3D) < 0) __PYX_ERR(1, 4, __pyx_L1_error)
+  if (PyObject_SetAttr(__pyx_m, __pyx_n_s_Ray3D, (PyObject *)&__pyx_type_7raycast_Ray3D) < 0) __PYX_ERR(1, 3, __pyx_L1_error)
+  if (__Pyx_setup_reduce((PyObject*)&__pyx_type_7raycast_Ray3D) < 0) __PYX_ERR(1, 3, __pyx_L1_error)
   __pyx_ptype_7raycast_Ray3D = &__pyx_type_7raycast_Ray3D;
   __Pyx_RefNannyFinishContext();
   return 0;
@@ -7073,20 +7064,9 @@ if (!__Pyx_RefNanny) {
   if (__Pyx_patch_abc() < 0) __PYX_ERR(1, 1, __pyx_L1_error)
   #endif
 
-  /* "raycast.pyx":2
- * cimport numpy as np
- * import math             # <<<<<<<<<<<<<<
- * 
- * cdef class Ray3D:
- */
-  __pyx_t_1 = __Pyx_Import(__pyx_n_s_math, 0, -1); if (unlikely(!__pyx_t_1)) __PYX_ERR(1, 2, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_1);
-  if (PyDict_SetItem(__pyx_d, __pyx_n_s_math, __pyx_t_1) < 0) __PYX_ERR(1, 2, __pyx_L1_error)
-  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-
   /* "raycast.pyx":14
- *         self.direction = direction
  * 
+ * # https://gamedev.stackexchange.com/a/103714
  * def aabb_intersect(list bounds, Ray3D ray):             # <<<<<<<<<<<<<<
  *     cdef float t[9]
  *     cdef float vmin[3], vmax[3]
@@ -7110,8 +7090,8 @@ if (!__Pyx_RefNanny) {
 
   /* "raycast.pyx":1
  * cimport numpy as np             # <<<<<<<<<<<<<<
- * import math
  * 
+ * cdef class Ray3D:
  */
   __pyx_t_1 = __Pyx_PyDict_NewPresized(0); if (unlikely(!__pyx_t_1)) __PYX_ERR(1, 1, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
@@ -8247,71 +8227,6 @@ bad:
     return NULL;
 }
 #endif
-
-/* Import */
-static PyObject *__Pyx_Import(PyObject *name, PyObject *from_list, int level) {
-    PyObject *empty_list = 0;
-    PyObject *module = 0;
-    PyObject *global_dict = 0;
-    PyObject *empty_dict = 0;
-    PyObject *list;
-    #if PY_MAJOR_VERSION < 3
-    PyObject *py_import;
-    py_import = __Pyx_PyObject_GetAttrStr(__pyx_b, __pyx_n_s_import);
-    if (!py_import)
-        goto bad;
-    #endif
-    if (from_list)
-        list = from_list;
-    else {
-        empty_list = PyList_New(0);
-        if (!empty_list)
-            goto bad;
-        list = empty_list;
-    }
-    global_dict = PyModule_GetDict(__pyx_m);
-    if (!global_dict)
-        goto bad;
-    empty_dict = PyDict_New();
-    if (!empty_dict)
-        goto bad;
-    {
-        #if PY_MAJOR_VERSION >= 3
-        if (level == -1) {
-            if (strchr(__Pyx_MODULE_NAME, '.')) {
-                module = PyImport_ImportModuleLevelObject(
-                    name, global_dict, empty_dict, list, 1);
-                if (!module) {
-                    if (!PyErr_ExceptionMatches(PyExc_ImportError))
-                        goto bad;
-                    PyErr_Clear();
-                }
-            }
-            level = 0;
-        }
-        #endif
-        if (!module) {
-            #if PY_MAJOR_VERSION < 3
-            PyObject *py_level = PyInt_FromLong(level);
-            if (!py_level)
-                goto bad;
-            module = PyObject_CallFunctionObjArgs(py_import,
-                name, global_dict, empty_dict, list, py_level, (PyObject *)NULL);
-            Py_DECREF(py_level);
-            #else
-            module = PyImport_ImportModuleLevelObject(
-                name, global_dict, empty_dict, list, level);
-            #endif
-        }
-    }
-bad:
-    #if PY_MAJOR_VERSION < 3
-    Py_XDECREF(py_import);
-    #endif
-    Py_XDECREF(empty_list);
-    Py_XDECREF(empty_dict);
-    return module;
-}
 
 /* PyDictVersioning */
 #if CYTHON_USE_DICT_VERSIONS && CYTHON_USE_TYPE_SLOTS
