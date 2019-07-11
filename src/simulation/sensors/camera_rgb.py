@@ -1,8 +1,9 @@
 import weakref
+
 import carla
-import pygame
 import numpy as np
-from carla import ColorConverter as cc
+import pygame
+
 
 class CameraRGBSensor(object):
     def __init__(self, parent_actor, hud):
@@ -39,7 +40,6 @@ class CameraRGBSensor(object):
         self = weak_self()
         if not self:
             return
-        image.convert(cc.Raw)
         array = np.frombuffer(image.raw_data, dtype=np.dtype("uint8"))
         array = np.reshape(array, (image.height, image.width, 4))
         array = array[:, :, :3]

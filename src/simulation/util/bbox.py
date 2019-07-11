@@ -24,7 +24,6 @@ class BBoxUtils(object):
                 color = BB_COLOR_OCCUPIED
             else:
                 color = BB_COLOR
-                continue
 
             points = [(int(bbox[i, 0]), int(bbox[i, 1])) for i in range(8)]
             # draw lines

@@ -1,6 +1,5 @@
 from typing import Callable, Tuple
 
-import math
 import numpy as np
 
 from .raycast import raycast
@@ -37,8 +36,6 @@ class Ray3D:
     def __init__(self, origin, direction):
         self.origin = origin
         self.direction = direction
-        self.invdir = [1 / d if d > 0 else math.inf for d in direction]
-        self.sign = [v < 0 for v in self.invdir]
 
 # https://stackoverflow.com/a/29720938
 
@@ -47,7 +44,7 @@ class BBox3D(object):
         self.xrange = xrange  # (xmin, xmax)
         self.yrange = yrange
         self.zrange = zrange
-        self.bounds = precomputed_bounds if precomputed_bounds is not None else self.to_points()
+        self.bounds = list(precomputed_bounds if precomputed_bounds is not None else self.to_points())
 
     def contains(self, p: Point3D):
         if not all(hasattr(p, loc) for loc in 'xyz'):

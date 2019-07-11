@@ -1,4 +1,4 @@
-import math
+cimport numpy as np
 
 cdef class Ray3D:
     cdef public float origin[3]
@@ -9,32 +9,25 @@ cdef class Ray3D:
     def __cinit__(self, object origin, object direction):
         self.origin = origin
         self.direction = direction
-        self.invdir = [1 / d if d > 0 else math.inf for d in direction[:3]]
-        self.sign = [v < 0 for v in self.invdir[:3]]
 
-def aabb_intersect(object bounds, object ray):
-    cdef float tmin, tmax, tymin, tymax, tzmin, tzmax
+def aabb_intersect(list bounds, Ray3D ray):
+    cdef float t[9]
+    cdef float vmin[3], vmax[3]
 
-    tmin = (bounds[ray.sign[0]][0] - ray.origin[0]) * ray.invdir[0]
-    tmax = (bounds[1 - ray.sign[0]][0] - ray.origin[0]) * ray.invdir[0]
-    tymin = (bounds[ray.sign[1]][1] - ray.origin[1]) * ray.invdir[1]
-    tymax = (bounds[1 - ray.sign[1]][1] - ray.origin[1]) * ray.invdir[1]
+    vmin = bounds[0]
+    vmax = bounds[1]
 
-    if tmin > tymax or tymin > tmax:
-        return False
+    t[1] = (vmin[0] - ray.origin[0])/ray.direction[0]
+    t[2] = (vmax[0] - ray.origin[0])/ray.direction[0]
+    t[3] = (vmin[1] - ray.origin[1])/ray.direction[1]
+    t[4] = (vmax[1] - ray.origin[1])/ray.direction[1]
+    t[5] = (vmin[2] - ray.origin[2])/ray.direction[2]
+    t[6] = (vmax[2] - ray.origin[2])/ray.direction[2]
+    t[7] = max(max(min(t[1], t[2]), min(t[3], t[4])), min(t[5], t[6]))
+    t[8] = min(min(max(t[1], t[2]), max(t[3], t[4])), max(t[5], t[6]))
+    return not (t[8] < 0 or t[7] > t[8])
 
-    tmin = max([tmin, tymin])
-    tmax = min([tmax, tymax])
-
-    tzmin = (bounds[ray.sign[2]][2] - ray.origin[2]) * ray.invdir[2]
-    tzmax = (bounds[1 - ray.sign[2]][2] - ray.origin[2]) * ray.invdir[2]
-
-    if tmin > tzmax or tzmin > tmax:
-        return False
-
-    return True
-
-def aabb_contains(object bounds, object point):
+def aabb_contains(list bounds, np.ndarray point):
     return all([
         bounds[0][0] <= point[0] <= bounds[1][0],
         bounds[0][1] <= point[1] <= bounds[1][1],

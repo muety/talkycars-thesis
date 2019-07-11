@@ -42,7 +42,6 @@ class OccupancyGridManager:
         if grid is None or obs is None:
             return
 
-        # TODO: Use KD-Tree for lookup ?
         self._match_cells((grid.cells, obs, self.location))
 
     def _match_cells(self, args):
@@ -57,8 +56,8 @@ class OccupancyGridManager:
                     break
 
                 if cell.intersects(raycast.Ray3D(loc, direction)):
-                    cell.state = GridCellState.FREE
-                    break
+                   cell.state = GridCellState.FREE
+                   break
 
     def _recompute(self):
         key = self.quadkey_current
