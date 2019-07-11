@@ -23,7 +23,7 @@ class OccupancyGridManager:
         # TODO: Prevent memory leak
         self.grids: Dict[str, Grid] = dict()
         self.convert: Callable = lambda x: (x[0] * 4.78296128064646e-5 - 13731628.4846192, x[1] * -4.7799656322138e-5 + 9024494.06807157)
-        self.pool1 = ThreadPool(processes=N_THREADS)
+        self.pool = ThreadPool(processes=N_THREADS)
 
     def update_gnss(self, obs: GnssObservation):
         key = obs.to_quadkey(self.level)

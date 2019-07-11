@@ -1,4 +1,5 @@
 from collections import deque
+from threading import Thread
 from typing import Callable
 
 from observation import Observation
@@ -34,7 +35,8 @@ class ObservationManager:
 
         if key in self.subscribers:
             for f in self.subscribers[key]:
-                f(observation)
+                t = Thread(target=lambda o: f(o), args=(observation,))
+                t.start()
 
     def latest(self, key):
         if not key in self.observations or len(self.observations[key]) == 0:
