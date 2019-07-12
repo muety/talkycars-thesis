@@ -53,7 +53,7 @@ class OccupancyGridManager:
         batch_size = np.math.ceil(n / N_THREADS)
         batches = [(list(map(lambda c: c.bounds, grid_cells[i*batch_size:i*batch_size+batch_size])), obs.value, self.location) for i in range(n)]
 
-        # Doing this as sub-processes actually adds ~4 FPS on average
+        # Doing this as sub-processes actually adds ~ 4 FPS on average
         result = self.pool.map(self._match_cells, batches)
 
         for i, r in enumerate(result):
@@ -62,11 +62,11 @@ class OccupancyGridManager:
 
     @staticmethod
     def _match_cells(args):
-        cells, obs, loc = args
-        states = [GridCellState.UNKNOWN] * len(cells)
+        bounds, points, loc = args
+        states = [GridCellState.UNKNOWN] * len(bounds)
 
-        for i, cell in enumerate(cells):
-            for point in obs:
+        for i, cell in enumerate(bounds):
+            for point in points:
                 direction = point - loc
                 if raycast.aabb_contains(cell, point):
                     states[i] = GridCellState.OCCUPIED
