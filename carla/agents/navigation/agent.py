@@ -6,9 +6,9 @@
 # This work is licensed under the terms of the MIT license.
 # For a copy, see <https://opensource.org/licenses/MIT>.
 
-""" This module implements an agent that roams around a track following random
+""" This module implements an strategy that roams around a track following random
 waypoints and avoiding other vehicles.
-The agent also responds to traffic lights. """
+The strategy also responds to traffic lights. """
 
 from enum import Enum
 
@@ -18,7 +18,7 @@ from agents.tools.misc import is_within_distance_ahead, compute_magnitude_angle
 
 class AgentState(Enum):
     """
-    AGENT_STATE represents the possible states of a roaming agent
+    AGENT_STATE represents the possible states of a roaming strategy
     """
     NAVIGATING = 1
     BLOCKED_BY_VEHICLE = 2

@@ -12,3 +12,6 @@ OCCUPANCY_BBOX_HEIGHT = 3.5
 LIDAR_ANGLE = 15           # Caution: Choose Lidar angle depending on grid size
 LIDAR_MAX_RANGE = 100
 LIDAR_Z_OFFSET = 2.8
+
+RES_X = 1280
+RES_Y = 720

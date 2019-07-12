@@ -4,52 +4,30 @@ from __future__ import print_function
 
 import argparse
 import logging
-import random
+from typing import List
 
 import carla
-import math
 import pygame
-from hud import HUD
-from keyboard_control import KeyboardControl
-from sensors import CameraRGBSensor
-from sensors import GnssSensor
-from sensors import LidarSensor
-from sensors.position import PositionSensor
-from util import BBoxUtils
+from ego import Ego
+from strategy import ManualStrategy
+from util import GracefulKiller
 
 from client.client import TalkyClient, ClientDialect
-from common.constants import *
-from common.observation import OccupancyGridObservation
-from common.occupancy import Grid
-from common.quadkey import QuadKey
 
 
 class World(object):
-    def __init__(self, client, hud, actor_name='hero'):
+    def __init__(self, client: carla.Client):
         # Attributes
-        self.client = client
+        self.sim = client
         self.world = client.get_world()
-        self.actor_name = actor_name
         self.client = TalkyClient(dialect=ClientDialect.CARLA)
-        self.spawn_point = None
         self.map = self.world.get_map()
-        self.hud = hud
-        self.player = None
-        self.sensors = {
-            'lidar': None,
-            'camera_rgb': None,
-            'gnss': None,
-            'position': None
-        }
-        self.grid: Grid = None
-        self.npcs = [] # list of actor ids
-        self.box_key = None
         self.debug = True
 
+        self.egos: List[Ego] = []
+        self.npcs: List[carla.Agent] = []
+
         self.init()
-        self.world.on_tick(hud.on_world_tick)
-        self.recording_enabled = False
-        self.recording_start = 0
 
         logging.info('enabling synchronous mode.')
         settings = self.world.get_settings()
@@ -57,131 +35,48 @@ class World(object):
         self.world.apply_settings(settings)
 
     def init(self):
-        # Get a random blueprint.
-        blueprint = self.world.get_blueprint_library().filter('vehicle.mini.cooperst')[0]
-        blueprint.set_attribute('role_name', self.actor_name)
-        if blueprint.has_attribute('color'):
-            color = random.choice(blueprint.get_attribute('color').recommended_values)
-            blueprint.set_attribute('color', color)
-        # Spawn the player.
-        if self.player is not None:
-            spawn_point = self.player.get_transform()
-            spawn_point.location.z += 2.0
-            spawn_point.rotation.roll = 0.0
-            spawn_point.rotation.pitch = 0.0
-            self.destroy()
-            self.player = self.world.try_spawn_actor(blueprint, spawn_point)
-        while self.player is None:
-            spawn_points = self.map.get_spawn_points()
-            spawn_point = spawn_points[0] if spawn_points else carla.Transform()
-            self.player = self.world.try_spawn_actor(blueprint, spawn_point)
-        self.spawn_point = spawn_point
-
-
-        # Set up the sensors.
-        grid_range = OCCUPANCY_RADIUS * QuadKey('0' * OCCUPANCY_TILE_LEVEL).side()
-        lidar_min_range = (grid_range + .5) / math.cos(math.radians(LIDAR_ANGLE))
-        lidar_range = min(LIDAR_MAX_RANGE, max(lidar_min_range, LIDAR_Z_OFFSET / math.sin(math.radians(LIDAR_ANGLE))) + 1)
-
-        self.sensors['gnss'] = GnssSensor(self.player, self.client)
-        self.sensors['lidar'] = LidarSensor(self.player, self.client, offset_z=LIDAR_Z_OFFSET, range=lidar_range, angle=LIDAR_ANGLE)
-        self.sensors['camera_rgb'] = CameraRGBSensor(self.player, self.hud)
-        self.sensors['position'] = PositionSensor(self.player, self.client)
-
-        # Set up listeners
-        self.init_subscriptions()
-
         # Set up other actors, NPCs, ...
         self.init_scene() # TODO: use strategy pattern or so
 
     def init_scene(self):
-        # Closest NPC stuff
-        available_vehicles = self.world.get_blueprint_library().filter('vehicle.*')
-        location = self.player.get_location()
-        spawn_points = sorted(self.map.get_spawn_points(), key=lambda x: abs(x.location.x - location.x) + abs(x.location.y - location.y))
+        main_hero = Ego(self.sim, strategy=ManualStrategy(), name='main_hero', render=True, debug=True)
+        self.egos.append(main_hero)
+        pass
 
-        bp1 = random.choice(available_vehicles)
-        car1 = self.world.spawn_actor(bp1, spawn_points[1])
-        logging.debug(f'Spawned car 1 at {spawn_points[1].location} [{car1.bounding_box}]')
-        self.npcs.append(car1)
-
-    def init_subscriptions(self):
-        def on_grid(grid: OccupancyGridObservation):
-            self.grid = grid.value
-
-        self.client.outbound.subscribe(OBS_OCCUPANCY_GRID, on_grid)
-
-    def tick(self, clock):
+    def tick(self, clock) -> bool:
         clock.tick_busy_loop(60)
         self.world.tick()
-        ts = self.world.wait_for_tick()
-        self.hud.tick(self, clock)
+        self.world.wait_for_tick()
 
-        self.sensors['position'].tick(ts.elapsed_seconds)
-
-    def render_bboxes(self, display):
-        if not self.debug or self.grid is None:
-            return
-
-        bboxes = []
-        states = []
-        for cell in self.grid.cells:
-            bb = cell.to_vertices()
-            bb_cam = BBoxUtils.to_camera(bb.T, self.sensors['camera_rgb'].sensor, self.sensors['camera_rgb'].sensor)
-            if not all(bb_cam[:, 2] > 0): continue
-            bboxes.append(bb_cam)
-            states.append(cell.state)
-        BBoxUtils.draw_bounding_boxes(display, bboxes, states)
-
-    def render(self, display):
-        self.sensors['camera_rgb'].render(display)
-        self.hud.render(display)
-        self.render_bboxes(display)
+        for ego in self.egos:
+            if ego.tick(clock):
+                return True
 
     def destroy(self):
-        actors = [
-            self.sensors['camera_rgb'].sensor,
-            self.sensors['lidar'].sensor,
-            self.sensors['gnss'].sensor,
-            self.player] + self.npcs
-        for actor in actors:
-            if actor is not None:
-                actor.destroy()
+        for a in self.npcs:
+            if a: a.destroy()
+
+        for a in self.egos:
+            if a: a.destroy()
 
 def game_loop(args):
-    pygame.init()
-    pygame.font.init()
+    killer = GracefulKiller()
     world = None
 
     try:
         client = carla.Client(args.host, args.port)
         client.set_timeout(2.0)
-
-        display = pygame.display.set_mode(
-            (args.width, args.height),
-            pygame.HWSURFACE | pygame.DOUBLEBUF)
-
-        hud = HUD(args.width, args.height)
-        world = World(client, hud, args.rolename)
-        controller = KeyboardControl(world, args.autopilot)
-
+        world = World(client)
         clock = pygame.time.Clock()
 
         while True:
-            if controller.parse_events(client, world, clock):
-                return
-            world.tick(clock)
-            world.render(display)
-            pygame.display.flip()
+            if killer.kill_now or world.tick(clock):
+                return world.destroy()
 
     finally:
-        if (world and world.recording_enabled):
-            client.stop_recorder()
-
         if world is not None:
             world.destroy()
-
-        pygame.quit()
+            return
 
 def main():
     argparser = argparse.ArgumentParser(
@@ -202,23 +97,8 @@ def main():
         default=2000,
         type=int,
         help='TCP port to listen to (default: 2000)')
-    argparser.add_argument(
-        '-a', '--autopilot',
-        action='store_true',
-        help='enable autopilot')
-    argparser.add_argument(
-        '--res',
-        metavar='WIDTHxHEIGHT',
-        default='1280x720',
-        help='window resolution (default: 1280x720)')
-    argparser.add_argument(
-        '--rolename',
-        metavar='NAME',
-        default='hero',
-        help='actor role name (default: "hero")')
-    args = argparser.parse_args()
 
-    args.width, args.height = [int(x) for x in args.res.split('x')]
+    args = argparser.parse_args()
 
     log_level = logging.DEBUG if args.debug else logging.INFO
     logging.basicConfig(format='%(levelname)s: %(message)s', level=log_level)

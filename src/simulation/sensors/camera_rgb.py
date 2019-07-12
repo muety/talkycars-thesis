@@ -19,7 +19,7 @@ class CameraRGBSensor(object):
         bp.set_attribute('image_size_x', str(hud.dim[0]))
         bp.set_attribute('image_size_y', str(hud.dim[1]))
 
-        self.sensor = world.spawn_actor(bp, carla.Transform(carla.Location(x=-5.5, z=2.8), carla.Rotation(pitch=-15)), attach_to=self._parent)
+        self.sensor = world.spawn_actor(bp, carla.Transform(carla.Location(x=-6.5, z=2.8), carla.Rotation(pitch=-25)), attach_to=self._parent)
         self.sensor.listen(lambda event: CameraRGBSensor._on_image(weak_self, event))
 
         calibration = np.identity(3)

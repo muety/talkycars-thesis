@@ -6,8 +6,8 @@
 # This work is licensed under the terms of the MIT license.
 # For a copy, see <https://opensource.org/licenses/MIT>.
 
-""" This module implements an agent that roams around a track following random waypoints and avoiding other vehicles.
-The agent also responds to traffic lights. """
+""" This module implements an strategy that roams around a track following random waypoints and avoiding other vehicles.
+The strategy also responds to traffic lights. """
 
 from agents.navigation.agent import Agent, AgentState
 from agents.navigation.local_planner import LocalPlanner
@@ -15,10 +15,10 @@ from agents.navigation.local_planner import LocalPlanner
 
 class RoamingAgent(Agent):
     """
-    RoamingAgent implements a basic agent that navigates scenes making random
+    RoamingAgent implements a basic strategy that navigates scenes making random
     choices when facing an intersection.
 
-    This agent respects traffic lights and other vehicles.
+    This strategy respects traffic lights and other vehicles.
     """
 
     def __init__(self, vehicle):

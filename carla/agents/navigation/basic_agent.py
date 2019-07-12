@@ -6,21 +6,22 @@
 # This work is licensed under the terms of the MIT license.
 # For a copy, see <https://opensource.org/licenses/MIT>.
 
-""" This module implements an agent that roams around a track following random
+""" This module implements an strategy that roams around a track following random
 waypoints and avoiding other vehicles.
-The agent also responds to traffic lights. """
+The strategy also responds to traffic lights. """
 
 
 import carla
 from agents.navigation.agent import Agent, AgentState
-from agents.navigation.local_planner import LocalPlanner
 from agents.navigation.global_route_planner import GlobalRoutePlanner
 from agents.navigation.global_route_planner_dao import GlobalRoutePlannerDAO
+from agents.navigation.local_planner import LocalPlanner
+
 
 class BasicAgent(Agent):
     """
-    BasicAgent implements a basic agent that navigates scenes to reach a given
-    target destination. This agent respects traffic lights and other vehicles.
+    BasicAgent implements a basic strategy that navigates scenes to reach a given
+    target destination. This strategy respects traffic lights and other vehicles.
     """
 
     def __init__(self, vehicle, target_speed=20):
@@ -48,7 +49,7 @@ class BasicAgent(Agent):
 
     def set_destination(self, location):
         """
-        This method creates a list of waypoints from agent's position to destination location
+        This method creates a list of waypoints from strategy's position to destination location
         based on the route returned by the global router
         """
 
