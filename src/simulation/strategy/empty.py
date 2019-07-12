@@ -2,8 +2,10 @@ import random
 
 import carla
 
+from .strategy import Strategy
 
-class EmptyStrategy:
+
+class EmptyStrategy(Strategy):
     def __init__(self):
         self.subject = None
 

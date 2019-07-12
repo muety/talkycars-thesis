@@ -2,7 +2,8 @@ import random
 
 import carla
 from keyboard_control import KeyboardControl
-from strategy import Strategy
+
+from .strategy import Strategy
 
 
 class ManualStrategy(Strategy):
