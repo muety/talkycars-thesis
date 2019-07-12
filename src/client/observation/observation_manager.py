@@ -2,7 +2,7 @@ from collections import deque
 from threading import Thread, Lock
 from typing import Callable
 
-from observation import Observation
+from common.observation import Observation
 
 
 class ObservationManager:

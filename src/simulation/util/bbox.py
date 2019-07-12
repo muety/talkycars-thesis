@@ -1,6 +1,7 @@
 import numpy as np
 import pygame
-from lib.occupancy.grid import GridCellState
+
+from common.occupancy.grid import GridCellState
 
 BB_COLOR = (24, 64, 248)
 BB_COLOR_OCCUPIED = (248, 64, 24)

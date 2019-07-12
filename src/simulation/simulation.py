@@ -9,22 +9,20 @@ import random
 import carla
 import math
 import pygame
-from constants import OBS_POSITION_PLAYER_POS, OBS_GNSS_PLAYER_POS, OBS_LIDAR_POINTS, OBS_CAMERA_RGB_IMAGE
 from hud import HUD
 from keyboard_control import KeyboardControl
-from lib.occupancy.grid_manager import OccupancyGridManager
-from lib.quadkey import QuadKey
-from observation import ObservationManager
-from observation import PositionObservation, GnssObservation, LidarObservation, CameraRGBObservation
 from sensors import CameraRGBSensor
 from sensors import GnssSensor
 from sensors import LidarSensor
+from sensors.position import PositionSensor
 from util import BBoxUtils
 
-OCCUPANCY_RADIUS = 5
-OCCUPANCY_TILE_LEVEL = 24
-LIDAR_ANGLE = 15           # Caution: Choose Lidar angle depending on grid size
-LIDAR_MAX_RANGE = 100
+from client.client import TalkyClient, ClientDialect
+from common.constants import *
+from common.observation import OccupancyGridObservation
+from common.occupancy import Grid
+from common.quadkey import QuadKey
+
 
 class World(object):
     def __init__(self, client, hud, actor_name='hero'):
@@ -32,17 +30,18 @@ class World(object):
         self.client = client
         self.world = client.get_world()
         self.actor_name = actor_name
+        self.client = TalkyClient(dialect=ClientDialect.CARLA)
         self.spawn_point = None
         self.map = self.world.get_map()
         self.hud = hud
-        self.om = ObservationManager()
-        self.gm = OccupancyGridManager(OCCUPANCY_TILE_LEVEL, OCCUPANCY_RADIUS)
         self.player = None
         self.sensors = {
             'lidar': None,
             'camera_rgb': None,
-            'gnss': None
+            'gnss': None,
+            'position': None
         }
+        self.grid: Grid = None
         self.npcs = [] # list of actor ids
         self.box_key = None
         self.debug = True
@@ -78,23 +77,16 @@ class World(object):
             self.player = self.world.try_spawn_actor(blueprint, spawn_point)
         self.spawn_point = spawn_point
 
-        # Type registrations
-        self.om.register_key(OBS_POSITION_PLAYER_POS, PositionObservation)
-        self.om.register_key(OBS_GNSS_PLAYER_POS, GnssObservation)
-        self.om.register_key(OBS_LIDAR_POINTS, LidarObservation)
-        self.om.register_key(OBS_CAMERA_RGB_IMAGE, CameraRGBObservation)
 
         # Set up the sensors.
         grid_range = OCCUPANCY_RADIUS * QuadKey('0' * OCCUPANCY_TILE_LEVEL).side()
-        lidar_offset_z = 2.8
         lidar_min_range = (grid_range + .5) / math.cos(math.radians(LIDAR_ANGLE))
-        lidar_range = min(LIDAR_MAX_RANGE, max(lidar_min_range, lidar_offset_z / math.sin(math.radians(LIDAR_ANGLE))) + 1)
+        lidar_range = min(LIDAR_MAX_RANGE, max(lidar_min_range, LIDAR_Z_OFFSET / math.sin(math.radians(LIDAR_ANGLE))) + 1)
 
-        self.sensors['gnss'] = GnssSensor(self.player, self.om)
-        self.sensors['lidar'] = LidarSensor(self.player, self.om, offset_z=lidar_offset_z, range=lidar_range, angle=LIDAR_ANGLE)
+        self.sensors['gnss'] = GnssSensor(self.player, self.client)
+        self.sensors['lidar'] = LidarSensor(self.player, self.client, offset_z=LIDAR_Z_OFFSET, range=lidar_range, angle=LIDAR_ANGLE)
         self.sensors['camera_rgb'] = CameraRGBSensor(self.player, self.hud)
-
-        self.gm.offset_z = lidar_offset_z
+        self.sensors['position'] = PositionSensor(self.player, self.client)
 
         # Set up listeners
         self.init_subscriptions()
@@ -114,13 +106,10 @@ class World(object):
         self.npcs.append(car1)
 
     def init_subscriptions(self):
-        def on_lidar(obs):
-            executed = self.gm.update_gnss(obs)
-            if executed:
-                self.gm.match_with_lidar(self.om.latest(OBS_LIDAR_POINTS))
+        def on_grid(grid: OccupancyGridObservation):
+            self.grid = grid.value
 
-        self.om.subscribe(OBS_GNSS_PLAYER_POS, on_lidar)
-        self.om.subscribe(OBS_POSITION_PLAYER_POS, self.gm.set_position)
+        self.client.outbound.subscribe(OBS_OCCUPANCY_GRID, on_grid)
 
     def tick(self, clock):
         clock.tick_busy_loop(60)
@@ -128,17 +117,15 @@ class World(object):
         ts = self.world.wait_for_tick()
         self.hud.tick(self, clock)
 
-        player_location = self.player.get_location()
-        position_obs = PositionObservation(ts.elapsed_seconds, (player_location.x, player_location.y, player_location.z))
-        self.om.add(OBS_POSITION_PLAYER_POS, position_obs)
+        self.sensors['position'].tick(ts.elapsed_seconds)
 
     def render_bboxes(self, display):
-        if not self.debug or self.gm.get_grid() is None:
+        if not self.debug or self.grid is None:
             return
 
         bboxes = []
         states = []
-        for cell in self.gm.get_grid().cells:
+        for cell in self.grid.cells:
             bb = cell.to_vertices()
             bb_cam = BBoxUtils.to_camera(bb.T, self.sensors['camera_rgb'].sensor, self.sensors['camera_rgb'].sensor)
             if not all(bb_cam[:, 2] > 0): continue

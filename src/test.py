@@ -1,5 +1,6 @@
 import numpy as np
-from lib.geom import BBox3D, Ray3D
+
+from common.geom import BBox3D, Ray3D
 
 if __name__ == '__main__':
     box = BBox3D.from_points((0,0,0), (10,10,10))

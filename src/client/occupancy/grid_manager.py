@@ -2,13 +2,13 @@ from multiprocessing.pool import Pool
 from typing import List, Set, Dict, Callable
 
 import numpy as np
-from lib import quadkey
-from lib.occupancy.grid import Grid, GridCell, GridCellState
 from lib.raycast import raycast
-from observation import GnssObservation, LidarObservation, PositionObservation
 
-OCCUPANCY_BBOX_OFFSET = .1
-OCCUPANCY_BBOX_HEIGHT = 3.5
+from common import quadkey
+from common.constants import *
+from common.observation import GnssObservation, LidarObservation, PositionObservation
+from common.occupancy.grid import Grid, GridCell, GridCellState
+
 N_THREADS = 4
 
 class OccupancyGridManager:
@@ -84,7 +84,8 @@ class OccupancyGridManager:
         self.grids[key.key] = self._compute_grid()
 
     def _compute_grid(self) -> Grid:
-        incremental = False
+        nearby: Set[str] = set()
+        incremental: bool = False
 
         if self.quadkey_prev is not None and self.quadkey_prev.key in self.grids and self.grids[self.quadkey_prev.key] is not None:
             tile = self.quadkey_current.to_tile()[0]

@@ -2,7 +2,9 @@ from datetime import datetime
 from typing import Tuple, Iterable
 
 import numpy as np
-from lib import quadkey
+
+from common import quadkey
+from common.occupancy import Grid
 
 
 class Observation:
@@ -56,3 +58,13 @@ class CameraRGBObservation(Observation):
 
     def __str__(self):
         return f'[{self.timestamp}] RGB Image: {self.value.shape}'
+
+class OccupancyGridObservation(Observation):
+    def __init__(self, timestamp, grid: Grid):
+        assert isinstance(grid, Grid)
+
+        super().__init__(timestamp)
+        self.value = grid
+
+    def __str__(self):
+        return f'[{self.timestamp}] Occupancy grid with {len(self.value.cells)} cells'

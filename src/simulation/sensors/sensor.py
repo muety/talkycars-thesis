@@ -1,3 +1,7 @@
+from client.client import TalkyClient
+
+
 class Sensor:
-    def __init__(self, observation_manager=None):
-        self.om = observation_manager
+    def __init__(self, client: TalkyClient=None):
+        self.client = client
+

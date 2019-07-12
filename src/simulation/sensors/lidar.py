@@ -2,21 +2,22 @@ import weakref
 
 import carla
 import numpy as np
-from constants import OBS_LIDAR_POINTS
-from observation import LidarObservation
-from observation import ObservationManager
 from sensors import Sensor
+
+from client.client import TalkyClient
+from common.constants import OBS_LIDAR_POINTS
+from common.observation import LidarObservation
 
 
 class LidarSensor(Sensor):
-    def __init__(self, parent_actor, observation_manager: ObservationManager = None, offset_z=2.8, range=5, angle=15):
+    def __init__(self, parent_actor, client: TalkyClient = None, offset_z=2.8, range=5, angle=15):
         weak_self = weakref.ref(self)
         self.sensor = None
         self._parent = parent_actor
         self.recording = False
         self.offset_z = offset_z
 
-        super().__init__(observation_manager)
+        super().__init__(client)
 
         world = self._parent.get_world()
         bp = world.get_blueprint_library().find('sensor.lidar.ray_cast')
@@ -53,7 +54,7 @@ class LidarSensor(Sensor):
         points = np.array(list(filter(lambda p: 0 <= p[2] < 30, points)))
 
         obs = LidarObservation(image.timestamp, points)
-        self.om.add(OBS_LIDAR_POINTS, obs)
+        self.client.inbound.publish(OBS_LIDAR_POINTS, obs)
 
         if self.recording:
             image.save_to_disk('_out/%08d' % image.frame_number)
