@@ -1,4 +1,4 @@
-from multiprocessing.pool import ThreadPool
+from multiprocessing.pool import Pool
 from typing import List, Set, Dict, Callable
 
 import numpy as np
@@ -23,7 +23,7 @@ class OccupancyGridManager:
         # TODO: Prevent memory leak
         self.grids: Dict[str, Grid] = dict()
         self.convert: Callable = lambda x: (x[0] * 4.78296128064646e-5 - 13731628.4846192, x[1] * -4.7799656322138e-5 + 9024494.06807157)
-        self.pool = ThreadPool(processes=N_THREADS)
+        self.pool = Pool(processes=N_THREADS)
 
     def update_gnss(self, obs: GnssObservation):
         key = obs.to_quadkey(self.level)
@@ -48,22 +48,34 @@ class OccupancyGridManager:
         if grid is None or obs is None:
             return
 
-        self._match_cells((grid.cells, obs, self.location))
+        n = len(grid.cells)
+        grid_cells = list(grid.cells)
+        batch_size = np.math.ceil(n / N_THREADS)
+        batches = [(list(map(lambda c: c.bounds, grid_cells[i*batch_size:i*batch_size+batch_size])), obs.value, self.location) for i in range(n)]
 
-    def _match_cells(self, args):
+        # Doing this as sub-processes actually adds ~4 FPS on average
+        result = self.pool.map(self._match_cells, batches)
+
+        for i, r in enumerate(result):
+            for j, s in enumerate(r):
+                grid_cells[i * batch_size + j].state = s
+
+    @staticmethod
+    def _match_cells(args):
         cells, obs, loc = args
+        states = [GridCellState.UNKNOWN] * len(cells)
 
-        for cell in cells:
-            for point in obs.value:
+        for i, cell in enumerate(cells):
+            for point in obs:
                 direction = point - loc
-
-                if cell.contains_point(point):
-                    cell.state = GridCellState.OCCUPIED
+                if raycast.aabb_contains(cell, point):
+                    states[i] = GridCellState.OCCUPIED
+                    break
+                if raycast.aabb_intersect(cell, raycast.Ray3D(loc, direction)):
+                    states[i] = GridCellState.FREE
                     break
 
-                if cell.intersects(raycast.Ray3D(loc, direction)):
-                   cell.state = GridCellState.FREE
-                   break
+        return states
 
     def _recompute(self):
         key = self.quadkey_current
@@ -103,7 +115,11 @@ class OccupancyGridManager:
             nearby = self.grids[self.quadkey_prev.key].to_quadkeys_str() \
                 .difference(remove) \
                 .union(add)
-        else:
+
+            if len(nearby) != (self.radius * 2 + 1) ** 2:
+                incremental = False
+
+        if not incremental:
             nearby = self.quadkey_current.nearby(self.radius)
 
         assert len(nearby) == (self.radius * 2 + 1) ** 2
