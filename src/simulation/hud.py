@@ -19,7 +19,7 @@ class HUD(object):
         mono = pygame.font.match_font(mono)
         self._font_mono = pygame.font.Font(mono, 14)
         self.server_fps = 0
-        self.frame_number = 0
+        self.frame = 0
         self.simulation_time = 0
         self._show_info = True
         self._info_text = []
@@ -28,7 +28,7 @@ class HUD(object):
     def on_world_tick(self, timestamp):
         self._server_clock.tick()
         self.server_fps = self._server_clock.get_fps()
-        self.frame_number = timestamp.frame_count
+        self.frame = timestamp.frame
         self.simulation_time = timestamp.elapsed_seconds
 
     def tick(self, ego, clock):

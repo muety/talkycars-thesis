@@ -57,4 +57,4 @@ class LidarSensor(Sensor):
         self.client.inbound.publish(OBS_LIDAR_POINTS, obs)
 
         if self.recording:
-            image.save_to_disk('_out/%08d' % image.frame_number)
+            image.save_to_disk('_out/%08d' % image.frame)

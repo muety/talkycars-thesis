@@ -6,7 +6,7 @@
 
 ## Developer Notes
 * `export PYTHONPATH=$PYTHONPATH:"$('pwd')/carla"`
-* `export PYTHONPATH=$PYTHONPATH:"$('pwd')/carla/dist/carla-0.9.5-py3.5-linux-x86_64.egg"`
+* `export PYTHONPATH=$PYTHONPATH:"$('pwd')/carla/dist/carla-0.9.6-py3.5-linux-x86_64.egg"`
 
 ## QuadTiles
 | Tile Level | Ground Resolution @ Equator (m) |
@@ -42,3 +42,30 @@
 | 29         | 0.074                           |
 | 30         | 0.037                           |
 | 31         | 0.018                           |
+
+## Available Cars
+* vehicle.ford.mustang
+* `vehicle.audi.a2`
+* `vehicle.audi.tt`
+* `vehicle.bmw.isetta`
+* `vehicle.carlamotors.carlacola`
+* `vehicle.citroen.c3`
+* `vehicle.harley-davidson.low rider`
+* `vehicle.bmw.grandtourer`
+* `vehicle.mercedes-benz.coupe`
+* `vehicle.toyota.prius`
+* `vehicle.dodge_charger.police`
+* `vehicle.yamaha.yzf`
+* `vehicle.nissan.patrol`
+* `vehicle.bh.crossbike`
+* `vehicle.tesla.model3`
+* `vehicle.diamondback.century`
+* `vehicle.gazelle.omafiets`
+* `vehicle.seat.leon`
+* `vehicle.lincoln.mkz2017`
+* `vehicle.kawasaki.ninja`
+* `vehicle.volkswagen.t2`
+* `vehicle.nissan.micra`
+* `vehicle.chevrolet.impala`
+* `vehicle.mini.cooperst`
+* `vehicle.jeep.wrangler_rubicon`
