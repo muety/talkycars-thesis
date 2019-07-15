@@ -19,10 +19,11 @@ class World(object):
     def __init__(self, client: carla.Client, scene_name: str):
         # Attributes
         self.sim = client
-        self.world = client.get_world()
         self.client = TalkyClient(dialect=ClientDialect.CARLA)
-        self.map = self.world.get_map()
         self.debug = True
+
+        self.world = self.init_world(scene_name)
+        self.map = self.world.get_map()
 
         self.egos: List[Ego] = []
         self.npcs: List[carla.Agent] = []
@@ -38,6 +39,11 @@ class World(object):
 
     def init(self):
         pass
+
+    def init_world(self, scene_name: str) -> carla.World:
+        if scene_name == 'scene1':
+            return self.sim.load_world('Town07')
+        return None
 
     def init_scene(self, scene_name: str):
         if scene_name == 'scene1':

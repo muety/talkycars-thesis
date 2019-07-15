@@ -1,5 +1,5 @@
 from multiprocessing.pool import Pool
-from typing import List, Set, Dict, Callable
+from typing import List, Set, Dict, Callable, Tuple
 
 import numpy as np
 from lib.raycast import raycast
@@ -15,14 +15,14 @@ class OccupancyGridManager:
     def __init__(self, level, radius, offset_z=0):
         self.level = level
         self.radius = radius
-        self.location = None
+        self.location: Tuple[float, float, float] = None
         self.gnss_current: GnssObservation = None
         self.quadkey_current: quadkey.QuadKey = None
         self.quadkey_prev: quadkey.QuadKey = None
         self.offset_z = offset_z
         # TODO: Prevent memory leak
         self.grids: Dict[str, Grid] = dict()
-        self.convert: Callable = lambda x: (x[0] * 4.78296128064646e-5 - 13731628.4846192, x[1] * -4.7799656322138e-5 + 9024494.06807157)
+        self.convert: Callable = lambda x: (x[0] * 4.77733545044234e-5 - 13715477.0910797, x[1] * 4.780960965231e-5 - 9026373.31437847)
         self.pool = Pool(processes=N_THREADS)
 
     def update_gnss(self, obs: GnssObservation):

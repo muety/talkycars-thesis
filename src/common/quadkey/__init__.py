@@ -12,14 +12,11 @@ class QuadKey:
 
     @precondition(lambda c, key: valid_key(key))
     def __init__(self, key):
-        """
-        A quadkey must be between 1 and 23 digits and can only contain digit[0-3]
-        """
         self.key = key
         self.level = len(key)
 
     def children(self):
-        if self.level >= 23:
+        if self.level >= 31:
             return []
         return [QuadKey(self.key + str(k)) for k in [0, 1, 2, 3]]
 
