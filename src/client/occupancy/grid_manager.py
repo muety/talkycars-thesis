@@ -9,7 +9,7 @@ from common.constants import *
 from common.observation import GnssObservation, LidarObservation, PositionObservation
 from common.occupancy.grid import Grid, GridCell, GridCellState
 
-N_THREADS = 4
+N_THREADS = 2
 
 class OccupancyGridManager:
     def __init__(self, level, radius, offset_z=0):
@@ -45,7 +45,7 @@ class OccupancyGridManager:
 
     def match_with_lidar(self, obs: LidarObservation):
         grid = self.get_grid()
-        if grid is None or obs is None:
+        if grid is None or obs is None or self.location is None:
             return
 
         n = len(grid.cells)
@@ -53,7 +53,6 @@ class OccupancyGridManager:
         batch_size = np.math.ceil(n / N_THREADS)
         batches = [(list(map(lambda c: c.bounds, grid_cells[i*batch_size:i*batch_size+batch_size])), obs.value, self.location) for i in range(n)]
 
-        # Doing this as sub-processes actually adds ~ 4 FPS on average
         result = self.pool.map(self._match_cells, batches)
 
         for i, r in enumerate(result):
@@ -84,7 +83,7 @@ class OccupancyGridManager:
         self.grids[key.key] = self._compute_grid()
 
     def _compute_grid(self) -> Grid:
-        nearby: Set[str] = set()
+        nearby: Set[str] = frozenset()
         incremental: bool = False
 
         if self.quadkey_prev is not None and self.quadkey_prev.key in self.grids and self.grids[self.quadkey_prev.key] is not None:

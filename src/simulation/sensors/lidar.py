@@ -1,9 +1,9 @@
 import weakref
 
-import carla
 import numpy as np
 from sensors import Sensor
 
+import carla
 from client.client import TalkyClient
 from common.constants import OBS_LIDAR_POINTS
 from common.observation import LidarObservation
@@ -22,10 +22,9 @@ class LidarSensor(Sensor):
         world = self._parent.get_world()
         bp = world.get_blueprint_library().find('sensor.lidar.ray_cast')
         bp.set_attribute('range', str(int(range * 100)))
-        bp.set_attribute('upper_fov', '0')
+        bp.set_attribute('upper_fov', '5')
         bp.set_attribute('lower_fov', str(int(-angle)))
-        bp.set_attribute('channels', '16')
-        bp.set_attribute('points_per_second', '4096')
+        bp.set_attribute('rotation_frequency', '20')
 
         print(f'Lidar Angle: {int(-angle)}')
 

@@ -10,12 +10,11 @@ class InboundController():
         self.gm = gm
 
         def on_lidar(obs: Observation):
-            executed = self.gm.update_gnss(obs)
-            if executed:
-                self.gm.match_with_lidar(self.om.latest(OBS_LIDAR_POINTS))
+            self.gm.update_gnss(obs)
+            self.gm.match_with_lidar(self.om.latest(OBS_LIDAR_POINTS))
 
-                obs = OccupancyGridObservation(obs.timestamp, self.gm.get_grid())
-                self.om.add(OBS_OCCUPANCY_GRID, obs)
+            obs = OccupancyGridObservation(obs.timestamp, self.gm.get_grid())
+            self.om.add(OBS_OCCUPANCY_GRID, obs)
 
         self.om.subscribe(OBS_GNSS_PLAYER_POS, on_lidar)
         self.om.subscribe(OBS_POSITION_PLAYER_POS, self.gm.set_position)
