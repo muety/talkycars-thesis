@@ -12,9 +12,10 @@ import random
 from collections import deque
 from enum import Enum
 
-import carla
 from agents.navigation.controller import VehiclePIDController
 from agents.tools.misc import distance_vehicle, draw_waypoints
+
+import carla
 
 
 class RoadOption(Enum):
@@ -82,9 +83,7 @@ class LocalPlanner(object):
         self._init_controller(opt_dict)
 
     def __del__(self):
-        if self._vehicle:
-            self._vehicle.destroy()
-        print("Destroying ego-vehicle!")
+        pass
 
     def reset_vehicle(self):
         self._vehicle = None

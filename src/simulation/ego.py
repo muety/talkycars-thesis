@@ -28,6 +28,8 @@ class Ego:
                  render: bool=False,
                  debug: bool = False,
                  is_standalone: bool = False,
+                 grid_radius: float = OCCUPANCY_RADIUS_DEFAULT,
+                 lidar_angle: float = LIDAR_ANGLE_DEFAULT
                  ):
         self.client: TalkyClient = TalkyClient(dialect=ClientDialect.CARLA)
         self.world: carla.World = client.get_world()
@@ -46,6 +48,8 @@ class Ego:
             'camera_rgb': None,
             'position': None,
         }
+
+        self.client.gm.radius = grid_radius
 
         # Initialize visual stuff
         if render:
@@ -68,12 +72,12 @@ class Ego:
         self.vehicle = self.strategy.spawn()
 
         # Initialize sensors
-        grid_range = OCCUPANCY_RADIUS_DEFAULT * QuadKey('0' * OCCUPANCY_TILE_LEVEL).side()
-        lidar_min_range = (grid_range + .5) / math.cos(math.radians(LIDAR_ANGLE))
-        lidar_range = min(LIDAR_MAX_RANGE, max(lidar_min_range, LIDAR_Z_OFFSET / math.sin(math.radians(LIDAR_ANGLE))) * 2)
+        grid_range = grid_radius * QuadKey('0' * OCCUPANCY_TILE_LEVEL).side()
+        lidar_min_range = (grid_range + .5) / math.cos(math.radians(lidar_angle))
+        lidar_range = min(LIDAR_MAX_RANGE, max(lidar_min_range, LIDAR_Z_OFFSET / math.sin(math.radians(lidar_angle))) * 2)
 
         self.sensors['gnss'] = GnssSensor(self.vehicle, self.client)
-        self.sensors['lidar'] = LidarSensor(self.vehicle, self.client, offset_z=LIDAR_Z_OFFSET, range=lidar_range, angle=LIDAR_ANGLE)
+        self.sensors['lidar'] = LidarSensor(self.vehicle, self.client, offset_z=LIDAR_Z_OFFSET, range=lidar_range, angle=lidar_angle)
         self.sensors['position'] = PositionSensor(self.vehicle, self.client)
         if render:
             self.sensors['camera_rgb'] = CameraRGBSensor(self.vehicle, self.hud)

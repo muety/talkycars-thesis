@@ -1,9 +1,9 @@
 class Strategy:
     def __init__(self):
-        self.subject = None
+        self.ego = None
 
-    def init(self, subject):
-        self.subject = subject
+    def init(self, ego):
+        self.ego = ego
 
     def step(self, **kwargs) -> bool:
         raise NotImplementedError()

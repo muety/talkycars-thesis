@@ -4,7 +4,7 @@ from typing import Tuple, Iterable
 import numpy as np
 
 from common import quadkey
-from common.occupancy import Grid
+from common.occupancy import Grid, GridCellState
 
 
 class Observation:
@@ -67,4 +67,5 @@ class OccupancyGridObservation(Observation):
         self.value = grid
 
     def __str__(self):
-        return f'[{self.timestamp}] Occupancy grid with {len(self.value.cells)} cells'
+        n_occupied = len(list(filter(lambda c: c.state == GridCellState.OCCUPIED, self.value.cells)))
+        return f'[{self.timestamp}] Occupancy grid with {len(self.value.cells)} cells ({n_occupied} occupied)'

@@ -49,12 +49,22 @@ class World(object):
     def init_scene(self, scene_name: str):
         if scene_name == 'scene1':
             # Create main player
-            main_hero = Ego(self.sim, strategy=ManualStrategy(), name='main_hero', render=True, debug=True)
+            main_hero = Ego(self.sim,
+                            strategy=ManualStrategy(),
+                            name='main_hero',
+                            render=True,
+                            debug=True)
             self.egos.append(main_hero)
             self.world.wait_for_tick()
 
             # Create observer player
-            observer_hero = Ego(self.sim, strategy=Observer1Strategy(), name='observer1', render=False, debug=False)
+            observer_hero = Ego(self.sim,
+                                strategy=Observer1Strategy(),
+                                name='observer1',
+                                render=False,
+                                debug=False,
+                                grid_radius=10,
+                                lidar_angle=9)
             self.egos.append(observer_hero)
             self.world.wait_for_tick()
 
