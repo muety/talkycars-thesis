@@ -30,6 +30,7 @@ class LidarSensor(Sensor):
         bp.set_attribute('points_per_second', '8000')
 
         logging.info(f'Lidar Angle: {int(-angle)}')
+        logging.info(f'Lidar Range: {int(range)}')
 
         self.sensor = world.spawn_actor(bp, carla.Transform(carla.Location(z=self.offset_z), carla.Rotation()), attach_to=self._parent)
         self.sensor.listen(lambda event: LidarSensor._on_image(weak_self, event))
@@ -52,7 +53,7 @@ class LidarSensor(Sensor):
 
         # TODO: Make sure transformations are actually correct
         points = map(t.transform, image)
-        points = map(lambda p: (p.x, p.y, p.z - self.offset_z), points)
+        points = map(lambda p: (p.x, p.y, p.z - image.transform.location.z), points)
         points = np.array(list(filter(lambda p: 0 <= p[2] < 30, points)))
 
         obs = LidarObservation(image.timestamp, points)

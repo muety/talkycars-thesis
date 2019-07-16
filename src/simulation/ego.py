@@ -70,7 +70,7 @@ class Ego:
         # Initialize sensors
         grid_range = OCCUPANCY_RADIUS_DEFAULT * QuadKey('0' * OCCUPANCY_TILE_LEVEL).side()
         lidar_min_range = (grid_range + .5) / math.cos(math.radians(LIDAR_ANGLE))
-        lidar_range = min(LIDAR_MAX_RANGE, max(lidar_min_range, LIDAR_Z_OFFSET / math.sin(math.radians(LIDAR_ANGLE))) + 1)
+        lidar_range = min(LIDAR_MAX_RANGE, max(lidar_min_range, LIDAR_Z_OFFSET / math.sin(math.radians(LIDAR_ANGLE))) * 2)
 
         self.sensors['gnss'] = GnssSensor(self.vehicle, self.client)
         self.sensors['lidar'] = LidarSensor(self.vehicle, self.client, offset_z=LIDAR_Z_OFFSET, range=lidar_range, angle=LIDAR_ANGLE)
