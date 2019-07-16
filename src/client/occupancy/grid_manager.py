@@ -9,7 +9,7 @@ from common.constants import *
 from common.observation import GnssObservation, LidarObservation, PositionObservation
 from common.occupancy.grid import Grid, GridCell, GridCellState
 
-N_THREADS = 2
+N_THREADS = 6
 
 class OccupancyGridManager:
     def __init__(self, level, radius, offset_z=0):
@@ -65,16 +65,27 @@ class OccupancyGridManager:
     def _match_cells(args):
         bounds, points, loc = args
         states = [GridCellState.UNKNOWN] * len(bounds)
+        loc = np.array(loc)
 
         for i, cell in enumerate(bounds):
             for point in points:
-                direction = point - loc
                 if raycast.aabb_contains(cell, point):
                     states[i] = GridCellState.OCCUPIED
                     break
+
+        for i, cell in enumerate(bounds):
+            if states[i] != GridCellState.UNKNOWN:
+                continue
+
+            for point in points:
+                direction = point - loc
+
                 if raycast.aabb_intersect(cell, raycast.Ray3D(loc, direction)):
-                    states[i] = GridCellState.FREE
-                    break
+                    cell_dist = np.min(np.linalg.norm(loc - np.array(cell), axis=1))
+                    hit_dist = np.linalg.norm(loc - point)
+                    if cell_dist < hit_dist:
+                        states[i] = GridCellState.FREE
+                        break
 
         return states
 

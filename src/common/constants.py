@@ -6,10 +6,10 @@ OBS_OCCUPANCY_GRID = 'occupancy_grid'
 
 OCCUPANCY_RADIUS_DEFAULT = 5
 OCCUPANCY_TILE_LEVEL = 24
-OCCUPANCY_BBOX_OFFSET = 0
+OCCUPANCY_BBOX_OFFSET = 0.1
 OCCUPANCY_BBOX_HEIGHT = 3.5
 
-LIDAR_ANGLE = 30 # Caution: Choose Lidar angle depending on grid size
+LIDAR_ANGLE = 12 # Caution: Choose Lidar angle depending on grid size
 LIDAR_MAX_RANGE = 25
 LIDAR_Z_OFFSET = 2.8
 
