@@ -6,13 +6,15 @@ import argparse
 import logging
 from typing import List
 
-import carla
 import pygame
 from ego import Ego
-from strategy import ManualStrategy
+from strategy import ManualStrategy, Observer1Strategy
 from util import GracefulKiller
+from util.simulation import SimulationUtils
 
+import carla
 from client.client import TalkyClient, ClientDialect
+from common.constants import *
 
 
 class World(object):
@@ -21,12 +23,11 @@ class World(object):
         self.sim = client
         self.client = TalkyClient(dialect=ClientDialect.CARLA)
         self.debug = True
+        self.egos: List[Ego] = []
+        self.npcs: List[carla.Agent] = []
 
         self.world = self.init_world(scene_name)
         self.map = self.world.get_map()
-
-        self.egos: List[Ego] = []
-        self.npcs: List[carla.Agent] = []
 
         self.init()
         self.init_scene(scene_name)
@@ -47,8 +48,29 @@ class World(object):
 
     def init_scene(self, scene_name: str):
         if scene_name == 'scene1':
+            # Create main player
             main_hero = Ego(self.sim, strategy=ManualStrategy(), name='main_hero', render=True, debug=True)
             self.egos.append(main_hero)
+            self.world.wait_for_tick()
+
+            # Create observer player
+            observer_hero = Ego(self.sim, strategy=Observer1Strategy(), name='observer1', render=False, debug=False)
+            self.egos.append(observer_hero)
+            self.world.wait_for_tick()
+
+            # Create randomly roaming peds
+            self.npcs += SimulationUtils.spawn_pedestrians(self.world, self.sim, N_PEDESTRIANS)
+
+            # Create static vehicle
+            bp1 = self.world.get_blueprint_library().filter('vehicle.volkswagen.t2')[0]
+            spawn1 = carla.Transform(carla.Location(x=-198.2, y=-50.9, z=1.5), carla.Rotation(yaw=-90))
+            cmd1 = carla.command.SpawnActor(bp1, spawn1)
+
+            responses = self.sim.apply_batch_sync([cmd1])
+            spawned_ids = list(map(lambda r: r.actor_id, filter(lambda r: not r.has_error(), responses)))
+            spawned_actors = list(self.world.get_actors(spawned_ids))
+            self.npcs += spawned_actors
+
 
     def tick(self, clock) -> bool:
         clock.tick_busy_loop(60)
@@ -59,11 +81,8 @@ class World(object):
                 return True
 
     def destroy(self):
-        for a in self.npcs:
-            if a: a.destroy()
-
-        for a in self.egos:
-            if a: a.destroy()
+        all_actors = self.npcs + list(map(lambda e: e.vehicle, self.egos))
+        SimulationUtils.multi_destroy(self.world, self.sim, all_actors)
 
 def game_loop(args):
     killer = GracefulKiller()

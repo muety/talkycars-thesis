@@ -53,6 +53,9 @@ class ObservationManager:
 
         lock.release()
 
+    def has(self, key) -> bool:
+        return key in self.observations and len(self.observations[key]) > 0
+
     def latest(self, key) -> Observation:
         if not key in self.observations or len(self.observations[key]) == 0:
             return None

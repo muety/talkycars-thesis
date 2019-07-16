@@ -41,12 +41,12 @@ class OccupancyGridManager:
         self.location = obs.value
 
     def get_grid(self) -> Grid:
-        return self.grids[self.quadkey_current.key] if self.quadkey_current.key in self.grids else None
+        return self.grids[self.quadkey_current.key] if self.quadkey_current and self.quadkey_current.key in self.grids and self.grids[self.quadkey_current.key] else None
 
     def match_with_lidar(self, obs: LidarObservation):
         grid = self.get_grid()
         if grid is None or obs is None or self.location is None:
-            return
+            return False
 
         n = len(grid.cells)
         grid_cells = list(grid.cells)
@@ -58,6 +58,8 @@ class OccupancyGridManager:
         for i, r in enumerate(result):
             for j, s in enumerate(r):
                 grid_cells[i * batch_size + j].state = s
+
+        return True
 
     @staticmethod
     def _match_cells(args):

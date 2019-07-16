@@ -1,8 +1,6 @@
-import random
-
-import carla
 from keyboard_control import KeyboardControl
 
+import carla
 from .strategy import Strategy
 
 
@@ -24,13 +22,12 @@ class ManualStrategy(Strategy):
         return self.controller.parse_events(self.subject, clock)
 
     def spawn(self) -> carla.Vehicle:
-        blueprint = self.subject.world.get_blueprint_library().filter('vehicle.mini.cooperst')[0]
+        blueprint = self.subject.world.get_blueprint_library().filter('vehicle.tesla.model3')[0]
         blueprint.set_attribute('role_name', self.subject.name)
         if blueprint.has_attribute('color'):
-            color = random.choice(blueprint.get_attribute('color').recommended_values)
+            color = blueprint.get_attribute('color').recommended_values[0]
             blueprint.set_attribute('color', color)
 
-        spawn_points = self.subject.map.get_spawn_points()
-        spawn_point = spawn_points[0] if spawn_points else carla.Transform()
+        spawn_point = carla.Transform(carla.Location(x=-155.2, y=-36.1, z=1.5), carla.Rotation(yaw=180))
 
-        return self.subject.world.try_spawn_actor(blueprint, spawn_point)
+        return self.subject.world.spawn_actor(blueprint, spawn_point)

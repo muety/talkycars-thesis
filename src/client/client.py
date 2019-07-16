@@ -13,10 +13,13 @@ class ClientDialect(Enum):
     CARLA = 0
 
 class TalkyClient:
-    def __init__(self, dialect: ClientDialect = ClientDialect.CARLA):
+    def __init__(self,
+                 dialect: ClientDialect = ClientDialect.CARLA,
+                 grid_radius: int = OCCUPANCY_RADIUS_DEFAULT
+                 ):
         self.dialect: ClientDialect = dialect
         self.om: ObservationManager = ObservationManager()
-        self.gm: OccupancyGridManager = OccupancyGridManager(OCCUPANCY_TILE_LEVEL, OCCUPANCY_RADIUS)
+        self.gm: OccupancyGridManager = OccupancyGridManager(OCCUPANCY_TILE_LEVEL, grid_radius)
         self.inbound: InboundController = InboundController(self.om, self.gm)
         self.outbound: OutboundController = OutboundController(self.om, self.gm)
 

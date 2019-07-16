@@ -1,3 +1,4 @@
+import logging
 import weakref
 
 import numpy as np
@@ -26,7 +27,7 @@ class LidarSensor(Sensor):
         bp.set_attribute('lower_fov', str(int(-angle)))
         bp.set_attribute('rotation_frequency', '20')
 
-        print(f'Lidar Angle: {int(-angle)}')
+        logging.info(f'Lidar Angle: {int(-angle)}')
 
         self.sensor = world.spawn_actor(bp, carla.Transform(carla.Location(z=self.offset_z), carla.Rotation()), attach_to=self._parent)
         self.sensor.listen(lambda event: LidarSensor._on_image(weak_self, event))

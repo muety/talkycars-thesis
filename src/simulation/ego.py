@@ -3,7 +3,6 @@ import logging
 from threading import Lock
 from typing import Dict
 
-import carla
 import math
 import pygame
 from hud import HUD
@@ -13,6 +12,7 @@ from strategy import Strategy, ManualStrategy
 from strategy.empty import EmptyStrategy
 from util import BBoxUtils, GracefulKiller
 
+import carla
 from client import ClientDialect, TalkyClient
 from common.constants import *
 from common.observation import OccupancyGridObservation
@@ -21,7 +21,14 @@ from common.quadkey import QuadKey
 
 
 class Ego:
-    def __init__(self, client: carla.Client, strategy: Strategy = None, name: str = 'hero', render: bool=False, debug: bool=False, is_standalone: bool = False):
+    def __init__(self,
+                 client: carla.Client,
+                 strategy: Strategy = None,
+                 name: str = 'hero',
+                 render: bool=False,
+                 debug: bool = False,
+                 is_standalone: bool = False,
+                 ):
         self.client: TalkyClient = TalkyClient(dialect=ClientDialect.CARLA)
         self.world: carla.World = client.get_world()
         self.map: carla.Map = self.world.get_map()
@@ -61,7 +68,7 @@ class Ego:
         self.vehicle = self.strategy.spawn()
 
         # Initialize sensors
-        grid_range = OCCUPANCY_RADIUS * QuadKey('0' * OCCUPANCY_TILE_LEVEL).side()
+        grid_range = OCCUPANCY_RADIUS_DEFAULT * QuadKey('0' * OCCUPANCY_TILE_LEVEL).side()
         lidar_min_range = (grid_range + .5) / math.cos(math.radians(LIDAR_ANGLE))
         lidar_range = min(LIDAR_MAX_RANGE, max(lidar_min_range, LIDAR_Z_OFFSET / math.sin(math.radians(LIDAR_ANGLE))) + 1)
 
@@ -104,6 +111,9 @@ class Ego:
                 self.world.wait_for_tick()
 
     def tick(self, clock: pygame.time.Clock) -> bool:
+        snap = self.world.get_snapshot()
+        self.sensors['position'].tick(snap.timestamp.platform_timestamp)
+
         if self.strategy.step(clock=clock):
             return True
 
@@ -113,8 +123,6 @@ class Ego:
         if self.display:
             self.render()
             pygame.display.flip()
-
-        self.sensors['position'].tick(0) # TODO: E.g. by using world.get_snapshot() from latest API
 
         return False
 
