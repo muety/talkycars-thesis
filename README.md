@@ -3,6 +3,7 @@
 ## Limitations
 * Does not consider security
 * Does only consider 2-dimensional road scenes (i.e. no bridges)
+* Intersections and more complex lane types are not modeled
 
 ## Developer Notes
 * `export PYTHONPATH=$PYTHONPATH:"$('pwd')/carla"`
