@@ -10,12 +10,12 @@
 * Python 3.7
 
 ## Setup
-* `python3 -m venv .`
-* `pip3 install -r requirements.txt`
-
-## Developer Notes
+* `export PYTHONPATH=$PYTHONPATH:"$('pwd')/src/simulation"`
 * `export PYTHONPATH=$PYTHONPATH:"$('pwd')/carla"`
 * `export PYTHONPATH=$PYTHONPATH:"$('pwd')/carla/dist/carla-0.9.6-py3.5-linux-x86_64.egg"`
+* `python3 -m venv .`
+* `pip3 install -r requirements.txt`
+* `cd src && python3 simulation/simulation.py`
 
 ## QuadTiles
 | Tile Level | Ground Resolution @ Equator (m) |
