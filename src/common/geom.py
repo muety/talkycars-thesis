@@ -1,7 +1,8 @@
 from typing import Callable, Tuple
 
 import numpy as np
-from lib.raycast import raycast
+
+from .raycast import raycast
 
 
 class Point:

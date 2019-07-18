@@ -1,7 +1,7 @@
 from keyboard_control import KeyboardControl
 
 import carla
-from .strategy import Strategy
+from . import Strategy
 
 
 class ManualStrategy(Strategy):

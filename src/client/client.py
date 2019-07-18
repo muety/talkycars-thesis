@@ -1,12 +1,12 @@
 from enum import Enum
 
-from client.inbound import InboundController
-from client.observation import ObservationManager
-from client.occupancy import OccupancyGridManager
-from client.outbound import OutboundController
 from common.constants import *
 from common.observation import CameraRGBObservation, PositionObservation, GnssObservation, LidarObservation, \
     OccupancyGridObservation
+from .inbound import InboundController
+from .observation import ObservationManager
+from .occupancy import OccupancyGridManager
+from .outbound import OutboundController
 
 
 class ClientDialect(Enum):

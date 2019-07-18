@@ -2,12 +2,12 @@ import logging
 import weakref
 
 import numpy as np
-from sensors import Sensor
 
 import carla
 from client.client import TalkyClient
 from common.constants import OBS_LIDAR_POINTS
 from common.observation import LidarObservation
+from . import Sensor
 
 
 class LidarSensor(Sensor):

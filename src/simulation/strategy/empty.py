@@ -1,7 +1,7 @@
 import random
 
 import carla
-from .strategy import Strategy
+from . import Strategy
 
 
 class EmptyStrategy(Strategy):

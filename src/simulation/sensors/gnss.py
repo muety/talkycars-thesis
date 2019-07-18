@@ -1,11 +1,10 @@
 import weakref
 
 import carla
-from sensors.sensor import Sensor
-
 from client.client import TalkyClient
 from common.constants import OBS_GNSS_PLAYER_POS
 from common.observation import GnssObservation
+from . import Sensor
 
 
 class GnssSensor(Sensor):

@@ -1,0 +1,4 @@
+pygame==1.9.6
+numpy==1.16.4
+Cython==0.29.12
+networkx==2.3

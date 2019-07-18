@@ -1,7 +1,7 @@
 from typing import Callable
 
-from client.observation import ObservationManager
-from client.occupancy import OccupancyGridManager
+from .observation import ObservationManager
+from .occupancy import OccupancyGridManager
 
 
 class OutboundController():

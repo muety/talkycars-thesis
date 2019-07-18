@@ -5,6 +5,14 @@
 * Does only consider 2-dimensional road scenes (i.e. no bridges)
 * Intersections and more complex lane types are not modeled
 
+## Requirements
+* Carla 0.9.6
+* Python 3.7
+
+## Setup
+* `python3 -m venv .`
+* `pip3 install -r requirements.txt`
+
 ## Developer Notes
 * `export PYTHONPATH=$PYTHONPATH:"$('pwd')/carla"`
 * `export PYTHONPATH=$PYTHONPATH:"$('pwd')/carla/dist/carla-0.9.6-py3.5-linux-x86_64.egg"`
@@ -45,7 +53,7 @@
 | 31         | 0.018                           |
 
 ## Available Cars
-* vehicle.ford.mustang
+* `vehicle.ford.mustang`
 * `vehicle.audi.a2`
 * `vehicle.audi.tt`
 * `vehicle.bmw.isetta`

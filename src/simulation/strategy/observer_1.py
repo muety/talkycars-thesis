@@ -1,7 +1,7 @@
-from agents.navigation.basic_agent import Agent
+from agents.navigation.agent import Agent
 
 import carla
-from .strategy import Strategy
+from . import Strategy
 
 
 class Observer1Strategy(Strategy):

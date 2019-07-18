@@ -1,10 +1,10 @@
-from client.observation import ObservationManager
-from client.occupancy import OccupancyGridManager
 from common.constants import *
 from common.observation import Observation, OccupancyGridObservation
+from .observation import ObservationManager
+from .occupancy import OccupancyGridManager
 
 
-class InboundController():
+class InboundController:
     def __init__(self, om: ObservationManager, gm: OccupancyGridManager):
         self.om = om
         self.gm = gm

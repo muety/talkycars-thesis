@@ -1,9 +1,8 @@
 import carla
-from sensors.sensor import Sensor
-
 from client.client import TalkyClient
 from common.constants import *
 from common.observation import PositionObservation
+from . import Sensor
 
 
 class PositionEvent(carla.SensorData):
