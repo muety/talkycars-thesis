@@ -6,15 +6,19 @@
 * Intersections and more complex lane types are not modeled
 
 ## Requirements
-* Carla 0.9.6
 * Python 3.7
+* [Carla](https://github.com/carla-simulator/carla) 0.9.6
+* [Cap'n'Proto](https://capnproto.org/install.html) 0.7.0
 
 ## Setup
+* `python3 -m venv .`
+* `pip3 install -r requirements.txt`
+
+## Run
+* `source venv/bin/activate`
 * `export PYTHONPATH=$PYTHONPATH:"$('pwd')/src/simulation"`
 * `export PYTHONPATH=$PYTHONPATH:"$('pwd')/carla"`
 * `export PYTHONPATH=$PYTHONPATH:"$('pwd')/carla/dist/carla-0.9.6-py3.5-linux-x86_64.egg"`
-* `python3 -m venv .`
-* `pip3 install -r requirements.txt`
 * `cd src && python3 simulation/simulation.py`
 
 ## QuadTiles
