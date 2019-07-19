@@ -4,21 +4,21 @@ capnp.remove_import_hook()
 
 if __name__ == '__main__':
 
-    coordinate = capnp.load('coordinate.capnp')
-    vector3d = capnp.load('vector3d.capnp')
-    relative_bbox = capnp.load('relative_bbox.capnp')
-    relation = capnp.load('relation.capnp')
-    ego_vehicle = capnp.load('ego_vehicle.capnp')
+    vector3d = capnp.load('./capnp/vector3d.capnp')
+    relative_bbox = capnp.load('./capnp/relative_bbox.capnp')
+    relation = capnp.load('./capnp/relation.capnp')
+    ego_vehicle = capnp.load('./capnp/ego_vehicle.capnp')
 
     me = ego_vehicle.EgoVehicle.new_message()
     me.id = 1
-    me.position = relation.CoordinateRelation.new_message()
+    me.position = relation.Vector3DRelation.new_message()
     me.color = relation.TextRelation.new_message(confidence=1, object='blue')
     me.boundingBox = relation.RelativeBBoxRelation.new_message()
     me.velocity = relation.Vector3DRelation.new_message()
     me.acceleration = relation.Vector3DRelation.new_message()
 
-    me.position.object = coordinate.Coordinate.new_message(lat=49.472, lon=-112.980)
+    # x = lat, y = lon, z = alt
+    me.position.object = vector3d.Vector3D.new_message(x=49.472, y=-112.980)
     me.position.confidence = 0.98
 
     me.boundingBox.object = relative_bbox.RelativeBBox.new_message()
