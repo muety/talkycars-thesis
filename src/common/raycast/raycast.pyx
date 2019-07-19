@@ -3,8 +3,6 @@ cimport numpy as np
 cdef class Ray3D:
     cdef public float origin[3]
     cdef public float direction[3]
-    cdef public float invdir[3]
-    cdef public int sign[3]
 
     def __cinit__(self, object origin, object direction):
         self.origin = origin

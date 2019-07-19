@@ -62,7 +62,7 @@ class GridCell(BBox3D):
 
 
 class Grid:
-    def __init__(self, cells=set()):
+    def __init__(self, cells: Set[GridCell] = frozenset()):
         self.cells = cells
 
     def add(self, cell: GridCell):
