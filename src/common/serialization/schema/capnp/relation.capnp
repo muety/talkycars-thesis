@@ -4,6 +4,7 @@
 
 using import "vector3d.capnp".Vector3D;
 using import "relative_bbox.capnp".RelativeBBox;
+using import "occupancy.capnp".GridCellState;
 
 struct TextRelation {
     confidence @0 :Float32;
@@ -18,4 +19,9 @@ struct Vector3DRelation {
 struct RelativeBBoxRelation {
     confidence @0 :Float32;
     object @1 :RelativeBBox;
+}
+
+struct GridCellStateRelation {
+    confidence @0 :Float32;
+    object @1 :GridCellState;
 }

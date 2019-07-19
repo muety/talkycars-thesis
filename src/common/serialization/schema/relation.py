@@ -3,7 +3,7 @@ from typing import TypeVar, Generic, Type, Dict
 
 import capnp
 
-from common.serialization.schema import CapnpObject, Vector3D, RelativeBBox
+from common.serialization.schema import CapnpObject, Vector3D, RelativeBBox, GridCellState
 
 capnp.remove_import_hook()
 
@@ -25,6 +25,8 @@ class PEMRelation(Generic[T], CapnpObject):
             relation_type = relation.Vector3DRelation
         elif isinstance(self.object, RelativeBBox):
             relation_type = relation.RelativeBBoxRelation
+        elif isinstance(self.object, GridCellState):
+            relation_type = relation.GridCellStateRelation
         elif isinstance(self.object, str):
             relation_type = relation.TextRelation
             is_primitive = True

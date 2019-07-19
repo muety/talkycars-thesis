@@ -3,6 +3,8 @@ from typing import Tuple, Type, Dict, cast
 
 import capnp
 
+from common import occupancy as model
+
 capnp.remove_import_hook()
 
 dirname = os.path.dirname(__file__)
@@ -92,3 +94,34 @@ class RelativeBBox(CapnpObject):
 
     def __str__(self):
         return f'({self.lower}, {self.higher})'
+
+class GridCellState(CapnpObject):
+    def __init__(self, value: model.GridCellState = None):
+        self.value: GridCellState = value
+
+    @staticmethod
+    def free():
+        return GridCellState(value=model.GridCellState.FREE)
+
+    @staticmethod
+    def occupied():
+        return GridCellState(value=model.GridCellState.OCCUPIED)
+
+    @staticmethod
+    def unknown():
+        return GridCellState(value=model.GridCellState.UNKNOWN)
+
+    def to_message(self):
+        return str(self.value).split('.')[1].lower()
+
+    @classmethod
+    def from_message_dict(cls, object_dict: Dict, target_cls: Type = None):
+        if object_dict == 'free':
+            return GridCellState(value=model.GridCellState.FREE)
+        if object_dict == 'occupied':
+            return GridCellState(value=model.GridCellState.OCCUPIED)
+        if object_dict == 'unknown':
+            return GridCellState(value=model.GridCellState.UNKNOWN)
+
+    def __str__(self):
+        return str(self.value)

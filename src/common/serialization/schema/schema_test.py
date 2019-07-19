@@ -1,16 +1,9 @@
-import os
 from typing import cast
 
-import capnp
-
-from common.serialization.schema import Vector3D, RelativeBBox
+from common.serialization.schema import Vector3D, RelativeBBox, GridCellState
 from common.serialization.schema.ego_vehicle import PEMEgoVehicle
+from common.serialization.schema.occupancy import PEMOccupancyGrid, PEMGridCell
 from common.serialization.schema.relation import PEMRelation
-
-capnp.remove_import_hook()
-
-dirname = os.path.dirname(__file__)
-ego_vehicle = capnp.load(os.path.join(dirname, './capnp/ego_vehicle.capnp'))
 
 if __name__ == '__main__':
     ego = PEMEgoVehicle()
@@ -42,8 +35,6 @@ if __name__ == '__main__':
     encoded_ego = ego.to_bytes()
     print(len(encoded_ego))
 
-    decoded_message = ego_vehicle.EgoVehicle.from_bytes_packed(encoded_ego)
-
     decoded_ego = cast(PEMEgoVehicle, PEMEgoVehicle.from_bytes(encoded_ego))
     print(decoded_ego.id)
     print(decoded_ego.color.object)
@@ -51,3 +42,17 @@ if __name__ == '__main__':
     print(decoded_ego.bounding_box.object)
     print(decoded_ego.acceleration.object)
     print(decoded_ego.velocity.object)
+
+    grid = PEMOccupancyGrid()
+    grid.cells = [
+        PEMGridCell(hash='3120312', state=PEMRelation(confidence=0.67, object=GridCellState.unknown())),
+        PEMGridCell(hash='3120310', state=PEMRelation(confidence=0.92, object=GridCellState.free()))
+    ]
+
+    encoded_grid = grid.to_bytes()
+    print(len(encoded_grid))
+
+    decoded_grid = PEMOccupancyGrid.from_bytes(encoded_grid)
+    print(decoded_grid)
+    print(decoded_grid.cells[0].hash)
+    print(decoded_grid.cells[0].state.object)
