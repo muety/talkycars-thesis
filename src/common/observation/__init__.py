@@ -8,12 +8,13 @@ from common.occupancy import Grid, GridCellState
 
 
 class Observation:
-    def __init__(self, local_timestamp):
+    def __init__(self, local_timestamp: int, confidence: float = 1):
         assert isinstance(local_timestamp, int) or isinstance(local_timestamp, float)
 
         self.local_timestamp = local_timestamp
         # Caution: Uses local platform time!
         self.timestamp = datetime.now().timestamp()
+        self.confidence = confidence
 
 class GnssObservation(Observation):
     def __init__(self, timestamp, coords: Tuple[float, float, float]):
