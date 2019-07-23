@@ -21,8 +21,8 @@ class TalkyClient:
         self.dialect: ClientDialect = dialect
         self.om: ObservationManager = ObservationManager()
         self.gm: OccupancyGridManager = OccupancyGridManager(OCCUPANCY_TILE_LEVEL, grid_radius)
-        self.inbound: InboundController = InboundController(self.om, self.gm)
-        self.outbound: OutboundController = OutboundController(self.om, self.gm)
+        self.inbound: InboundController = InboundController(self.om, self.gm, for_subject_id)
+        self.outbound: OutboundController = OutboundController(self.om, self.gm, for_subject_id)
 
         ego_id = str(for_subject_id)
 

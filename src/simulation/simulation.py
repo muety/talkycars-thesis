@@ -9,11 +9,11 @@ from typing import List
 import pygame
 from ego import Ego
 from strategy import ManualStrategy, Observer1Strategy
-from util import GracefulKiller
 from util.simulation import SimulationUtils
 
 import carla
 from common.constants import *
+from common.util import GracefulKiller
 
 
 class World(object):

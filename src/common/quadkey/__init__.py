@@ -25,7 +25,7 @@ class QuadKey:
 
     def nearby_custom(self, config: Tuple[Iterable[int], Iterable[int]]):
         tile, level = TileSystem.quadkey_to_tile(self.key)
-        perms = set(itertools.product(config[0], config[1]))#.difference({(0, 0)})
+        perms = set(itertools.product(config[0], config[1]))
         # TODO: probably won't work for edge cases
         tiles = set(map(lambda perm: (abs(tile[0] + perm[0]), abs(tile[1] + perm[1])), perms))
         return [TileSystem.tile_to_quadkey(tile, level) for tile in tiles]

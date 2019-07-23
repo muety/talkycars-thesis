@@ -17,6 +17,8 @@ LIDAR_ANGLE_DEFAULT = 15 # Caution: Choose Lidar angle depending on grid size
 LIDAR_MAX_RANGE = 100
 LIDAR_Z_OFFSET = 2.8
 
+GNSS_Z_OFFSET = 2.8
+
 RES_X = 1280
 RES_Y = 720
 

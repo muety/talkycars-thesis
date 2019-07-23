@@ -18,6 +18,7 @@ class Observation:
         # Caution: Uses local platform time!
         self.timestamp = datetime.now().timestamp()
         self.confidence = confidence
+        self.value = None
 
 
 class EgoObservation(Observation):

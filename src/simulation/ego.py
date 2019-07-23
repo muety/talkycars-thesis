@@ -10,7 +10,7 @@ from sensors import GnssSensor, LidarSensor, CameraRGBSensor
 from sensors.position import PositionSensor
 from strategy import Strategy, ManualStrategy
 from strategy.empty import EmptyStrategy
-from util import BBoxUtils, GracefulKiller
+from util import BBoxUtils
 
 import carla
 from client import ClientDialect, TalkyClient
@@ -18,6 +18,7 @@ from common.constants import *
 from common.observation import OccupancyGridObservation, ActorPropertiesObservation
 from common.occupancy import Grid
 from common.quadkey import QuadKey
+from common.util import GracefulKiller
 
 
 class Ego:
@@ -80,7 +81,7 @@ class Ego:
         lidar_min_range = (grid_range + .5) / math.cos(math.radians(lidar_angle))
         lidar_range = min(LIDAR_MAX_RANGE, max(lidar_min_range, LIDAR_Z_OFFSET / math.sin(math.radians(lidar_angle))) * 2)
 
-        self.sensors['gnss'] = GnssSensor(self.vehicle, self.client)
+        self.sensors['gnss'] = GnssSensor(self.vehicle, self.client, offset_z=GNSS_Z_OFFSET)
         self.sensors['lidar'] = LidarSensor(self.vehicle, self.client, offset_z=LIDAR_Z_OFFSET, range=lidar_range, angle=lidar_angle)
         self.sensors['position'] = PositionSensor(self.vehicle, self.client)
         if render:
