@@ -2,17 +2,18 @@ import weakref
 
 import carla
 from client.client import TalkyClient
-from common.constants import OBS_GNSS_PLAYER_POS
+from common.constants import *
 from common.observation import GnssObservation
 from . import Sensor
 
 
 class GnssSensor(Sensor):
-    def __init__(self, parent_actor, client: TalkyClient):
+    def __init__(self, parent_actor: carla.Actor, client: TalkyClient):
         weak_self = weakref.ref(self)
 
         self.sensor = None
         self._parent = parent_actor
+        self._topic_key = OBS_GNSS_PREFIX + ALIAS_EGO
         self.lat = 0.0
         self.lon = 0.0
         super().__init__(client)
@@ -32,4 +33,4 @@ class GnssSensor(Sensor):
         self.lon = event.longitude
 
         obs = GnssObservation(event.timestamp, (event.latitude, event.longitude, event.altitude))
-        self.client.inbound.publish(OBS_GNSS_PLAYER_POS, obs)
+        self.client.inbound.publish(self._topic_key, obs)

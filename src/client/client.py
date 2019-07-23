@@ -14,6 +14,7 @@ class ClientDialect(Enum):
 
 class TalkyClient:
     def __init__(self,
+                 for_subject_id: int,
                  dialect: ClientDialect = ClientDialect.CARLA,
                  grid_radius: int = OCCUPANCY_RADIUS_DEFAULT
                  ):
@@ -23,12 +24,20 @@ class TalkyClient:
         self.inbound: InboundController = InboundController(self.om, self.gm)
         self.outbound: OutboundController = OutboundController(self.om, self.gm)
 
+        ego_id = str(for_subject_id)
+
         # Type registrations
-        self.om.register_key(OBS_POSITION_PLAYER_POS, PositionObservation)
-        self.om.register_key(OBS_GNSS_PLAYER_POS, GnssObservation)
+        self.om.register_key(OBS_POSITION, PositionObservation)
         self.om.register_key(OBS_LIDAR_POINTS, LidarObservation)
         self.om.register_key(OBS_CAMERA_RGB_IMAGE, CameraRGBObservation)
         self.om.register_key(OBS_OCCUPANCY_GRID, OccupancyGridObservation)
+        self.om.register_key(OBS_GNSS_PREFIX + ego_id, GnssObservation)
+        self.om.register_key(OBS_DYNAMICS_PREFIX + ego_id, GnssObservation)
+        self.om.register_key(OBS_PROPS_PREFIX + ego_id, GnssObservation)
 
-        # Miscallaneaous
+        self.om.register_alias(OBS_GNSS_PREFIX + ego_id, OBS_GNSS_PREFIX + ALIAS_EGO)
+        self.om.register_alias(OBS_DYNAMICS_PREFIX + ego_id, OBS_DYNAMICS_PREFIX + ALIAS_EGO)
+        self.om.register_alias(OBS_PROPS_PREFIX + ego_id, OBS_PROPS_PREFIX + ALIAS_EGO)
+
+        # Miscellaneous
         self.gm.offset_z = LIDAR_Z_OFFSET

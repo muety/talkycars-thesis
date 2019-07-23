@@ -4,7 +4,7 @@ from .observation import ObservationManager
 from .occupancy import OccupancyGridManager
 
 
-class OutboundController():
+class OutboundController:
     def __init__(self, om: ObservationManager, gm: OccupancyGridManager):
         self.om = om
         self.gm = gm

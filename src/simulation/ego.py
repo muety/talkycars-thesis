@@ -1,9 +1,9 @@
 import argparse
 import logging
+import math
 from threading import Lock
 from typing import Dict
 
-import math
 import pygame
 from hud import HUD
 from sensors import GnssSensor, LidarSensor, CameraRGBSensor
@@ -15,7 +15,7 @@ from util import BBoxUtils, GracefulKiller
 import carla
 from client import ClientDialect, TalkyClient
 from common.constants import *
-from common.observation import OccupancyGridObservation
+from common.observation import OccupancyGridObservation, ActorPropertiesObservation
 from common.occupancy import Grid
 from common.quadkey import QuadKey
 
@@ -31,25 +31,24 @@ class Ego:
                  grid_radius: float = OCCUPANCY_RADIUS_DEFAULT,
                  lidar_angle: float = LIDAR_ANGLE_DEFAULT
                  ):
-        self.client: TalkyClient = TalkyClient(dialect=ClientDialect.CARLA)
+        self.client: TalkyClient = None
         self.world: carla.World = client.get_world()
         self.map: carla.Map = self.world.get_map()
         self.name: str = name
         self.vehicle: carla.Vehicle = None
-        self.player: carla.Vehicle = self.vehicle # for compatibility
+        self.player: carla.Vehicle = None # for compatibility
         self.grid: Grid = None
         self.hud: HUD = None
         self.strategy: Strategy = strategy
         self.display = None
         self.debug = debug
+        self.n_ticked = 0
         self.sensors: Dict[str, carla.Sensor] = {
             'gnss': None,
             'lidar': None,
             'camera_rgb': None,
             'position': None,
         }
-
-        self.client.gm.radius = grid_radius
 
         # Initialize visual stuff
         if render:
@@ -70,6 +69,11 @@ class Ego:
 
         # Initialize player vehicle
         self.vehicle = self.strategy.spawn()
+        self.player = self.vehicle
+
+        # Initialize Talky Client
+        self.client = TalkyClient(for_subject_id=self.vehicle.id, dialect=ClientDialect.CARLA)
+        self.client.gm.radius = grid_radius
 
         # Initialize sensors
         grid_range = grid_radius * QuadKey('0' * OCCUPANCY_TILE_LEVEL).side()
@@ -118,6 +122,8 @@ class Ego:
         snap = self.world.get_snapshot()
         self.sensors['position'].tick(snap.timestamp.platform_timestamp)
 
+        self.on_kth_tick(self.n_ticked + 1, snap)
+
         if self.strategy.step(clock=clock):
             return True
 
@@ -128,7 +134,19 @@ class Ego:
             self.render()
             pygame.display.flip()
 
+        self.n_ticked += 1
+
         return False
+
+    def on_kth_tick(self, k: int, snap: carla.WorldSnapshot):
+        if k == 1:
+            extent: carla.BoundingBox = self.vehicle.bounding_box.extent
+            props_obs = ActorPropertiesObservation(
+                snap.timestamp.platform_timestamp,
+                color=self.vehicle.attributes['color'],
+                extent=(extent.x, extent.y, extent.z,)
+            )
+            self.client.om.add(OBS_PROPS_PREFIX + ALIAS_EGO, props_obs)
 
     def render(self):
         if 'camera_rgb' not in self.sensors or not self.hud or not self.display:

@@ -6,12 +6,17 @@ from common.observation import Observation
 
 
 class ObservationManager:
-    def __init__(self):
+    def __init__(self, keep=10):
+        self.default_keep = keep
         self.observations = {}
         self.key_types = {}
         self.subscribers = {}
         self.locks = {}
+        self.aliases = {}
 
+    '''
+    Optional method to explicitly initialize an observation queue for a specific key upfront.
+    '''
     def register_key(self, key, obs_type, keep=10):
         assert isinstance(key, str)
         assert isinstance(obs_type, type)
@@ -20,18 +25,33 @@ class ObservationManager:
         self.key_types[key] = obs_type
         self.locks[key] = Lock()
 
+    def unregister_key(self, key):
+        self.observations.pop(key, None)
+
+    def register_alias(self, key: str, alias: str):
+        if key not in self.observations:
+            raise KeyError('key not found')
+
+        self.aliases[alias] = key
+
     def subscribe(self, key, callable: Callable):
-        if not key in self.subscribers:
+        if key in self.aliases:
+            key = self.aliases[key]
+
+        if key not in self.subscribers:
             self.subscribers[key] = [callable]
         else:
             self.subscribers[key].append(callable)
 
-    def unregister_key(self, key):
-        self.observations.pop(key, None)
-
-    def add(self, key, observation):
+    def add(self, key, observation: Observation):
         assert isinstance(key, str)
         assert isinstance(observation, Observation)
+
+        if key in self.aliases:
+            key = self.aliases[key]
+
+        if key not in self.observations:
+            self.register_key(key, observation.__class__, keep=self.default_keep)
 
         lock = self.locks[key]
         if lock.locked():
@@ -54,9 +74,15 @@ class ObservationManager:
         lock.release()
 
     def has(self, key) -> bool:
+        if key in self.aliases:
+            key = self.aliases[key]
+
         return key in self.observations and len(self.observations[key]) > 0
 
     def latest(self, key) -> Observation:
-        if not key in self.observations or len(self.observations[key]) == 0:
+        if key in self.aliases:
+            key = self.aliases[key]
+
+        if key not in self.observations or len(self.observations[key]) == 0:
             return None
         return self.observations[key][-1]

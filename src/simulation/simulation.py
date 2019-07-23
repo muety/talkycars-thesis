@@ -13,7 +13,6 @@ from util import GracefulKiller
 from util.simulation import SimulationUtils
 
 import carla
-from client.client import TalkyClient, ClientDialect
 from common.constants import *
 
 
@@ -21,7 +20,6 @@ class World(object):
     def __init__(self, client: carla.Client, scene_name: str):
         # Attributes
         self.sim = client
-        self.client = TalkyClient(dialect=ClientDialect.CARLA)
         self.debug = True
         self.egos: List[Ego] = []
         self.npcs: List[carla.Agent] = []
@@ -81,7 +79,6 @@ class World(object):
             spawned_actors = list(self.world.get_actors(spawned_ids))
             self.npcs += spawned_actors
 
-
     def tick(self, clock) -> bool:
         clock.tick_busy_loop(60)
         self.world.tick()
@@ -93,6 +90,7 @@ class World(object):
     def destroy(self):
         all_actors = self.npcs + list(map(lambda e: e.vehicle, self.egos))
         SimulationUtils.multi_destroy(self.world, self.sim, all_actors)
+
 
 def game_loop(args):
     killer = GracefulKiller()
@@ -112,6 +110,7 @@ def game_loop(args):
         if world is not None:
             world.destroy()
             return
+
 
 def main():
     argparser = argparse.ArgumentParser(
