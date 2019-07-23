@@ -1,6 +1,5 @@
-from typing import cast
-
 from common.serialization.schema import Vector3D, RelativeBBox, GridCellState
+from common.serialization.schema.base import PEMTrafficScene
 from common.serialization.schema.ego_vehicle import PEMEgoVehicle
 from common.serialization.schema.occupancy import PEMOccupancyGrid, PEMGridCell
 from common.serialization.schema.relation import PEMRelation
@@ -32,27 +31,28 @@ if __name__ == '__main__':
         object=Vector3D((0, 0, 0))
     )
 
-    encoded_ego = ego.to_bytes()
-    print(len(encoded_ego))
-
-    decoded_ego = cast(PEMEgoVehicle, PEMEgoVehicle.from_bytes(encoded_ego))
-    print(decoded_ego.id)
-    print(decoded_ego.color.object)
-    print(decoded_ego.position.object)
-    print(decoded_ego.bounding_box.object)
-    print(decoded_ego.acceleration.object)
-    print(decoded_ego.velocity.object)
-
     grid = PEMOccupancyGrid()
     grid.cells = [
         PEMGridCell(hash='3120312', state=PEMRelation(confidence=0.67, object=GridCellState.unknown())),
         PEMGridCell(hash='3120310', state=PEMRelation(confidence=0.92, object=GridCellState.free()))
     ]
 
-    encoded_grid = grid.to_bytes()
-    print(len(encoded_grid))
+    scene = PEMTrafficScene(
+        measured_by=ego,
+        occupancy_grid=grid
+    )
 
-    decoded_grid = PEMOccupancyGrid.from_bytes(encoded_grid)
-    print(decoded_grid)
-    print(decoded_grid.cells[0].hash)
-    print(decoded_grid.cells[0].state.object)
+    encoded_msg = scene.to_bytes()
+    print(len(encoded_msg))
+
+    decoded_msg = PEMTrafficScene.from_bytes(encoded_msg)
+    print(decoded_msg)
+    print(decoded_msg.occupancy_grid)
+    print(decoded_msg.occupancy_grid.cells[0].hash)
+    print(decoded_msg.occupancy_grid.cells[0].state.object)
+    print(decoded_msg.measured_by.id)
+    print(decoded_msg.measured_by.color.object)
+    print(decoded_msg.measured_by.position.object)
+    print(decoded_msg.measured_by.bounding_box.object)
+    print(decoded_msg.measured_by.acceleration.object)
+    print(decoded_msg.measured_by.velocity.object)
