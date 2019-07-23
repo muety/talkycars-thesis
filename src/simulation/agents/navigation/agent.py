@@ -12,8 +12,9 @@ The agent also responds to traffic lights. """
 
 from enum import Enum
 
-import carla
 from agents.tools.misc import is_within_distance_ahead, compute_magnitude_angle
+
+import carla
 
 
 class AgentState(Enum):

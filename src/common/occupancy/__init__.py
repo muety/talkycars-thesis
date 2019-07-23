@@ -13,6 +13,7 @@ class GridCellState(Enum):
     OCCUPIED = 1
     UNKNOWN = 2
 
+
 class GridCell(BBox3D):
     def __init__(self, quad_key: QuadKey, convert: Callable, offset: float = 0, height: float = 3, confidence: float = 1):
         self.quad_key: QuadKey = quad_key

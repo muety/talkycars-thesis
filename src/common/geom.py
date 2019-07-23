@@ -7,6 +7,7 @@ class Point:
     def components(self) -> Tuple:
         raise NotImplementedError('subclasses must override components()!')
 
+
 class Point2D(Point):
     def __init__(self, x: float, y: float):
         self.x = x
@@ -14,6 +15,7 @@ class Point2D(Point):
 
     def components(self) -> Tuple[float, float]:
         return self.x, self.y
+
 
 class Point3D(Point):
     def __init__(self, x: float, y: float, z: float):
@@ -30,15 +32,17 @@ class Point3D(Point):
     def components(self) -> Tuple[float, float, float]:
         return self.x, self.y, self.z
 
+
 class Ray3D:
     def __init__(self, origin: Tuple[float, float, float], direction: Tuple[float, float, float]):
         self.origin = origin
         self.direction = direction
 
+
 # https://stackoverflow.com/a/29720938
 
 class BBox3D:
-    def __init__(self, xrange: Tuple[float, float], yrange: Tuple[float, float], zrange: Tuple[float, float], precomputed_bounds: Iterable[Tuple[float, float, float]]=None):
+    def __init__(self, xrange: Tuple[float, float], yrange: Tuple[float, float], zrange: Tuple[float, float], precomputed_bounds: Iterable[Tuple[float, float, float]] = None):
         self.xrange = xrange  # (xmin, xmax)
         self.yrange = yrange
         self.zrange = zrange

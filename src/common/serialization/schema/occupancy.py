@@ -12,6 +12,7 @@ dirname = os.path.dirname(__file__)
 
 occupancy = capnp.load(os.path.join(dirname, './capnp/occupancy.capnp'))
 
+
 class PEMGridCell(CapnpObject):
     def __init__(self, **entries):
         self.hash: str = None

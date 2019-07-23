@@ -1,4 +1,3 @@
-import carla
 import pygame
 from pygame.locals import KMOD_CTRL
 from pygame.locals import KMOD_SHIFT
@@ -18,6 +17,8 @@ from pygame.locals import K_p
 from pygame.locals import K_q
 from pygame.locals import K_s
 from pygame.locals import K_w
+
+import carla
 
 
 class KeyboardControl(object):

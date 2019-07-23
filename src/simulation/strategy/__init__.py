@@ -11,6 +11,7 @@ class Strategy:
     def spawn(self):
         raise NotImplementedError()
 
+
 from .empty import *
 from .manual import *
 from .observer_1 import *

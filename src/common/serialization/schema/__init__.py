@@ -12,6 +12,7 @@ dirname = os.path.dirname(__file__)
 vector3d = capnp.load(os.path.join(dirname, './capnp/vector3d.capnp'))
 relative_bbox = capnp.load(os.path.join(dirname, './capnp/relative_bbox.capnp'))
 
+
 class CapnpObject:
     def to_message(self):
         """
@@ -55,6 +56,7 @@ class CapnpObject:
         """
         raise NotImplementedError('not specified')
 
+
 class Vector3D(CapnpObject):
     def __init__(self, components: Tuple[float, float, float] = None):
         self.x: float = components[0]
@@ -75,6 +77,7 @@ class Vector3D(CapnpObject):
     def __str__(self):
         return f'({self.x}, {self.y}, {self.z})'
 
+
 class RelativeBBox(CapnpObject):
     def __init__(self, lower: Vector3D, higher: Vector3D):
         self.lower: Vector3D = lower
@@ -94,6 +97,7 @@ class RelativeBBox(CapnpObject):
 
     def __str__(self):
         return f'({self.lower}, {self.higher})'
+
 
 class GridCellState(CapnpObject):
     def __init__(self, value: model.GridCellState = None):

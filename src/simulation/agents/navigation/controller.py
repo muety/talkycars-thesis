@@ -8,12 +8,13 @@
 
 """ This module contains PID controllers to perform lateral and longitudinal control. """
 
+import math
 from collections import deque
 
-import carla
-import math
 import numpy as np
 from agents.tools.misc import get_speed
+
+import carla
 
 
 class VehiclePIDController():

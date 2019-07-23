@@ -12,6 +12,7 @@ from .outbound import OutboundController
 class ClientDialect(Enum):
     CARLA = 0
 
+
 class TalkyClient:
     def __init__(self,
                  for_subject_id: int,

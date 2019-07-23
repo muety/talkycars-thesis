@@ -1,8 +1,9 @@
 import weakref
 
-import carla
 import numpy as np
 import pygame
+
+import carla
 
 
 class CameraRGBSensor(object):

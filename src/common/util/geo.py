@@ -4,6 +4,7 @@ from typing import Tuple
 EARTH_RADIUS = 6378137
 _Vec3 = Tuple[float, float, float]
 
+
 class GeoUtils:
     @staticmethod
     def gnss_add_meters(coords: _Vec3, delta: _Vec3, delta_factor: float = 1) -> _Vec3:

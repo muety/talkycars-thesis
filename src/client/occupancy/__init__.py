@@ -11,6 +11,7 @@ from common.occupancy import Grid, GridCell, GridCellState
 
 N_THREADS = 6
 
+
 class OccupancyGridManager:
     def __init__(self, level, radius, offset_z=0):
         self.level = level
@@ -51,7 +52,7 @@ class OccupancyGridManager:
         n = len(grid.cells)
         grid_cells = list(grid.cells)
         batch_size = np.math.ceil(n / N_THREADS)
-        batches = [(list(map(lambda c: c.bounds, grid_cells[i*batch_size:i*batch_size+batch_size])), obs.value, self.location) for i in range(n)]
+        batches = [(list(map(lambda c: c.bounds, grid_cells[i * batch_size:i * batch_size + batch_size])), obs.value, self.location) for i in range(n)]
 
         result = self.pool.map(self._match_cells, batches)
 

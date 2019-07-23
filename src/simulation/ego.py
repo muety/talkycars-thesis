@@ -26,7 +26,7 @@ class Ego:
                  client: carla.Client,
                  strategy: Strategy = None,
                  name: str = 'hero',
-                 render: bool=False,
+                 render: bool = False,
                  debug: bool = False,
                  is_standalone: bool = False,
                  grid_radius: float = OCCUPANCY_RADIUS_DEFAULT,
@@ -37,7 +37,7 @@ class Ego:
         self.map: carla.Map = self.world.get_map()
         self.name: str = name
         self.vehicle: carla.Vehicle = None
-        self.player: carla.Vehicle = None # for compatibility
+        self.player: carla.Vehicle = None  # for compatibility
         self.grid: Grid = None
         self.hud: HUD = None
         self.strategy: Strategy = strategy
@@ -184,6 +184,7 @@ class Ego:
             bboxes.append(bb_cam)
             states.append(cell.state)
         BBoxUtils.draw_bounding_boxes(self.display, bboxes, states)
+
 
 if __name__ == '__main__':
     # CAUTION: Client is not synchronized with server's tick rate in standalone mode !

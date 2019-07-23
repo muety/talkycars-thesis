@@ -120,7 +120,7 @@ class LocalPlanner(object):
                 self._target_speed = opt_dict['target_speed']
             if 'sampling_radius' in opt_dict:
                 self._sampling_radius = self._target_speed * \
-                    opt_dict['sampling_radius'] / 3.6
+                                        opt_dict['sampling_radius'] / 3.6
             if 'lateral_control_dict' in opt_dict:
                 args_lateral_dict = opt_dict['lateral_control_dict']
             if 'longitudinal_control_dict' in opt_dict:
@@ -128,8 +128,8 @@ class LocalPlanner(object):
 
         self._current_waypoint = self._map.get_waypoint(self._vehicle.get_location())
         self._vehicle_controller = VehiclePIDController(self._vehicle,
-                                                       args_lateral=args_lateral_dict,
-                                                       args_longitudinal=args_longitudinal_dict)
+                                                        args_lateral=args_lateral_dict,
+                                                        args_longitudinal=args_longitudinal_dict)
 
         self._global_plan = False
 

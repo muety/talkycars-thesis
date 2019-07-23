@@ -7,6 +7,7 @@ BB_COLOR = (24, 64, 248)
 BB_COLOR_OCCUPIED = (248, 64, 24)
 BB_COLOR_FREE = (24, 248, 64)
 
+
 class BBoxUtils(object):
     @staticmethod
     def draw_bounding_boxes(display, bounding_boxes, states):

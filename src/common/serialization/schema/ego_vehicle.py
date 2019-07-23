@@ -12,6 +12,7 @@ dirname = os.path.dirname(__file__)
 
 ego_vehicle = capnp.load(os.path.join(dirname, './capnp/ego_vehicle.capnp'))
 
+
 class PEMEgoVehicle(CapnpObject):
     def __init__(self, **entries):
         self.id: int = None

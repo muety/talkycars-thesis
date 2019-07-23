@@ -16,12 +16,12 @@ def aabb_intersect(list bounds, Ray3D ray):
     vmin = bounds[0]
     vmax = bounds[1]
 
-    t[1] = (vmin[0] - ray.origin[0])/ray.direction[0]
-    t[2] = (vmax[0] - ray.origin[0])/ray.direction[0]
-    t[3] = (vmin[1] - ray.origin[1])/ray.direction[1]
-    t[4] = (vmax[1] - ray.origin[1])/ray.direction[1]
-    t[5] = (vmin[2] - ray.origin[2])/ray.direction[2]
-    t[6] = (vmax[2] - ray.origin[2])/ray.direction[2]
+    t[1] = (vmin[0] - ray.origin[0]) / ray.direction[0]
+    t[2] = (vmax[0] - ray.origin[0]) / ray.direction[0]
+    t[3] = (vmin[1] - ray.origin[1]) / ray.direction[1]
+    t[4] = (vmax[1] - ray.origin[1]) / ray.direction[1]
+    t[5] = (vmin[2] - ray.origin[2]) / ray.direction[2]
+    t[6] = (vmax[2] - ray.origin[2]) / ray.direction[2]
     t[7] = max(max(min(t[1], t[2]), min(t[3], t[4])), min(t[5], t[6]))
     t[8] = min(min(max(t[1], t[2]), max(t[3], t[4])), max(t[5], t[6]))
     return not (t[8] < 0 or t[7] > t[8])

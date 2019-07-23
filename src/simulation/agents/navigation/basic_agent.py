@@ -10,12 +10,12 @@
 waypoints and avoiding other vehicles.
 The agent also responds to traffic lights. """
 
-
-import carla
 from agents.navigation.agent import Agent, AgentState
 from agents.navigation.global_route_planner import GlobalRoutePlanner
 from agents.navigation.global_route_planner_dao import GlobalRoutePlannerDAO
 from agents.navigation.local_planner import LocalPlanner
+
+import carla
 
 
 class BasicAgent(Agent):
@@ -37,10 +37,10 @@ class BasicAgent(Agent):
             'K_P': 1,
             'K_D': 0.02,
             'K_I': 0,
-            'dt': 1.0/20.0}
+            'dt': 1.0 / 20.0}
         self._local_planner = LocalPlanner(
-            self._vehicle, opt_dict={'target_speed' : target_speed,
-            'lateral_control_dict':args_lateral_dict})
+            self._vehicle, opt_dict={'target_speed': target_speed,
+                                     'lateral_control_dict': args_lateral_dict})
         self._hop_resolution = 2.0
         self._path_seperation_hop = 2
         self._path_seperation_threshold = 0.5

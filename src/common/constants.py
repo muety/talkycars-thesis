@@ -8,12 +8,12 @@ OBS_PROPS_PREFIX = 'props_'
 
 ALIAS_EGO = 'ego'
 
-OCCUPANCY_RADIUS_DEFAULT = 5 # (5 and 15 or 10 and 9)
+OCCUPANCY_RADIUS_DEFAULT = 5  # (5 and 15 or 10 and 9)
 OCCUPANCY_TILE_LEVEL = 24
 OCCUPANCY_BBOX_OFFSET = 0.1
 OCCUPANCY_BBOX_HEIGHT = 3.5
 
-LIDAR_ANGLE_DEFAULT = 15 # Caution: Choose Lidar angle depending on grid size
+LIDAR_ANGLE_DEFAULT = 15  # Caution: Choose Lidar angle depending on grid size
 LIDAR_MAX_RANGE = 100
 LIDAR_Z_OFFSET = 2.8
 

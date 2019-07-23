@@ -6,7 +6,7 @@ import carla
 
 
 class SimulationUtils:
-    
+
     @staticmethod
     def spawn_pedestrians(world: carla.World, carla_client: carla.Client, n=10) -> List[carla.Walker]:
         # -------------
@@ -66,7 +66,7 @@ class SimulationUtils:
             # set walk to random point
             all_actors[i].go_to_location(world.get_random_location_from_navigation())
             # random max speed
-            all_actors[i].set_max_speed(1 + random.random())    # max speed between 1 and 2 (default is 1.4 m/s)
+            all_actors[i].set_max_speed(1 + random.random())  # max speed between 1 and 2 (default is 1.4 m/s)
 
         return all_actors
 

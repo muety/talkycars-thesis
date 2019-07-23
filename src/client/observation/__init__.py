@@ -17,6 +17,7 @@ class ObservationManager:
     '''
     Optional method to explicitly initialize an observation queue for a specific key upfront.
     '''
+
     def register_key(self, key, obs_type, keep=10):
         assert isinstance(key, str)
         assert isinstance(obs_type, type)

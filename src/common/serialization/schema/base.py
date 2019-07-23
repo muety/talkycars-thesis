@@ -16,10 +16,11 @@ dirname = os.path.dirname(__file__)
 occupancy = capnp.load(os.path.join(dirname, './capnp/occupancy.capnp'))
 base = capnp.load(os.path.join(dirname, './capnp/base.capnp'))
 
+
 class PEMTrafficScene(CapnpObject):
     def __init__(self, **entries):
         # NOTE: This is only the default. You might wanna set this explicitly.
-        self.timestamp: int = int(time.time()) # UTC Unix timestamp
+        self.timestamp: int = int(time.time())  # UTC Unix timestamp
         self.measured_by: PEMEgoVehicle = None
         self.occupancy_grid: PEMOccupancyGrid = None
 
