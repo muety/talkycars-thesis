@@ -2,12 +2,12 @@ from multiprocessing.pool import Pool
 from typing import List, Set, Dict, Callable, Tuple
 
 import numpy as np
+from common.raycast import raycast
 
 from common import quadkey
 from common.constants import *
 from common.observation import GnssObservation, LidarObservation, PositionObservation
 from common.occupancy import Grid, GridCell, GridCellState
-from common.raycast import raycast
 
 N_THREADS = 6
 
@@ -137,7 +137,7 @@ class OccupancyGridManager:
 
         assert len(nearby) == (self.radius * 2 + 1) ** 2
 
-        base_z = (self.gnss_current.value[2] - self.offset_z) + OCCUPANCY_BBOX_OFFSET
+        base_z = (self.gnss_current.value[2] - self.offset_z / 2) + OCCUPANCY_BBOX_OFFSET
         quadkeys: List[quadkey.QuadKey] = list(map(lambda k: quadkey.QuadKey(k), nearby))
         cells: Set[GridCell] = set(map(lambda q: GridCell(q, self.convert, base_z, OCCUPANCY_BBOX_HEIGHT), quadkeys))
         return Grid(cells)
