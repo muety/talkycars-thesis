@@ -14,6 +14,7 @@ class MqttBridge:
         self.client: mqtt.Client = mqtt.Client()
         self.subscriptions: Dict[str, Set[Callable]] = {}
         self.loop_thread: Thread = None
+        self.connected: bool = False
 
         self.client.on_connect = self._on_connect
         self.client.on_message = self._on_message
@@ -33,6 +34,7 @@ class MqttBridge:
     def subscribe(self, topic: str, callback: Callable):
         if topic not in self.subscriptions:
             self.subscriptions[topic] = set()
+            self.client.subscribe(topic)
 
         self.subscriptions[topic].add(callback)
 
@@ -48,10 +50,13 @@ class MqttBridge:
     def tear_down(self):
         self.client.disconnect()
         self.loop_thread = None
+        self.connected = False
         logging.info('Disconnected from broker.')
 
     def _on_connect(self, client, userdata, flags, rc):
         logging.info(f'Connected to {self.broker_config} with result code {str(rc)}.')
+
+        self.connected = True
 
         for topic in frozenset(self.subscriptions.keys()):
             client.subscribe(topic)
@@ -70,9 +75,13 @@ class MqttBridgeUtils:
     @staticmethod
     def topics_raw_in(current_pos: QuadKey) -> Iterable[str]:
         # TODO
-        return {f'{TOPIC_PREFIX_GRAPH_RAW_IN}/0'}
+        if not current_pos:
+            return frozenset()
+        return {f'{TOPIC_PREFIX_GRAPH_RAW_IN}/{current_pos.key}'}
 
     @staticmethod
     def topics_fused_out(current_pos: QuadKey) -> Iterable[str]:
         # TODO
-        return {f'{TOPIC_PREFIX_GRAPH_FUSED_OUT}/0'}
+        if not current_pos:
+            return frozenset()
+        return {f'{TOPIC_PREFIX_GRAPH_FUSED_OUT}/{current_pos.key}'}

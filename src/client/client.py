@@ -59,9 +59,9 @@ class TalkyClient:
         self.gm.offset_z = LIDAR_Z_OFFSET
 
         # Business logic
-        self.outbound.subscribe(OBS_GNSS_PREFIX + ALIAS_EGO, self._on_gnss)
         self.outbound.subscribe(OBS_LIDAR_POINTS, self._on_lidar)
         self.outbound.subscribe(OBS_OCCUPANCY_GRID, self._on_grid)
+        self.outbound.subscribe(OBS_GNSS_PREFIX + ALIAS_EGO, self._on_gnss)
 
         # Bridge initialization
         self.mqtt.listen(block=False)
@@ -135,7 +135,7 @@ class TalkyClient:
         logging.debug(f'Decoded remote fused state representation from {len(msg) / 1024} kBytes')
 
     def _update_topics(self, qk: QuadKey):
-        if qk and self.remote_grid_quadkey and qk == self.remote_grid_quadkey:
+        if self.mqtt.connected and qk and self.remote_grid_quadkey and qk == self.remote_grid_quadkey:
             return
 
         logging.debug(f'Subscription-relevant tile changed from {self.remote_grid_quadkey} to {qk}.')

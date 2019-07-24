@@ -1,8 +1,9 @@
 import os
-from typing import Dict, Type, List
+from typing import Dict, Type, List, Iterable
 
 import capnp
 
+from common import quadkey
 from common.serialization.schema import CapnpObject, GridCellState
 from .relation import PEMRelation
 
@@ -44,6 +45,9 @@ class PEMOccupancyGrid(CapnpObject):
 
         if len(entries) > 0:
             self.__dict__.update(**entries)
+
+    def get_parent_tiles(self, level: int = 20) -> Iterable[str]:
+        return frozenset([quadkey.from_str(c.hash[:level]) for c in self.cells])
 
     def to_message(self):
         grid = occupancy.OccupancyGrid.new_message()

@@ -1,5 +1,5 @@
 import logging
-from typing import Type, cast
+from typing import Type, cast, Iterable, Set
 
 from common.bridge import MqttBridge
 from common.constants import *
@@ -10,8 +10,9 @@ from edgenode.fusion import FusionService
 
 class EdgeNode:
     def __init__(self):
-        self.fusion_srvc: FusionService = FusionService()
         self.mqtt: MqttBridge = None
+        self.fusion_srvc: FusionService = FusionService()
+        self.covered_quadkeys: Set[str] = set()  # TODO: Read from env
 
     def run(self):
         self.mqtt = MqttBridge()
@@ -20,8 +21,14 @@ class EdgeNode:
 
     def _on_graph(self, message: bytes):
         graph: PEMTrafficScene = cast(PEMTrafficScene, self._decode_capnp_msg(message, target_cls=PEMTrafficScene))
-        fused_graph: PEMTrafficScene = self.fusion_srvc.fuse([graph])  # TODO: Implement
-        print(fused_graph)
+        self.fusion_srvc.push(graph)
+
+        fused_graph: PEMTrafficScene = cast(PEMTrafficScene, self.fusion_srvc.get())
+
+        covered_keys: Iterable[str] = self.covered_quadkeys if len(self.covered_quadkeys) > 0 else fused_graph.occupancy_grid.get_parent_tiles(REMOTE_GRID_TILE_LEVEL)
+        encoded_graph: bytes = fused_graph.to_bytes()
+        for k in covered_keys:
+            self.mqtt.publish(f'{TOPIC_PREFIX_GRAPH_FUSED_OUT}/{k}', encoded_graph)
 
     def _decode_capnp_msg(self, bytes: bytes, target_cls: Type[CapnpObject]) -> CapnpObject:
         try:
@@ -31,7 +38,6 @@ class EdgeNode:
             logging.debug(e1)
             logging.error(e2)
             raise e2
-
 
 def run():
     logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
