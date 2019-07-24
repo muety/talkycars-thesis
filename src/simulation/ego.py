@@ -1,6 +1,7 @@
 import argparse
 import logging
 import math
+import sys
 from threading import Lock
 from typing import Dict
 
@@ -186,7 +187,7 @@ class Ego:
         BBoxUtils.draw_bounding_boxes(self.display, bboxes, states)
 
 
-if __name__ == '__main__':
+def run(args=sys.argv[1:]):
     # CAUTION: Client is not synchronized with server's tick rate in standalone mode !
 
     argparser = argparse.ArgumentParser(description='TalkyCars Ego Agent')
@@ -197,8 +198,7 @@ if __name__ == '__main__':
     argparser.add_argument('--debug', default='true', help='whether or not to show debug information (default: true)')
     argparser.add_argument('--render', default='true', help='whether or not to render the actor\'s camera view (default: true)')
 
-    args = argparser.parse_args()
-    width, height = 1280, 720
+    args = argparser.parse_args(args)
 
     logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.DEBUG)
 
@@ -208,10 +208,6 @@ if __name__ == '__main__':
         client = carla.Client(args.host, args.port)
         client.set_timeout(2.0)
 
-        strategy: Strategy = None
-        if args.strategy == 'manual':
-            strategy = ManualStrategy()
-
         ego = Ego(client,
                   name=args.rolename,
                   render=args.render.lower() == 'true',
@@ -220,3 +216,7 @@ if __name__ == '__main__':
 
     finally:
         pygame.quit()
+
+
+if __name__ == '__main__':
+   run()

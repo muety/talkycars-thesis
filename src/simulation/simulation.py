@@ -4,6 +4,7 @@ from __future__ import print_function
 
 import argparse
 import logging
+import sys
 from typing import List
 
 import pygame
@@ -112,7 +113,7 @@ def game_loop(args):
             return
 
 
-def main():
+def run(args=sys.argv[1:]):
     argparser = argparse.ArgumentParser(
         description='CARLA Manual Control Client')
     argparser.add_argument(
@@ -136,7 +137,7 @@ def main():
         default='scene1',
         help='Scene to run (located in ./scenes) (default: \'scene1\')')
 
-    args = argparser.parse_args()
+    args = argparser.parse_args(args)
 
     log_level = logging.DEBUG if args.debug else logging.INFO
     logging.basicConfig(format='%(levelname)s: %(message)s', level=log_level)
@@ -150,4 +151,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    run()

@@ -3,3 +3,4 @@ numpy==1.16.4
 Cython==0.29.12
 networkx==2.3
 pycapnp==0.6.4
+paho-mqtt==1.4.0
