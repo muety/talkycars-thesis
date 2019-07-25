@@ -66,23 +66,25 @@ class OccupancyGridManager:
     def _match_cells(args):
         bounds, points, loc = args
         states = [GridCellState.UNKNOWN] * len(bounds)
-        loc = np.array(loc)
+        loc = np.array(loc, dtype=np.float32)
 
         for i, cell in enumerate(bounds):
+            cell = np.array(cell, dtype=np.float32)
             for point in points:
-                if raycast.aabb_contains(cell, point):
+                if raycast.aabb_contains(cell, point.astype(np.float32)):
                     states[i] = GridCellState.OCCUPIED
                     break
 
         for i, cell in enumerate(bounds):
+            cell = np.array(cell, dtype=np.float32)
             if states[i] != GridCellState.UNKNOWN:
                 continue
 
             for point in points:
-                direction = point - loc
+                direction = np.array(point - loc, dtype=np.float32)
 
                 if raycast.aabb_intersect(cell, raycast.Ray3D(loc, direction)):
-                    cell_dist = np.min(np.linalg.norm(loc - np.array(cell), axis=1))
+                    cell_dist = np.min(np.linalg.norm(loc - cell, axis=1))
                     hit_dist = np.linalg.norm(loc - point)
                     if cell_dist < hit_dist:
                         states[i] = GridCellState.FREE

@@ -1,17 +1,21 @@
+import numpy
 cimport numpy as np
+cimport
+numpy as np
+import numpy
 
 cdef class Ray3D:
-    cdef public float origin[3]
-    cdef public float direction[3]
+    cdef public np.float32_t[:] origin
+    cdef public np.float32_t[:] direction
 
-    def __cinit__(self, object origin, object direction):
+    def __cinit__(self, np.float32_t[:] origin, np.float32_t[:] direction):
         self.origin = origin
         self.direction = direction
 
 # https://gamedev.stackexchange.com/a/103714
-def aabb_intersect(list bounds, Ray3D ray):
-    cdef float t[9]
-    cdef float vmin[3], vmax[3]
+cpdef bint aabb_intersect(np.ndarray[np.float32_t, ndim=2] bounds, Ray3D ray):
+    cdef np.float32_t[:] t = numpy.zeros((9,)).astype(numpy.float32)
+    cdef np.float32_t[:] vmin, vmax
 
     vmin = bounds[0]
     vmax = bounds[1]
@@ -26,7 +30,7 @@ def aabb_intersect(list bounds, Ray3D ray):
     t[8] = min(min(max(t[1], t[2]), max(t[3], t[4])), max(t[5], t[6]))
     return not (t[8] < 0 or t[7] > t[8])
 
-def aabb_contains(list bounds, np.ndarray point):
+cpdef bint aabb_contains(np.ndarray[np.float32_t, ndim=2] bounds, np.float32_t[:] point):
     return all([
         bounds[0][0] <= point[0] <= bounds[1][0],
         bounds[0][1] <= point[1] <= bounds[1][1],
