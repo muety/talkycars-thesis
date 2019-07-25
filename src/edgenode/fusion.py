@@ -1,18 +1,21 @@
-from typing import TypeVar, Generic, List
+from collections import deque
+from typing import TypeVar, Generic
+
+from common.quadkey import QuadKey
 
 T = TypeVar('T')
 
 
 class FusionService(Generic[T]):
     def __init__(self):
-        self.observations: List[T] = []
+        self.observations: deque[T] = deque(maxlen=10)
 
     def push(self, observation: T):
         # TODO: Implement
         self.observations.append(observation)
 
-    def get(self) -> T:
+    def get(self, for_tile: QuadKey) -> T:
         # TODO: Implement
         if len(self.observations) == 0:
             return None
-        return self.observations[0]
+        return next(iter(self.observations))

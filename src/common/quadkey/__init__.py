@@ -15,10 +15,14 @@ class QuadKey:
         self.key = key
         self.level = len(key)
 
-    def children(self):
-        if self.level >= 31:
+    def children(self, at_level=-1):
+        if at_level <= 0:
+            at_level = self.level + 1
+
+        if self.level >= 31 or at_level <= self.level:
             return []
-        return [QuadKey(self.key + str(k)) for k in [0, 1, 2, 3]]
+
+        return [QuadKey(self.key + ''.join(k)) for k in itertools.product('0123', repeat=at_level - self.level)]
 
     def parent(self):
         return QuadKey(self.key[:-1])

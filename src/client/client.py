@@ -1,8 +1,7 @@
-import logging
 from enum import Enum
-from typing import cast, List
+from typing import cast
 
-from common.bridge import MqttBridge, MqttBridgeUtils
+from client.subscription import TileSubscriptionService
 from common.constants import *
 from common.observation import CameraRGBObservation
 from common.observation import OccupancyGridObservation, LidarObservation, PositionObservation, \
@@ -35,12 +34,11 @@ class TalkyClient:
         self.gm: OccupancyGridManager = OccupancyGridManager(OCCUPANCY_TILE_LEVEL, grid_radius)
         self.inbound: InboundController = InboundController(self.om, self.gm)
         self.outbound: OutboundController = OutboundController(self.om, self.gm)
-        self.mqtt: MqttBridge = MqttBridge()
+        self.tss: TileSubscriptionService = TileSubscriptionService(self._on_remote_grid, rate_limit=.1)
 
         self.ego_id = str(for_subject_id)
 
         self.remote_grid_quadkey: QuadKey = None
-        self.publish_topics: List[str] = []
 
         # Type registrations
         self.om.register_key(OBS_POSITION, PositionObservation)
@@ -63,9 +61,6 @@ class TalkyClient:
         self.outbound.subscribe(OBS_OCCUPANCY_GRID, self._on_grid)
         self.outbound.subscribe(OBS_GNSS_PREFIX + ALIAS_EGO, self._on_gnss)
 
-        # Bridge initialization
-        self.mqtt.listen(block=False)
-
     def _on_lidar(self, obs: LidarObservation):
         if self.om.has(OBS_GNSS_PREFIX + ALIAS_EGO):
             self.gm.update_gnss(cast(GnssObservation, self.om.latest(OBS_GNSS_PREFIX + ALIAS_EGO)))
@@ -85,7 +80,7 @@ class TalkyClient:
 
     def _on_gnss(self, obs: GnssObservation):
         qk = obs.to_quadkey(level=REMOTE_GRID_TILE_LEVEL)
-        self._update_topics(qk)
+        self.tss.update_position(qk)
 
     def _on_grid(self, obs: OccupancyGridObservation):
         ts1, grid = obs.timestamp, obs.value
@@ -125,30 +120,12 @@ class TalkyClient:
                                 occupancy_grid=pem_grid)
 
         encoded_msg = graph.to_bytes()
-        logging.debug(f'Encoded state representation to {len(encoded_msg) / 1024} kBytes')
+        # logging.debug(f'Encoded state representation to {len(encoded_msg) / 1024} kBytes')
 
-        for t in self.publish_topics:
-            self.mqtt.publish(t, encoded_msg)
+        contained_tiles = frozenset(map(lambda c: c.quad_key.key, grid.cells))
+        self.tss.publish_graph(encoded_msg, contained_tiles)
 
     def _on_remote_grid(self, msg: bytes):
+        # TODO: Maybe do asynchronously?
         decoded_msg = PEMTrafficScene.from_bytes(msg)
-        logging.debug(f'Decoded remote fused state representation from {len(msg) / 1024} kBytes')
-
-    def _update_topics(self, qk: QuadKey):
-        if self.mqtt.connected and qk and self.remote_grid_quadkey and qk == self.remote_grid_quadkey:
-            return
-
-        logging.debug(f'Subscription-relevant tile changed from {self.remote_grid_quadkey} to {qk}.')
-
-        out_topics_old = MqttBridgeUtils.topics_fused_out(self.remote_grid_quadkey)
-        out_topics_new = MqttBridgeUtils.topics_fused_out(qk)
-
-        for t in out_topics_old:
-            self.mqtt.unsubscribe(t, self._on_remote_grid)
-
-        for t in out_topics_new:
-            self.mqtt.subscribe(t, self._on_remote_grid)
-
-        self.publish_topics = MqttBridgeUtils.topics_raw_in(qk)
-
-        self.remote_grid_quadkey = qk
+        # logging.debug(f'Decoded remote fused state representation from {len(msg) / 1024} kBytes')
