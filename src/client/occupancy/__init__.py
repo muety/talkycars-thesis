@@ -99,15 +99,14 @@ class OccupancyGridManager:
         self.grids[key.key] = self._compute_grid()
 
     def _compute_grid(self) -> Grid:
-        nearby: Set[str] = frozenset()
+        nearby: Set[str] = set()
         incremental: bool = False
 
         if self.quadkey_prev is not None and self.quadkey_prev.key in self.grids and self.grids[self.quadkey_prev.key] is not None:
             tile = self.quadkey_current.to_tile()[0]
             prev_tile = self.quadkey_prev.to_tile()[0]
             diff = (prev_tile[0] - tile[0], prev_tile[1] - tile[1])
-            if diff[0] <= 1 and diff[1] <= 1:
-                incremental = True
+            incremental = diff[0] <= 1 and diff[1] <= 1 and INCREMENTAL_GRIDS
 
         if incremental:
             add, remove = set(), set()
@@ -136,7 +135,7 @@ class OccupancyGridManager:
                 incremental = False
 
         if not incremental:
-            nearby = self.quadkey_current.nearby(self.radius)
+            nearby = set(self.quadkey_current.nearby(self.radius))
 
         assert len(nearby) == (self.radius * 2 + 1) ** 2
 

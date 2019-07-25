@@ -115,7 +115,6 @@ class TileSubscriptionService:
         def wcb(args):
             lock = self.locks['graph']
             if lock.locked():
-                print('locked')
                 return
             lock.acquire()
             cb(args)
