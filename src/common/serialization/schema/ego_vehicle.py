@@ -43,7 +43,7 @@ class PEMEgoVehicle(CapnpObject):
         return me
 
     @classmethod
-    def from_message_dict(cls, object_dict: Dict, target_cls: Type = None):
+    def from_message_dict(cls, object_dict: Dict, target_cls: Type = None) -> 'PEMEgoVehicle':
         id = object_dict['id'] if 'id' in object_dict else None
         color = PEMRelation.from_message_dict(object_dict['color']) if 'color' in object_dict else None
         position = PEMRelation.from_message_dict(object_dict['position'], target_cls=Vector3D) if 'position' in object_dict else None

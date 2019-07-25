@@ -1,5 +1,5 @@
 import os
-from typing import Tuple, Type, Dict, cast
+from typing import Tuple, Type, Dict
 
 import capnp
 
@@ -29,7 +29,7 @@ class CapnpObject:
         return self.to_message().to_bytes_packed()
 
     @classmethod
-    def from_message_dict(cls, object_dict: Dict, target_cls: Type = None):
+    def from_message_dict(cls, object_dict: Dict, target_cls: Type = None) -> 'CapnpObject':
         """
         Converts dict-serialized Cap'n'Proto message to Python object
         :param object_dict: A dict obtained by calling to_dict() on a deserialized Cap'n'Proto message
@@ -39,7 +39,7 @@ class CapnpObject:
         raise NotImplementedError('abstract class')
 
     @classmethod
-    def from_bytes(cls, bytes: bytes):
+    def from_bytes(cls, bytes: bytes) -> 'CapnpObject':
         """
         Reads a packed Cap'n'Proto byte array into a Python object. Requires _get_capnp_class() to be implemented by sub-class. Only makes sense for "top-level" classes.
         :param bytes:
@@ -71,7 +71,7 @@ class Vector3D(CapnpObject):
         )
 
     @classmethod
-    def from_message_dict(cls, object_dict: Dict, target_cls: Type[CapnpObject] = None) -> CapnpObject:
+    def from_message_dict(cls, object_dict: Dict, target_cls: Type[CapnpObject] = None) -> 'Vector3D':
         return cls((*object_dict.values(),))
 
     def __str__(self):
@@ -90,9 +90,9 @@ class RelativeBBox(CapnpObject):
         )
 
     @classmethod
-    def from_message_dict(cls, object_dict: Dict, target_cls: Type[CapnpObject] = None) -> CapnpObject:
-        lower: Vector3D = cast(Vector3D, Vector3D.from_message_dict(object_dict['lower']))
-        higher: Vector3D = cast(Vector3D, Vector3D.from_message_dict(object_dict['higher']))
+    def from_message_dict(cls, object_dict: Dict, target_cls: Type[CapnpObject] = None) -> 'RelativeBBox':
+        lower: Vector3D = Vector3D.from_message_dict(object_dict['lower'])
+        higher: Vector3D = Vector3D.from_message_dict(object_dict['higher'])
         return cls(lower, higher)
 
     def __str__(self):
@@ -104,22 +104,22 @@ class GridCellState(CapnpObject):
         self.value: GridCellState = value
 
     @staticmethod
-    def free():
+    def free() -> 'GridCellState':
         return GridCellState(value=model.GridCellState.FREE)
 
     @staticmethod
-    def occupied():
+    def occupied() -> 'GridCellState':
         return GridCellState(value=model.GridCellState.OCCUPIED)
 
     @staticmethod
-    def unknown():
+    def unknown() -> 'GridCellState':
         return GridCellState(value=model.GridCellState.UNKNOWN)
 
     def to_message(self):
         return str(self.value).split('.')[1].lower()
 
     @classmethod
-    def from_message_dict(cls, object_dict: Dict, target_cls: Type = None):
+    def from_message_dict(cls, object_dict: Dict, target_cls: Type = None) -> 'GridCellState':
         if object_dict == 'free':
             return GridCellState(value=model.GridCellState.FREE)
         if object_dict == 'occupied':

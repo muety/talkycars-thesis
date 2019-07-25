@@ -4,6 +4,7 @@ from typing import Dict, Type, List, Iterable
 import capnp
 
 from common import quadkey
+from common.quadkey import QuadKey
 from common.serialization.schema import CapnpObject, GridCellState
 from .relation import PEMRelation
 
@@ -33,7 +34,7 @@ class PEMGridCell(CapnpObject):
         return cell
 
     @classmethod
-    def from_message_dict(cls, object_dict: Dict, target_cls: Type = None):
+    def from_message_dict(cls, object_dict: Dict, target_cls: Type = None) -> 'PEMGridCell':
         hash = object_dict['hash'] if 'hash' in object_dict else None
         state = PEMRelation.from_message_dict(object_dict['state'], target_cls=GridCellState)
         return cls(hash=hash, state=state)
@@ -46,7 +47,7 @@ class PEMOccupancyGrid(CapnpObject):
         if len(entries) > 0:
             self.__dict__.update(**entries)
 
-    def get_parent_tiles(self, level: int = 20) -> Iterable[str]:
+    def get_parent_tiles(self, level: int = 20) -> Iterable[QuadKey]:
         return frozenset([quadkey.from_str(c.hash[:level]) for c in self.cells])
 
     def to_message(self):
@@ -60,7 +61,7 @@ class PEMOccupancyGrid(CapnpObject):
         return grid
 
     @classmethod
-    def from_message_dict(cls, object_dict: Dict, target_cls: Type = None):
+    def from_message_dict(cls, object_dict: Dict, target_cls: Type = None) -> 'PEMOccupancyGrid':
         cells = [PEMGridCell.from_message_dict(c) for c in object_dict['cells']] if 'cells' in object_dict else None
         return cls(cells=cells)
 

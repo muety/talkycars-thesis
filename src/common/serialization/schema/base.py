@@ -40,7 +40,7 @@ class PEMTrafficScene(CapnpObject):
         return scene
 
     @classmethod
-    def from_message_dict(cls, object_dict: Dict, target_cls: Type = None):
+    def from_message_dict(cls, object_dict: Dict, target_cls: Type = None) -> 'PEMTrafficScene':
         timestamp = object_dict['timestamp'] if 'timestamp' in object_dict else None
         ego = PEMEgoVehicle.from_message_dict(object_dict['measuredBy']) if 'measuredBy' in object_dict else None
         grid = PEMOccupancyGrid.from_message_dict(object_dict['occupancyGrid']) if 'occupancyGrid' in object_dict else None

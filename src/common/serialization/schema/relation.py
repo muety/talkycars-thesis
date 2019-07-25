@@ -40,6 +40,6 @@ class PEMRelation(Generic[T], CapnpObject):
         )
 
     @classmethod
-    def from_message_dict(cls, obj_dict: Dict, target_cls: Type[CapnpObject] = None) -> CapnpObject:
+    def from_message_dict(cls, obj_dict: Dict, target_cls: Type[CapnpObject] = None) -> 'PEMRelation':
         obj = target_cls.from_message_dict(obj_dict['object']) if target_cls else obj_dict['object']
         return cls(confidence=obj_dict['confidence'], object=obj)
