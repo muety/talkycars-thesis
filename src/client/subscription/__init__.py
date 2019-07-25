@@ -8,7 +8,23 @@ from common.bridge import MqttBridge
 from common.constants import *
 from common.quadkey import QuadKey
 
+'''
+    In practice there is going to be multiple edge nodes with a separate MQTT broker alongside each.
+    Every edge node is responsible for observation graphs / traffic scene representations from a 
+    certain geographical region, e.g. a tile of level 15. 
+    Multiple clients publish observations (for now, only occupancy grids) for another certain
+    geographic area, e.g. a grid of 5x5 level 24 tiles, that lies at least partially within that tile.
+    In return, every client receives a larger, fused scene representation from the edge node,
+    e.g. all fused level 24 tiles within its surrounding 9 level 19 tiles. 
 
+    Relations:      client <-> edge node ~ n:1, edge node <-> broker ~ 1:1
+    Tiles Types:    "occupancy tile" (OT)   ~ what client observes multiple times within a grid
+                    "node tile" (NT)        ~ what an edge node is responsible for
+                    "remote grid tile" (RT) ~ what a client receives as cooperative perception
+    Tile Levels:    OT < k * OT < RT < NT
+    
+    More schematic sketch: https://go.gliffy.com/go/html5/13072860
+'''
 class TileSubscriptionService:
     def __init__(self, on_graph_cb: Callable, rate_limit: float = 0.0):
         self.active_bridges: Dict[str, MqttBridge] = {}
@@ -41,7 +57,7 @@ class TileSubscriptionService:
         for node_key in node_tiles.difference(set(self.active_bridges.keys())):
             logging.debug(f'Connecting to {node_key}')
 
-            bridge = MqttBridge(*self._get_mqtt_connection_info(quadkey.from_str(node_key)))
+            bridge = MqttBridge(*self._resolve_mqtt_geodns(quadkey.from_str(node_key)))
             bridge.listen(block=False)
             self.active_bridges[node_key] = bridge
 
@@ -88,10 +104,6 @@ class TileSubscriptionService:
     def active(self) -> bool:
         return len(self.active_bridges) > 0 and all(list(map(lambda b: b.connected, self.active_bridges.values())))
 
-    def _get_mqtt_connection_info(self, for_tile: QuadKey) -> Tuple[str, int]:
-        # TODO
-        return 'localhost', 1883
-
     def _try_get_bridge(self, for_key: str) -> MqttBridge:
         for_key = for_key[:EDGE_DISTRIBUTION_TILE_LEVEL]
         if for_key not in self.active_bridges:
@@ -111,3 +123,11 @@ class TileSubscriptionService:
             lock.release()
 
         return wcb
+
+    '''
+        Mocks an actual DNS-like type of system to resolve quad keys of node tiles to broker addresses.
+    '''
+
+    @staticmethod
+    def _resolve_mqtt_geodns(for_tile: QuadKey) -> Tuple[str, int]:
+        return 'localhost', 1883
