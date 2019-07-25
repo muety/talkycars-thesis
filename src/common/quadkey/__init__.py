@@ -1,12 +1,13 @@
 import itertools
-from typing import Tuple, Iterable
+from typing import Tuple, Iterable, List, TypeVar, Generator, Dict
 
-from .tile_system import TileSystem, valid_key
+from .tile_system import TileSystem, valid_key, TileAnchor
 from .util import precondition
 
 LAT_STR = 'lat'
 LON_STR = 'lon'
 
+IntOrNone = TypeVar('IntOrNone', int, None)
 
 class QuadKey:
 
@@ -15,7 +16,7 @@ class QuadKey:
         self.key = key
         self.level = len(key)
 
-    def children(self, at_level=-1):
+    def children(self, at_level: int = -1) -> List['QuadKey']:
         if at_level <= 0:
             at_level = self.level + 1
 
@@ -24,20 +25,20 @@ class QuadKey:
 
         return [QuadKey(self.key + ''.join(k)) for k in itertools.product('0123', repeat=at_level - self.level)]
 
-    def parent(self):
+    def parent(self) -> 'QuadKey':
         return QuadKey(self.key[:-1])
 
-    def nearby_custom(self, config: Tuple[Iterable[int], Iterable[int]]):
+    def nearby_custom(self, config: Tuple[Iterable[int], Iterable[int]]) -> List[str]:
         tile, level = TileSystem.quadkey_to_tile(self.key)
         perms = set(itertools.product(config[0], config[1]))
         # TODO: probably won't work for edge cases
         tiles = set(map(lambda perm: (abs(tile[0] + perm[0]), abs(tile[1] + perm[1])), perms))
         return [TileSystem.tile_to_quadkey(tile, level) for tile in tiles]
 
-    def nearby(self, n=1):
+    def nearby(self, n: int = 1) -> List[str]:
         return self.nearby_custom((range(-n, n + 1), range(-n, n + 1)))
 
-    def is_ancestor(self, node):
+    def is_ancestor(self, node: 'QuadKey') -> IntOrNone:
         """
                 If node is ancestor of self
                 Get the difference in level
@@ -47,7 +48,7 @@ class QuadKey:
             return None
         return self.level - node.level
 
-    def is_descendent(self, node):
+    def is_descendent(self, node: 'QuadKey') -> IntOrNone:
         """
                 If node is descendent of self
                 Get the difference in level
@@ -55,14 +56,14 @@ class QuadKey:
         """
         return node.is_ancestor(self)
 
-    def side(self):
+    def side(self) -> float:
         return 256 * TileSystem.ground_resolution(0, self.level)
 
-    def area(self):
+    def area(self) -> float:
         side = self.side()
         return side * side
 
-    def xdifference(self, to):
+    def xdifference(self, to: 'QuadKey') -> Generator['QuadKey', None, None]:
         """ Generator
             Gives the difference of quadkeys between self and to
             Generator in case done on a low level
@@ -84,25 +85,25 @@ class QuadKey:
             cur[x] -= 1
             cur[y] = ne_tile[y]
 
-    def difference(self, to):
+    def difference(self, to: 'QuadKey') -> List['QuadKey']:
         """ Non generator version of xdifference
         """
         return [qk for qk in self.xdifference(to)]
 
-    def unwind(self):
+    def unwind(self) -> List['QuadKey']:
         """ Get a list of all ancestors in descending order of level, including a new instance  of self
         """
         return [QuadKey(self.key[:l + 1]) for l in reversed(range(len(self.key)))]
 
-    def to_tile(self):
+    def to_tile(self) -> Tuple[Tuple[int, int], int]:
         return TileSystem.quadkey_to_tile(self.key)
 
-    def to_pixel(self, anchor=TileSystem.ANCHOR_NW):
+    def to_pixel(self, anchor: TileAnchor = TileAnchor.ANCHOR_NW) -> Tuple[int, int]:
         ret = TileSystem.quadkey_to_tile(self.key)
         tile = ret[0]
         return TileSystem.tile_to_pixel(tile, anchor)
 
-    def to_geo(self, anchor=TileSystem.ANCHOR_NW):
+    def to_geo(self, anchor: TileAnchor = TileAnchor.ANCHOR_NW) -> Tuple[float, float]:
         ret = TileSystem.quadkey_to_tile(self.key)
         pixel = TileSystem.tile_to_pixel(ret[0], anchor)
         return TileSystem.pixel_to_geo(pixel, ret[1])
@@ -123,7 +124,7 @@ class QuadKey:
         return hash(self.key)
 
 
-def from_geo(geo, level):
+def from_geo(geo: Tuple[float, float], level: int) -> 'QuadKey':
     """
     Constucts a quadkey representation from geo and level
     geo => (lat, lon)
@@ -137,15 +138,15 @@ def from_geo(geo, level):
     return QuadKey(key)
 
 
-def from_tile(tile, level):
+def from_tile(tile: Tuple[int, int], level: int) -> 'QuadKey':
     return QuadKey(TileSystem.tile_to_quadkey(tile, level))
 
 
-def from_str(qk_str):
+def from_str(qk_str: str) -> 'QuadKey':
     return QuadKey(qk_str)
 
 
-def geo_to_dict(geo):
+def geo_to_dict(geo: Tuple[float, float]) -> Dict[str, float]:
     """ Take a geo tuple and return a labeled dict
         (lat, lon) -> {'lat': lat, 'lon', lon}
     """

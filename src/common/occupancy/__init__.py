@@ -5,7 +5,7 @@ import numpy as np
 
 from common import quadkey
 from common.geom import BBox3D, Point3D, Point2D
-from common.quadkey import QuadKey
+from common.quadkey import QuadKey, TileAnchor
 
 
 class GridCellState(Enum):
@@ -40,14 +40,14 @@ class GridCell(BBox3D):
     @staticmethod
     def _quadkey_to_box(qk: QuadKey) -> List[Point2D]:
         return [
-            Point2D(*(quadkey.from_geo(qk.to_geo(quadkey.TileSystem.ANCHOR_NW), 31).to_pixel(
-                quadkey.TileSystem.ANCHOR_CENTER))),
-            Point2D(*(quadkey.from_geo(qk.to_geo(quadkey.TileSystem.ANCHOR_NE), 31).to_pixel(
-                quadkey.TileSystem.ANCHOR_CENTER))),
-            Point2D(*(quadkey.from_geo(qk.to_geo(quadkey.TileSystem.ANCHOR_SW), 31).to_pixel(
-                quadkey.TileSystem.ANCHOR_CENTER))),
-            Point2D(*(quadkey.from_geo(qk.to_geo(quadkey.TileSystem.ANCHOR_SE), 31).to_pixel(
-                quadkey.TileSystem.ANCHOR_CENTER)))
+            Point2D(*(quadkey.from_geo(qk.to_geo(TileAnchor.ANCHOR_NW), 31).to_pixel(
+                TileAnchor.ANCHOR_CENTER))),
+            Point2D(*(quadkey.from_geo(qk.to_geo(TileAnchor.ANCHOR_NE), 31).to_pixel(
+                TileAnchor.ANCHOR_CENTER))),
+            Point2D(*(quadkey.from_geo(qk.to_geo(TileAnchor.ANCHOR_SW), 31).to_pixel(
+                TileAnchor.ANCHOR_CENTER))),
+            Point2D(*(quadkey.from_geo(qk.to_geo(TileAnchor.ANCHOR_SE), 31).to_pixel(
+                TileAnchor.ANCHOR_CENTER)))
         ]
 
     def __str__(self):
