@@ -3,7 +3,7 @@ from typing import TypeVar, Generic, Type, Dict
 
 import capnp
 
-from common.serialization.schema import CapnpObject, Vector3D, RelativeBBox, GridCellState
+from common.serialization.schema import Vector3D, RelativeBBox, GridCellState, ActorType, CapnpObject
 
 capnp.remove_import_hook()
 
@@ -20,14 +20,20 @@ class PEMRelation(Generic[T], CapnpObject):
         self.object: T = object
 
     def to_message(self):
+        from common.serialization.schema.actor import PEMDynamicActor
+
         is_primitive: bool = False
 
         if isinstance(self.object, Vector3D):
             relation_type = relation.Vector3DRelation
         elif isinstance(self.object, RelativeBBox):
             relation_type = relation.RelativeBBoxRelation
+        elif isinstance(self.object, PEMDynamicActor):
+            relation_type = relation.DynamicActorRelation
         elif isinstance(self.object, GridCellState):
             relation_type = relation.GridCellStateRelation
+        elif isinstance(self.object, ActorType):
+            relation_type = relation.ActorTypeRelation
         elif isinstance(self.object, str):
             relation_type = relation.TextRelation
             is_primitive = True

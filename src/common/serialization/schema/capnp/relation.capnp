@@ -5,6 +5,8 @@
 using import "vector3d.capnp".Vector3D;
 using import "relative_bbox.capnp".RelativeBBox;
 using import "occupancy.capnp".GridCellState;
+using import "actor.capnp".ActorType;
+using import "actor.capnp".DynamicActor;
 
 struct TextRelation {
     confidence @0 :Float32;
@@ -24,4 +26,14 @@ struct RelativeBBoxRelation {
 struct GridCellStateRelation {
     confidence @0 :Float32;
     object @1 :GridCellState;
+}
+
+struct ActorTypeRelation {
+    confidence @0 :Float32;
+    object @1 :ActorType;
+}
+
+struct DynamicActorRelation {
+    confidence @0 :Float32;
+    object @1 :DynamicActor;
 }

@@ -6,7 +6,7 @@ from typing import Dict, Type
 import capnp
 
 from common.serialization.schema import CapnpObject
-from common.serialization.schema.ego_vehicle import PEMEgoVehicle
+from common.serialization.schema.actor import PEMDynamicActor
 from common.serialization.schema.occupancy import PEMOccupancyGrid
 
 capnp.remove_import_hook()
@@ -21,7 +21,7 @@ class PEMTrafficScene(CapnpObject):
     def __init__(self, **entries):
         # NOTE: This is only the default. You might wanna set this explicitly.
         self.timestamp: int = int(time.time())  # UTC Unix timestamp
-        self.measured_by: PEMEgoVehicle = None
+        self.measured_by: PEMDynamicActor = None
         self.occupancy_grid: PEMOccupancyGrid = None
 
         if len(entries) > 0:
@@ -42,7 +42,7 @@ class PEMTrafficScene(CapnpObject):
     @classmethod
     def from_message_dict(cls, object_dict: Dict, target_cls: Type = None) -> 'PEMTrafficScene':
         timestamp = object_dict['timestamp'] if 'timestamp' in object_dict else None
-        ego = PEMEgoVehicle.from_message_dict(object_dict['measuredBy']) if 'measuredBy' in object_dict else None
+        ego = PEMDynamicActor.from_message_dict(object_dict['measuredBy']) if 'measuredBy' in object_dict else None
         grid = PEMOccupancyGrid.from_message_dict(object_dict['occupancyGrid']) if 'occupancyGrid' in object_dict else None
         return cls(
             timestamp=timestamp,

@@ -3,7 +3,8 @@ from typing import Tuple, Type, Dict
 
 import capnp
 
-from common import occupancy as model
+from common import ActorType as At
+from common.occupancy import GridCellState as Gss
 
 capnp.remove_import_hook()
 
@@ -100,20 +101,20 @@ class RelativeBBox(CapnpObject):
 
 
 class GridCellState(CapnpObject):
-    def __init__(self, value: model.GridCellState = None):
+    def __init__(self, value: Gss = None):
         self.value: GridCellState = value
 
     @staticmethod
     def free() -> 'GridCellState':
-        return GridCellState(value=model.GridCellState.FREE)
+        return GridCellState(value=Gss.FREE)
 
     @staticmethod
     def occupied() -> 'GridCellState':
-        return GridCellState(value=model.GridCellState.OCCUPIED)
+        return GridCellState(value=Gss.OCCUPIED)
 
     @staticmethod
     def unknown() -> 'GridCellState':
-        return GridCellState(value=model.GridCellState.UNKNOWN)
+        return GridCellState(value=Gss.UNKNOWN)
 
     def to_message(self):
         return str(self.value).split('.')[1].lower()
@@ -121,11 +122,43 @@ class GridCellState(CapnpObject):
     @classmethod
     def from_message_dict(cls, object_dict: Dict, target_cls: Type = None) -> 'GridCellState':
         if object_dict == 'free':
-            return GridCellState(value=model.GridCellState.FREE)
+            return GridCellState(value=Gss.FREE)
         if object_dict == 'occupied':
-            return GridCellState(value=model.GridCellState.OCCUPIED)
+            return GridCellState(value=Gss.OCCUPIED)
         if object_dict == 'unknown':
-            return GridCellState(value=model.GridCellState.UNKNOWN)
+            return GridCellState(value=Gss.UNKNOWN)
+
+    def __str__(self):
+        return str(self.value)
+
+
+class ActorType(CapnpObject):
+    def __init__(self, value: At = None):
+        self.value: ActorType = value
+
+    @staticmethod
+    def vehicle() -> 'ActorType':
+        return ActorType(value=At.VEHICLE)
+
+    @staticmethod
+    def pedestrian() -> 'ActorType':
+        return ActorType(value=At.PEDESTRIAN)
+
+    @staticmethod
+    def unknown() -> 'ActorType':
+        return ActorType(value=At.UNKNOWN)
+
+    def to_message(self):
+        return str(self.value).split('.')[1].lower()
+
+    @classmethod
+    def from_message_dict(cls, object_dict: Dict, target_cls: Type = None) -> 'ActorType':
+        if object_dict == 'vehicle':
+            return ActorType(value=At.VEHICLE)
+        if object_dict == 'pedestrian':
+            return ActorType(value=At.PEDESTRIAN)
+        if object_dict == 'unknown':
+            return ActorType(value=At.UNKNOWN)
 
     def __str__(self):
         return str(self.value)

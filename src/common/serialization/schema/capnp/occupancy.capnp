@@ -1,6 +1,7 @@
 @0xc77abe9e219ad98d;
 
 using import "relation.capnp".GridCellStateRelation;
+using import "relation.capnp".DynamicActorRelation;
 
 enum GridCellState {
     free @0;
@@ -11,6 +12,7 @@ enum GridCellState {
 struct GridCell {
     hash @0 :Text;
     state @1 :GridCellStateRelation;
+    occupant @2 :DynamicActorRelation;
 }
 
 struct OccupancyGrid {

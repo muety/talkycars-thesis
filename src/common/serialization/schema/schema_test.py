@@ -1,11 +1,11 @@
 from common.serialization.schema import Vector3D, RelativeBBox, GridCellState
+from common.serialization.schema.actor import PEMDynamicActor
 from common.serialization.schema.base import PEMTrafficScene
-from common.serialization.schema.ego_vehicle import PEMEgoVehicle
 from common.serialization.schema.occupancy import PEMOccupancyGrid, PEMGridCell
 from common.serialization.schema.relation import PEMRelation
 
 if __name__ == '__main__':
-    ego = PEMEgoVehicle()
+    ego = PEMDynamicActor()
     ego.id = 1
     ego.color = PEMRelation(
         confidence=1,
@@ -31,11 +31,22 @@ if __name__ == '__main__':
         object=Vector3D((0, 0, 0))
     )
 
+    other = PEMDynamicActor()
+    other.id = 2
+    other.position = PEMRelation(
+        confidence=0.99,
+        object=Vector3D((49.111, -150.1232354, 0))
+    )
+
     grid = PEMOccupancyGrid()
     grid.cells = [
         PEMGridCell(hash='3120312', state=PEMRelation(confidence=0.67, object=GridCellState.unknown())),
         PEMGridCell(hash='3120310', state=PEMRelation(confidence=0.92, object=GridCellState.free()))
     ]
+    grid.cells[0].occupant = PEMRelation(
+        confidence=0.65,
+        object=other
+    )
 
     scene = PEMTrafficScene(
         measured_by=ego,

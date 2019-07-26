@@ -6,6 +6,7 @@ import capnp
 from common import quadkey
 from common.quadkey import QuadKey
 from common.serialization.schema import CapnpObject, GridCellState
+from common.serialization.schema.actor import PEMDynamicActor
 from .relation import PEMRelation
 
 capnp.remove_import_hook()
@@ -19,6 +20,7 @@ class PEMGridCell(CapnpObject):
     def __init__(self, **entries):
         self.hash: str = None
         self.state: PEMRelation[GridCellState] = None
+        self.occupant: PEMRelation[PEMDynamicActor] = None
 
         if len(entries) > 0:
             self.__dict__.update(**entries)
@@ -30,6 +32,8 @@ class PEMGridCell(CapnpObject):
             cell.hash = self.hash
         if self.state:
             cell.state = self.state.to_message()
+        if self.occupant:
+            cell.occupant = self.occupant.to_message()
 
         return cell
 
@@ -37,7 +41,8 @@ class PEMGridCell(CapnpObject):
     def from_message_dict(cls, object_dict: Dict, target_cls: Type = None) -> 'PEMGridCell':
         hash = object_dict['hash'] if 'hash' in object_dict else None
         state = PEMRelation.from_message_dict(object_dict['state'], target_cls=GridCellState)
-        return cls(hash=hash, state=state)
+        occupant = PEMRelation.from_message_dict(object_dict['occupant'], target_cls=PEMDynamicActor) if 'occupant' in object_dict else None
+        return cls(hash=hash, state=state, occupant=occupant)
 
 
 class PEMOccupancyGrid(CapnpObject):

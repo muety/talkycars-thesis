@@ -9,9 +9,9 @@ from common.observation import OccupancyGridObservation, LidarObservation, Posit
     GnssObservation
 from common.occupancy import Grid
 from common.quadkey import QuadKey
-from common.serialization.schema import Vector3D, RelativeBBox, GridCellState
+from common.serialization.schema import Vector3D, RelativeBBox, GridCellState, ActorType
+from common.serialization.schema.actor import PEMDynamicActor
 from common.serialization.schema.base import PEMTrafficScene
-from common.serialization.schema.ego_vehicle import PEMEgoVehicle
 from common.serialization.schema.occupancy import PEMOccupancyGrid, PEMGridCell
 from common.serialization.schema.relation import PEMRelation
 from common.util import GeoUtils
@@ -103,20 +103,22 @@ class TalkyClient:
         bbox = RelativeBBox(lower=Vector3D(bbox_corners[0]), higher=Vector3D(bbox_corners[1]))
 
         # TODO: Find way to separately specify confidences for DynamicActor's properties
-        pem_ego = PEMEgoVehicle(id=int(self.ego_id))
-        pem_ego.position = PEMRelation(confidence=actors_ego_obs.confidence, object=Vector3D(ego_actor.gnss.components()))
-        pem_ego.color = PEMRelation(confidence=actors_ego_obs.confidence, object=ego_actor.props.color)
-        pem_ego.bounding_box = PEMRelation(confidence=actors_ego_obs.confidence, object=bbox)
-        pem_ego.velocity = PEMRelation(confidence=actors_ego_obs.confidence, object=Vector3D(ego_actor.dynamics.velocity))
-        pem_ego.acceleration = PEMRelation(confidence=actors_ego_obs.confidence, object=Vector3D(ego_actor.dynamics.acceleration))
+        pem_ego = self._map_pem_actor(ego_actor, with_conf=actors_ego_obs.confidence)
 
-        pem_grid = PEMOccupancyGrid()
-        pem_grid.cells = [
-            PEMGridCell(
+        pem_grid = PEMOccupancyGrid(cells=[])
+
+        for cell in grid.cells:
+            pem_cell = PEMGridCell(
                 hash=cell.quad_key.key,
                 state=PEMRelation(confidence=cell.confidence, object=GridCellState(cell.state)))
-            for cell in grid.cells
-        ]
+            if len(visible_actors[cell.quad_key.key]) > 0:
+                # Assuming that a cell is tiny enough to contain at max one actor
+                # TODO: Confidence
+                pem_cell.occupant = PEMRelation(
+                    confidence=1,
+                    object=self._map_pem_actor(visible_actors[cell.quad_key.key][0], with_conf=1)
+                )
+            pem_grid.cells.append(pem_cell)
 
         # Generate PEM graph
         graph = PEMTrafficScene(timestamp=ts,
@@ -147,12 +149,32 @@ class TalkyClient:
 
             for qk in quadkeys:
                 for cell in grid.cells:
+                    if cell.quad_key.key not in matches:
+                        matches[cell.quad_key.key] = []
+
                     if cell.state is not occupancy.GridCellState.OCCUPIED:
                         continue
 
                     if cell.quad_key == qk:
-                        if cell.quad_key.key not in matches:
-                            matches[cell.quad_key.key] = []
                         matches[cell.quad_key.key].append(a)
 
         return matches
+
+    # TODO: Confidence
+    @staticmethod
+    def _map_pem_actor(actor: DynamicActor, with_conf: float) -> PEMDynamicActor:
+        bbox_corners = (
+            GeoUtils.gnss_add_meters(actor.gnss.components(), actor.props.extent, delta_factor=-1),
+            GeoUtils.gnss_add_meters(actor.gnss.components(), actor.props.extent)
+        )
+        bbox = RelativeBBox(lower=Vector3D(bbox_corners[0]), higher=Vector3D(bbox_corners[1]))
+
+        return PEMDynamicActor(
+            id=actor.id,
+            type=PEMRelation(confidence=with_conf, object=ActorType(actor.type)),
+            position=PEMRelation(confidence=with_conf, object=Vector3D(actor.gnss.components())),
+            color=PEMRelation(confidence=with_conf, object=actor.props.color),
+            bounding_box=PEMRelation(confidence=with_conf, object=bbox),
+            velocity=PEMRelation(confidence=with_conf, object=Vector3D(actor.dynamics.velocity)),
+            acceleration=PEMRelation(confidence=with_conf, object=Vector3D(actor.dynamics.acceleration))
+        )
