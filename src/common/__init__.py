@@ -25,10 +25,14 @@ class ActorProperties:
 
 
 class DynamicActor:
-    def __init__(self, id: int, type: ActorType, location: Point3D = None, gnss: Point3D = None, dynamics: ActorDynamics = None, props: ActorProperties = None):
+    def __init__(self, id: int, type: ActorType, type_id: str = None, location: Point3D = None, gnss: Point3D = None, dynamics: ActorDynamics = None, props: ActorProperties = None):
         self.id = id
         self.type = type
+        self.type_id = type_id
         self.location = location
         self.gnss = gnss
         self.dynamics = dynamics
         self.props = props
+
+    def __str__(self):
+        return f'Dynamic actor {self.id} ({self.type_id}) of type {self.type}'

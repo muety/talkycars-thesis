@@ -1,8 +1,8 @@
 from enum import Enum
-from typing import cast, List
+from typing import cast, List, Tuple
 
 from client.subscription import TileSubscriptionService
-from common import DynamicActor
+from common import DynamicActor, quadkey, occupancy
 from common.constants import *
 from common.observation import CameraRGBObservation, ActorsObservation
 from common.observation import OccupancyGridObservation, LidarObservation, PositionObservation, \
@@ -92,6 +92,7 @@ class TalkyClient:
             return
 
         ego_actor: DynamicActor = actors_ego_obs.value[0]
+        visible_actors: List[DynamicActor] = self._match_actors_with_grid(grid, actors_others_obs.value)
 
         # Generate PEM complex object attributes
         ts = int(min([ts1, actors_ego_obs.timestamp, actors_others_obs.timestamp]))
@@ -134,5 +135,29 @@ class TalkyClient:
         # logging.debug(f'Decoded remote fused state representation from {len(msg) / 1024} kBytes')
 
     # TODO: Maybe abstract from Carla-specific classes?
-    def _match_actors_with_grid(self, grid: Grid, actors: List[DynamicActor]):
-        pass
+    def _match_actors_with_grid(self, grid: Grid, actors: List[DynamicActor]) -> List[DynamicActor]:
+        matches: List[DynamicActor] = []
+
+        for a in actors:
+            matched = False
+
+            c1: Tuple[float, float] = GeoUtils.gnss_add_meters(a.gnss.components(), a.props.extent, delta_factor=-1)[:2]
+            c2: Tuple[float, float] = GeoUtils.gnss_add_meters(a.gnss.components(), a.props.extent)[:2]
+            c3: Tuple[float, float] = (c1[0], c2[1])
+            c4: Tuple[float, float] = (c2[0], c1[1])
+            quadkeys: List[QuadKey] = list(map(lambda c: quadkey.from_geo(c, OCCUPANCY_TILE_LEVEL), [c1, c2, c3, c4]))
+
+            for qk in quadkeys:
+                for cell in grid.cells:
+                    if cell.state is not occupancy.GridCellState.OCCUPIED:
+                        continue
+
+                    if cell.quad_key == qk:
+                        matches.append(a)
+                        matched = True
+                        break
+
+                if matched:
+                    break
+
+        return matches

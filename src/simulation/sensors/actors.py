@@ -28,7 +28,7 @@ class ActorsSensor(Sensor):
         vehicle_actors: List[carla.Actor] = list(actors.filter('vehicle.*')) if actors else []
         walker_actors: List[carla.Actor] = list(actors.filter('walker.*')) if actors else []
 
-        all_actors = map(self._map_to_actor, vehicle_actors + walker_actors)
+        all_actors = list(map(self._map_to_actor, vehicle_actors + walker_actors))
         ego_actors: List[DynamicActor] = list(filter(lambda a: a.id == ego_id, all_actors))
         other_actors: List[DynamicActor] = list(filter(lambda a: a.id != ego_id, all_actors))
 
@@ -36,16 +36,17 @@ class ActorsSensor(Sensor):
         self.client.inbound.publish(OBS_ACTORS_RAW, ActorsObservation(event.ts, actors=other_actors))
 
     def _map_to_actor(self, carla_actor: carla.Actor) -> DynamicActor:
-        location: carla.Location = self._parent.get_location()
+        location: carla.Location = carla_actor.get_location()
         gnss: carla.GeoLocation = self._map.transform_to_geolocation(location)
-        velocity: carla.Vector3D = self._parent.get_velocity()
-        acceleration: carla.Vector3D = self._parent.get_acceleration()
+        velocity: carla.Vector3D = carla_actor.get_velocity()
+        acceleration: carla.Vector3D = carla_actor.get_acceleration()
         color: str = str(carla_actor.attributes['color']) if 'color' in carla_actor.attributes else None
         extent: carla.BoundingBox = carla_actor.bounding_box.extent
 
         return DynamicActor(
             id=carla_actor.id,
             type=self._resolve_carla_type(carla_actor.type_id),
+            type_id=carla_actor.type_id,
             location=Point3D(location.x, location.y, location.z),
             gnss=Point3D(gnss.latitude, gnss.longitude, gnss.altitude),
             dynamics=ActorDynamics(
