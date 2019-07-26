@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import cast, List, Tuple
+from typing import cast, List, Tuple, Dict
 
 from client.subscription import TileSubscriptionService
 from common import DynamicActor, quadkey, occupancy
@@ -92,7 +92,7 @@ class TalkyClient:
             return
 
         ego_actor: DynamicActor = actors_ego_obs.value[0]
-        visible_actors: List[DynamicActor] = self._match_actors_with_grid(grid, actors_others_obs.value)
+        visible_actors: Dict[str, List[DynamicActor]] = self._match_actors_with_grid(grid, actors_others_obs.value)
 
         # Generate PEM complex object attributes
         ts = int(min([ts1, actors_ego_obs.timestamp, actors_others_obs.timestamp]))
@@ -135,12 +135,10 @@ class TalkyClient:
         # logging.debug(f'Decoded remote fused state representation from {len(msg) / 1024} kBytes')
 
     # TODO: Maybe abstract from Carla-specific classes?
-    def _match_actors_with_grid(self, grid: Grid, actors: List[DynamicActor]) -> List[DynamicActor]:
-        matches: List[DynamicActor] = []
+    def _match_actors_with_grid(self, grid: Grid, actors: List[DynamicActor]) -> Dict[str, List[DynamicActor]]:
+        matches: Dict[str, List[DynamicActor]] = {}
 
         for a in actors:
-            matched = False
-
             c1: Tuple[float, float] = GeoUtils.gnss_add_meters(a.gnss.components(), a.props.extent, delta_factor=-1)[:2]
             c2: Tuple[float, float] = GeoUtils.gnss_add_meters(a.gnss.components(), a.props.extent)[:2]
             c3: Tuple[float, float] = (c1[0], c2[1])
@@ -153,11 +151,8 @@ class TalkyClient:
                         continue
 
                     if cell.quad_key == qk:
-                        matches.append(a)
-                        matched = True
-                        break
-
-                if matched:
-                    break
+                        if cell.quad_key.key not in matches:
+                            matches[cell.quad_key.key] = []
+                        matches[cell.quad_key.key].append(a)
 
         return matches
