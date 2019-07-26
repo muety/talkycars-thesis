@@ -58,7 +58,11 @@ class TileSubscriptionService:
             logging.debug(f'Connecting to {node_key}')
 
             bridge = MqttBridge(*self._resolve_mqtt_geodns(quadkey.from_str(node_key)))
-            bridge.listen(block=False)
+            try:
+                bridge.listen(block=False)
+            except:
+                logging.warning(f'Failed to connect to MQTT bridge at {bridge.broker_config}')
+                return
             self.active_bridges[node_key] = bridge
 
         # Handle subscriptions: clean up old
@@ -92,7 +96,11 @@ class TileSubscriptionService:
 
     # Maybe move graph generation logic into here?
     def publish_graph(self, encoded_msg: bytes, contained_tiles: Iterable[str]):
+        if not self.current_parent:
+            return
+
         bridge = self._try_get_bridge(self.current_parent.key)
+
         if not bridge:
             return
 
