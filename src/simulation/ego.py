@@ -8,7 +8,7 @@ from typing import Dict
 import pygame
 from hud import HUD
 from sensors import GnssSensor, LidarSensor, CameraRGBSensor
-from sensors.position import PositionSensor
+from sensors.actors import ActorsSensor
 from strategy import Strategy, ManualStrategy
 from strategy.empty import EmptyStrategy
 from util import BBoxUtils
@@ -16,7 +16,7 @@ from util import BBoxUtils
 import carla
 from client import ClientDialect, TalkyClient
 from common.constants import *
-from common.observation import OccupancyGridObservation, ActorPropertiesObservation
+from common.observation import OccupancyGridObservation
 from common.occupancy import Grid
 from common.quadkey import QuadKey
 from common.util import GracefulKiller
@@ -84,7 +84,7 @@ class Ego:
 
         self.sensors['gnss'] = GnssSensor(self.vehicle, self.client, offset_z=GNSS_Z_OFFSET)
         self.sensors['lidar'] = LidarSensor(self.vehicle, self.client, offset_z=LIDAR_Z_OFFSET, range=lidar_range, angle=lidar_angle)
-        self.sensors['position'] = PositionSensor(self.vehicle, self.client)
+        self.sensors['actors'] = ActorsSensor(self.vehicle, self.client)
         if render:
             self.sensors['camera_rgb'] = CameraRGBSensor(self.vehicle, self.hud)
 
@@ -122,7 +122,7 @@ class Ego:
 
     def tick(self, clock: pygame.time.Clock) -> bool:
         snap = self.world.get_snapshot()
-        self.sensors['position'].tick(snap.timestamp.platform_timestamp)
+        self.sensors['actors'].tick(snap.timestamp.platform_timestamp)
 
         self.on_kth_tick(self.n_ticked + 1, snap)
 
@@ -141,14 +141,7 @@ class Ego:
         return False
 
     def on_kth_tick(self, k: int, snap: carla.WorldSnapshot):
-        if k == 1:
-            extent: carla.BoundingBox = self.vehicle.bounding_box.extent
-            props_obs = ActorPropertiesObservation(
-                snap.timestamp.platform_timestamp,
-                color=self.vehicle.attributes['color'],
-                extent=(extent.x, extent.y, extent.z,)
-            )
-            self.client.om.add(OBS_PROPS_PREFIX + ALIAS_EGO, props_obs)
+        pass
 
     def render(self):
         if 'camera_rgb' not in self.sensors or not self.hud or not self.display:

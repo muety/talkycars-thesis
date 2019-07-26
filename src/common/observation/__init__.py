@@ -1,9 +1,9 @@
 from datetime import datetime
-from typing import Tuple, Iterable
+from typing import Tuple, Iterable, List
 
 import numpy as np
 
-from common import quadkey
+from common import quadkey, DynamicActor
 from common.occupancy import Grid, GridCellState
 
 _Vec3 = Tuple[float, float, float]
@@ -73,22 +73,16 @@ class PositionObservation(Observation):
         return f'[{self.timestamp}] World Position: {self.value}'
 
 
-class ActorDynamicsObservation(Observation):
-    def __init__(self, timestamp, velocity: _Vec3, acceleration: _Vec3):
+# TODO: Find way to separately specify confidences for DynamicActor's properties
+class ActorsObservation(Observation):
+    def __init__(self, timestamp, actors: List[DynamicActor]):
+        assert isinstance(actors, list)
+
         super().__init__(timestamp)
-        self.value = (velocity, acceleration,)
+        self.value = actors
 
     def __str__(self):
-        return f'[{self.timestamp}] Velocity: {self.value[0]}, Acceleration: {self.value[1]}'
-
-
-class ActorPropertiesObservation(Observation):
-    def __init__(self, timestamp, color: str, extent: _Vec3):
-        super().__init__(timestamp)
-        self.value = (color, extent,)
-
-    def __str__(self):
-        return f'[{self.timestamp}] Properties'
+        return f'[{self.timestamp}] Actor List of length {len(self.value)}'
 
 
 class OccupancyGridObservation(Observation):

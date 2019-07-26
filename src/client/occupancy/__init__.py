@@ -4,9 +4,9 @@ from typing import List, Set, Dict, Callable, Tuple
 import numpy as np
 from common.raycast import raycast
 
-from common import quadkey
+from common import quadkey, Point3D
 from common.constants import *
-from common.observation import GnssObservation, LidarObservation, PositionObservation
+from common.observation import GnssObservation, LidarObservation
 from common.occupancy import Grid, GridCell, GridCellState
 
 N_THREADS = 6
@@ -38,8 +38,8 @@ class OccupancyGridManager:
 
         return False
 
-    def set_position(self, obs: PositionObservation):
-        self.location = obs.value
+    def set_position(self, position: Point3D):
+        self.location = position.components()
 
     def get_grid(self) -> Grid:
         return self.grids[self.quadkey_current.key] if self.quadkey_current and self.quadkey_current.key in self.grids and self.grids[self.quadkey_current.key] else None

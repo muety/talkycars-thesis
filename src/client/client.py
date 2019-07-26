@@ -1,11 +1,13 @@
 from enum import Enum
-from typing import cast
+from typing import cast, List
 
 from client.subscription import TileSubscriptionService
+from common import DynamicActor
 from common.constants import *
-from common.observation import CameraRGBObservation
+from common.observation import CameraRGBObservation, ActorsObservation
 from common.observation import OccupancyGridObservation, LidarObservation, PositionObservation, \
     GnssObservation
+from common.occupancy import Grid
 from common.quadkey import QuadKey
 from common.serialization.schema import Vector3D, RelativeBBox, GridCellState
 from common.serialization.schema.base import PEMTrafficScene
@@ -45,13 +47,11 @@ class TalkyClient:
         self.om.register_key(OBS_LIDAR_POINTS, LidarObservation)
         self.om.register_key(OBS_CAMERA_RGB_IMAGE, CameraRGBObservation)
         self.om.register_key(OBS_OCCUPANCY_GRID, OccupancyGridObservation)
+        self.om.register_key(OBS_ACTOR_EGO, ActorsObservation)
+        self.om.register_key(OBS_ACTORS_RAW, ActorsObservation)
         self.om.register_key(OBS_GNSS_PREFIX + self.ego_id, GnssObservation)
-        self.om.register_key(OBS_DYNAMICS_PREFIX + self.ego_id, GnssObservation)
-        self.om.register_key(OBS_PROPS_PREFIX + self.ego_id, GnssObservation)
 
         self.om.register_alias(OBS_GNSS_PREFIX + self.ego_id, OBS_GNSS_PREFIX + ALIAS_EGO)
-        self.om.register_alias(OBS_DYNAMICS_PREFIX + self.ego_id, OBS_DYNAMICS_PREFIX + ALIAS_EGO)
-        self.om.register_alias(OBS_PROPS_PREFIX + self.ego_id, OBS_PROPS_PREFIX + ALIAS_EGO)
 
         # Miscellaneous
         self.gm.offset_z = LIDAR_Z_OFFSET
@@ -65,8 +65,9 @@ class TalkyClient:
         if self.om.has(OBS_GNSS_PREFIX + ALIAS_EGO):
             self.gm.update_gnss(cast(GnssObservation, self.om.latest(OBS_GNSS_PREFIX + ALIAS_EGO)))
 
-        if self.om.has(OBS_POSITION):
-            self.gm.set_position(cast(PositionObservation, self.om.latest(OBS_POSITION)))
+        if self.om.has(OBS_ACTOR_EGO):
+            ego = cast(ActorsObservation, self.om.latest(OBS_ACTOR_EGO)).value[0]
+            self.gm.set_position(ego.location)
 
         if not self.gm.match_with_lidar(cast(LidarObservation, obs)):
             return
@@ -84,27 +85,29 @@ class TalkyClient:
 
     def _on_grid(self, obs: OccupancyGridObservation):
         ts1, grid = obs.timestamp, obs.value
-        ego_gnss_obs = self.om.latest(OBS_GNSS_PREFIX + ALIAS_EGO)
-        ego_dynamics_obs = self.om.latest(OBS_DYNAMICS_PREFIX + ALIAS_EGO)
-        ego_props_obs = self.om.latest(OBS_PROPS_PREFIX + ALIAS_EGO)
+        actors_ego_obs = self.om.latest(OBS_ACTOR_EGO)
+        actors_others_obs = self.om.latest(OBS_ACTORS_RAW)
 
-        if not grid or not ego_gnss_obs or not ego_dynamics_obs or not ego_props_obs:
+        if not grid or not actors_ego_obs or not actors_others_obs or not actors_ego_obs.value or len(actors_ego_obs.value) < 1:
             return
 
+        ego_actor: DynamicActor = actors_ego_obs.value[0]
+
         # Generate PEM complex object attributes
-        ts = int(min([ts1, ego_gnss_obs.timestamp, ego_dynamics_obs.timestamp]))
+        ts = int(min([ts1, actors_ego_obs.timestamp, actors_others_obs.timestamp]))
         bbox_corners = (
-            GeoUtils.gnss_add_meters(ego_gnss_obs.value, ego_props_obs.value[1], delta_factor=-1),
-            GeoUtils.gnss_add_meters(ego_gnss_obs.value, ego_props_obs.value[1])
+            GeoUtils.gnss_add_meters(ego_actor.gnss.components(), ego_actor.props.extent, delta_factor=-1),
+            GeoUtils.gnss_add_meters(ego_actor.gnss.components(), ego_actor.props.extent)
         )
         bbox = RelativeBBox(lower=Vector3D(bbox_corners[0]), higher=Vector3D(bbox_corners[1]))
 
+        # TODO: Find way to separately specify confidences for DynamicActor's properties
         pem_ego = PEMEgoVehicle(id=int(self.ego_id))
-        pem_ego.position = PEMRelation(confidence=ego_gnss_obs.confidence, object=Vector3D(ego_gnss_obs.value))
-        pem_ego.color = PEMRelation(confidence=ego_props_obs.confidence, object=str(ego_props_obs.value[0]))
-        pem_ego.bounding_box = PEMRelation(confidence=ego_props_obs.confidence, object=bbox)
-        pem_ego.velocity = PEMRelation(confidence=ego_dynamics_obs.confidence, object=Vector3D(ego_dynamics_obs.value[0]))
-        pem_ego.acceleration = PEMRelation(confidence=ego_dynamics_obs.confidence, object=Vector3D(ego_dynamics_obs.value[1]))
+        pem_ego.position = PEMRelation(confidence=actors_ego_obs.confidence, object=Vector3D(ego_actor.gnss.components()))
+        pem_ego.color = PEMRelation(confidence=actors_ego_obs.confidence, object=ego_actor.props.color)
+        pem_ego.bounding_box = PEMRelation(confidence=actors_ego_obs.confidence, object=bbox)
+        pem_ego.velocity = PEMRelation(confidence=actors_ego_obs.confidence, object=Vector3D(ego_actor.dynamics.velocity))
+        pem_ego.acceleration = PEMRelation(confidence=actors_ego_obs.confidence, object=Vector3D(ego_actor.dynamics.acceleration))
 
         pem_grid = PEMOccupancyGrid()
         pem_grid.cells = [
@@ -129,3 +132,7 @@ class TalkyClient:
         # TODO: Maybe do asynchronously?
         decoded_msg = PEMTrafficScene.from_bytes(msg)
         # logging.debug(f'Decoded remote fused state representation from {len(msg) / 1024} kBytes')
+
+    # TODO: Maybe abstract from Carla-specific classes?
+    def _match_actors_with_grid(self, grid: Grid, actors: List[DynamicActor]):
+        pass

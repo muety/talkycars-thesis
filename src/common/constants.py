@@ -1,14 +1,14 @@
 OBS_LIDAR_POINTS = 'lidar_points'
 OBS_CAMERA_RGB_IMAGE = 'camera_image'
 OBS_POSITION = 'player_pos'
+OBS_ACTOR_EGO = 'ego_actor'
+OBS_ACTORS_RAW = 'all_dynamic_actors'
 OBS_OCCUPANCY_GRID = 'player_occupancy_grid'
 OBS_GNSS_PREFIX = 'pos_gnss_'
-OBS_DYNAMICS_PREFIX = 'dynamic_'
-OBS_PROPS_PREFIX = 'props_'
 
 ALIAS_EGO = 'ego'
 
-INCREMENTAL_GRIDS = True
+INCREMENTAL_GRIDS = False
 
 OCCUPANCY_RADIUS_DEFAULT = 5  # (5 and 15 or 10 and 9)
 OCCUPANCY_TILE_LEVEL = 24
