@@ -1,7 +1,6 @@
-import numpy
+
 cimport numpy as np
-cimport
-numpy as np
+cimport numpy as np
 import numpy
 
 cdef class Ray3D:
