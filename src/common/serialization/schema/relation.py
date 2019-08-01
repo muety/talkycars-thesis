@@ -1,7 +1,8 @@
 import os
-from typing import TypeVar, Generic, Type, Dict
+from typing import TypeVar, Generic, Type, Dict, Tuple
 
 import capnp
+from capnp.lib.capnp import _StructModule
 
 from common.serialization.schema import Vector3D, RelativeBBox, GridCellState, ActorType, CapnpObject
 
@@ -20,30 +21,33 @@ class PEMRelation(Generic[T], CapnpObject):
         self.object: T = object
 
     def to_message(self):
+        relation_type, is_primitive = self._resolve_relation_type(self.object)
+        try:
+            return relation_type.new_message(
+                confidence=self.confidence,
+                object=self.object if is_primitive else self.object.to_message()
+            )
+        except TypeError:
+            return None
+
+    @staticmethod
+    def _resolve_relation_type(obj) -> Tuple[Type[_StructModule], bool]:
         from common.serialization.schema.actor import PEMDynamicActor
 
-        is_primitive: bool = False
-
-        if isinstance(self.object, Vector3D):
-            relation_type = relation.Vector3DRelation
-        elif isinstance(self.object, RelativeBBox):
-            relation_type = relation.RelativeBBoxRelation
-        elif isinstance(self.object, PEMDynamicActor):
-            relation_type = relation.DynamicActorRelation
-        elif isinstance(self.object, GridCellState):
-            relation_type = relation.GridCellStateRelation
-        elif isinstance(self.object, ActorType):
-            relation_type = relation.ActorTypeRelation
-        elif isinstance(self.object, str):
-            relation_type = relation.TextRelation
-            is_primitive = True
+        if isinstance(obj, Vector3D):
+            return relation.Vector3DRelation, False
+        elif isinstance(obj, RelativeBBox):
+            return relation.RelativeBBoxRelation, False
+        elif isinstance(obj, PEMDynamicActor):
+            return relation.DynamicActorRelation, False
+        elif isinstance(obj, GridCellState):
+            return relation.GridCellStateRelation, False
+        elif isinstance(obj, ActorType):
+            return relation.ActorTypeRelation, False
+        elif isinstance(obj, str):
+            return relation.TextRelation, True
         else:
-            raise TypeError('unknown relation type')
-
-        return relation_type.new_message(
-            confidence=self.confidence,
-            object=self.object if is_primitive else self.object.to_message()
-        )
+            raise TypeError(f'unknown relation type "{type(obj)}"')
 
     @classmethod
     def from_message_dict(cls, obj_dict: Dict, target_cls: Type[CapnpObject] = None) -> 'PEMRelation':

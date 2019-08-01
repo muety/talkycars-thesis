@@ -67,8 +67,8 @@ class TalkyClient:
             self.gm.update_gnss(cast(GnssObservation, self.om.latest(OBS_GNSS_PREFIX + ALIAS_EGO)))
 
         if self.om.has(OBS_ACTOR_EGO):
-            ego = cast(ActorsObservation, self.om.latest(OBS_ACTOR_EGO)).value[0]
-            self.gm.set_position(ego.location)
+            ego: DynamicActor = cast(ActorsObservation, self.om.latest(OBS_ACTOR_EGO)).value[0]
+            self.gm.set_position(ego.location.value)
 
         if not self.gm.match_with_lidar(cast(LidarObservation, obs)):
             return
@@ -99,7 +99,7 @@ class TalkyClient:
         ts = int(min([ts1, actors_ego_obs.timestamp, actors_others_obs.timestamp]))
 
         # TODO: Find way to separately specify confidences for DynamicActor's properties
-        pem_ego = self._map_pem_actor(ego_actor, with_conf=actors_ego_obs.confidence)
+        pem_ego = self._map_pem_actor(ego_actor)
 
         pem_grid = PEMOccupancyGrid(cells=[])
 
@@ -112,7 +112,7 @@ class TalkyClient:
                 # TODO: Confidence
                 pem_cell.occupant = PEMRelation(
                     confidence=1,
-                    object=self._map_pem_actor(visible_actors[cell.quad_key.key][0], with_conf=1)
+                    object=self._map_pem_actor(visible_actors[cell.quad_key.key][0])
                 )
             pem_grid.cells.append(pem_cell)
 
@@ -138,8 +138,8 @@ class TalkyClient:
         matches: Dict[str, List[DynamicActor]] = {}
 
         for a in actors:
-            c1: Tuple[float, float] = GeoUtils.gnss_add_meters(a.gnss.components(), a.props.extent, delta_factor=-1)[:2]
-            c2: Tuple[float, float] = GeoUtils.gnss_add_meters(a.gnss.components(), a.props.extent)[:2]
+            c1: Tuple[float, float] = GeoUtils.gnss_add_meters(a.gnss.value.components(), a.props.extent.value, delta_factor=-1)[:2]
+            c2: Tuple[float, float] = GeoUtils.gnss_add_meters(a.gnss.value.components(), a.props.extent.value)[:2]
             c3: Tuple[float, float] = (c1[0], c2[1])
             c4: Tuple[float, float] = (c2[0], c1[1])
             quadkeys: List[QuadKey] = list(map(lambda c: quadkey.from_geo(c, OCCUPANCY_TILE_LEVEL), [c1, c2, c3, c4]))
@@ -159,19 +159,19 @@ class TalkyClient:
 
     # TODO: Confidence
     @staticmethod
-    def _map_pem_actor(actor: DynamicActor, with_conf: float) -> PEMDynamicActor:
+    def _map_pem_actor(actor: DynamicActor) -> PEMDynamicActor:
         bbox_corners = (
-            GeoUtils.gnss_add_meters(actor.gnss.components(), actor.props.extent, delta_factor=-1),
-            GeoUtils.gnss_add_meters(actor.gnss.components(), actor.props.extent)
+            GeoUtils.gnss_add_meters(actor.gnss.value.components(), actor.props.extent.value, delta_factor=-1),
+            GeoUtils.gnss_add_meters(actor.gnss.value.components(), actor.props.extent.value)
         )
         bbox = RelativeBBox(lower=Vector3D(bbox_corners[0]), higher=Vector3D(bbox_corners[1]))
 
         return PEMDynamicActor(
             id=actor.id,
-            type=PEMRelation(confidence=with_conf, object=ActorType(actor.type)),
-            position=PEMRelation(confidence=with_conf, object=Vector3D(actor.gnss.components())),
-            color=PEMRelation(confidence=with_conf, object=actor.props.color),
-            bounding_box=PEMRelation(confidence=with_conf, object=bbox),
-            velocity=PEMRelation(confidence=with_conf, object=Vector3D(actor.dynamics.velocity)),
-            acceleration=PEMRelation(confidence=with_conf, object=Vector3D(actor.dynamics.acceleration))
+            type=PEMRelation(confidence=actor.type.confidence, object=ActorType(actor.type.value)),
+            position=PEMRelation(confidence=actor.gnss.confidence, object=Vector3D(actor.gnss.value.components())),
+            color=PEMRelation(confidence=actor.props.color.confidence, object=actor.props.color.value),
+            bounding_box=PEMRelation(confidence=actor.props.extent.confidence, object=bbox),
+            velocity=PEMRelation(confidence=actor.dynamics.velocity.confidence, object=Vector3D(actor.dynamics.velocity.value)),
+            acceleration=PEMRelation(confidence=actor.dynamics.acceleration.confidence, object=Vector3D(actor.dynamics.acceleration.value))
         )

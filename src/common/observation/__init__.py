@@ -1,25 +1,25 @@
 from datetime import datetime
-from typing import Tuple, Iterable, List
+from typing import Tuple, Iterable, List, Any
 
 import numpy as np
 
 from common import quadkey
-from common.model import DynamicActor
+from common.model import DynamicActor, UncertaintyAware
 from common.occupancy import Grid, GridCellState
 
 _Vec3 = Tuple[float, float, float]
 _Dynamics = Tuple[_Vec3]
 
 
-class Observation:
+class Observation(UncertaintyAware[Any]):
     def __init__(self, local_timestamp: int = 0, confidence: float = 1):
         assert isinstance(local_timestamp, int) or isinstance(local_timestamp, float)
 
         self.local_timestamp = local_timestamp
         # Caution: Uses local platform time!
         self.timestamp = datetime.now().timestamp()
-        self.confidence = confidence
-        self.value = None
+
+        super(Observation, self).__init__(confidence=confidence, value=None)
 
 
 class EgoObservation(Observation):

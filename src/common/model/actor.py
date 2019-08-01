@@ -1,6 +1,7 @@
 from enum import Enum
 from typing import Tuple
 
+from common.model import UncertaintyAware
 from .geom import Point3D
 
 _Vec3 = Tuple[float, float, float]
@@ -13,24 +14,24 @@ class ActorType(Enum):
 
 
 class ActorDynamics:
-    def __init__(self, velocity: _Vec3 = None, acceleration: _Vec3 = None):
-        self.velocity: _Vec3 = velocity
-        self.acceleration: _Vec3 = acceleration
+    def __init__(self, velocity: UncertaintyAware[_Vec3] = None, acceleration: UncertaintyAware[_Vec3] = None):
+        self.velocity: UncertaintyAware[_Vec3] = velocity
+        self.acceleration: UncertaintyAware[_Vec3] = acceleration
 
 
 class ActorProperties:
-    def __init__(self, color: str = None, extent: _Vec3 = None):
-        self.color: str = color
-        self.extent: _Vec3 = extent
+    def __init__(self, color: UncertaintyAware[str] = None, extent: UncertaintyAware[_Vec3] = None):
+        self.color: UncertaintyAware[str] = color
+        self.extent: UncertaintyAware[_Vec3] = extent
 
 
 class DynamicActor:
-    def __init__(self, id: int, type: ActorType, type_id: str = None, location: Point3D = None, gnss: Point3D = None, dynamics: ActorDynamics = None, props: ActorProperties = None):
+    def __init__(self, id: int, type: UncertaintyAware[ActorType], type_id: str = None, location: UncertaintyAware[Point3D] = None, gnss: UncertaintyAware[Point3D] = None, dynamics: ActorDynamics = None, props: ActorProperties = None):
         self.id: int = id
-        self.type: ActorType = type
+        self.type: UncertaintyAware[ActorType] = type
         self.type_id: str = type_id
-        self.location: Point3D = location
-        self.gnss: Point3D = gnss
+        self.location: UncertaintyAware[Point3D] = location
+        self.gnss: UncertaintyAware[Point3D] = gnss
         self.dynamics: ActorDynamics = dynamics
         self.props: ActorProperties = props
 

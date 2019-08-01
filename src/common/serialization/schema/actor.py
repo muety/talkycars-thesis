@@ -30,15 +30,15 @@ class PEMDynamicActor(CapnpObject):
         me = dynamic_actor.DynamicActor.new_message()
 
         me.id = self.id
-        if self.color is not None:
+        if self.color and self.color.object:
             me.color = self.color.to_message()
-        if self.position is not None:
+        if self.position and self.position.object:
             me.position = self.position.to_message()
-        if self.bounding_box is not None:
+        if self.bounding_box and self.bounding_box.object:
             me.boundingBox = self.bounding_box.to_message()
-        if self.velocity is not None:
+        if self.velocity and self.velocity.object:
             me.velocity = self.velocity.to_message()
-        if self.acceleration is not None:
+        if self.acceleration and self.acceleration.object:
             me.acceleration = self.acceleration.to_message()
 
         return me
