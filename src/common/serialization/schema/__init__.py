@@ -1,4 +1,5 @@
 import os
+from abc import ABC, abstractmethod
 from typing import Tuple, Type, Dict
 
 import capnp
@@ -14,22 +15,17 @@ vector3d = capnp.load(os.path.join(dirname, './capnp/vector3d.capnp'))
 relative_bbox = capnp.load(os.path.join(dirname, './capnp/relative_bbox.capnp'))
 
 
-class CapnpObject:
+class CapnpObject(ABC):
+    @abstractmethod
     def to_message(self):
         """
         Converts Python object to Cap'n'Proto message
         :return: [_DynamicStructReader] A Cap'n'Proto message
         """
-        raise NotImplementedError('abstract class')
-
-    def to_bytes(self) -> bytes:
-        """
-        Converts Python object to packed Cap'n'Proto byte array. Only makes sense for "top-level" classes.
-        :return: Packed bytes array
-        """
-        return self.to_message().to_bytes_packed()
+        pass
 
     @classmethod
+    @abstractmethod
     def from_message_dict(cls, object_dict: Dict, target_cls: Type = None) -> 'CapnpObject':
         """
         Converts dict-serialized Cap'n'Proto message to Python object
@@ -37,7 +33,22 @@ class CapnpObject:
         :param target_cls: Optional Python class to decode to or None for primitives. Used for generic classes. May be ignored by class-specific implementation if target type is unambiguos. NOTE: Usually, you won't want to set this.
         :return: [CapnpObject] Resulting Python object instance
         """
-        raise NotImplementedError('abstract class')
+        pass
+
+    @classmethod
+    def _get_capnp_class(cls):
+        """
+        Returns the current object's corresponding Cap'n'Proto message class, e.g. ego_vehicle.EgoVehicle. To be implemented sub-classes.
+        :return: A Cap'n'Proto message class
+        """
+        raise NotImplementedError('not implemented for this subtype')
+
+    def to_bytes(self) -> bytes:
+        """
+        Converts Python object to packed Cap'n'Proto byte array. Only makes sense for "top-level" classes.
+        :return: Packed bytes array
+        """
+        return self.to_message().to_bytes_packed()
 
     @classmethod
     def from_bytes(cls, bytes: bytes) -> 'CapnpObject':
@@ -48,14 +59,6 @@ class CapnpObject:
         """
         object_dict = cls._get_capnp_class().from_bytes_packed(bytes).to_dict()
         return cls.from_message_dict(object_dict)
-
-    @classmethod
-    def _get_capnp_class(cls):
-        """
-        Returns the current object's corresponding Cap'n'Proto message class, e.g. ego_vehicle.EgoVehicle. To be implemented sub-classes.
-        :return: A Cap'n'Proto message class
-        """
-        raise NotImplementedError('not specified')
 
 
 class Vector3D(CapnpObject):

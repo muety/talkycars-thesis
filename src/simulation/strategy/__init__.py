@@ -1,16 +1,20 @@
-class Strategy:
+from abc import ABC, abstractmethod
+
+
+class Strategy(ABC):
     def __init__(self):
         self.ego = None
 
     def init(self, ego):
         self.ego = ego
 
+    @abstractmethod
     def step(self, **kwargs) -> bool:
-        raise NotImplementedError()
+        pass
 
+    @abstractmethod
     def spawn(self):
-        raise NotImplementedError()
-
+        pass
 
 from .empty import *
 from .manual import *

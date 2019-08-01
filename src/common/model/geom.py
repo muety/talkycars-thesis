@@ -1,11 +1,13 @@
+from abc import ABC, abstractmethod
 from typing import Tuple, Iterable
 
 import numpy as np
 
 
-class Point:
+class Point(ABC):
+    @abstractmethod
     def components(self) -> Tuple:
-        raise NotImplementedError('subclasses must override components()!')
+        pass
 
 
 class Point2D(Point):
