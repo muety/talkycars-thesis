@@ -105,7 +105,10 @@ class TalkyClient:
         for cell in grid.cells:
             pem_cell = PEMGridCell(
                 hash=cell.quad_key.key,
-                state=PEMRelation(confidence=cell.confidence, object=GridCellState(cell.state)))
+                state=PEMRelation(
+                    confidence=cell.state.confidence,
+                    object=GridCellState(cell.state.value))
+            )
             if len(visible_actors[cell.quad_key.key]) > 0:
                 # Assuming that a cell is tiny enough to contain at max one actor
                 pem_cell.occupant = PEMRelation(
@@ -147,7 +150,7 @@ class TalkyClient:
                     if cell.quad_key.key not in matches:
                         matches[cell.quad_key.key] = []
 
-                    if cell.state is not occupancy.GridCellState.OCCUPIED:
+                    if cell.state.value is not occupancy.GridCellState.OCCUPIED:
                         continue
 
                     if cell.quad_key == qk:

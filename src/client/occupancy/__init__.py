@@ -5,7 +5,7 @@ import numpy as np
 
 from common import quadkey
 from common.constants import *
-from common.model import Point3D
+from common.model import Point3D, UncertainProperty
 from common.observation import GnssObservation, LidarObservation
 from common.occupancy import Grid, GridCell, GridCellState
 from common.raycast import raycast
@@ -59,7 +59,7 @@ class OccupancyGridManager:
 
         for i, r in enumerate(result):
             for j, s in enumerate(r):
-                grid_cells[i * batch_size + j].state = s
+                grid_cells[i * batch_size + j].state = UncertainProperty(1., s)  # TODO: Confidence
 
         return True
 

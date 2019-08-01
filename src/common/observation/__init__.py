@@ -1,17 +1,17 @@
 from datetime import datetime
-from typing import Tuple, Iterable, List, Any
+from typing import Tuple, List, Any
 
 import numpy as np
 
 from common import quadkey
-from common.model import DynamicActor, UncertaintyAware
+from common.model import DynamicActor, UncertainProperty
 from common.occupancy import Grid, GridCellState
 
 _Vec3 = Tuple[float, float, float]
 _Dynamics = Tuple[_Vec3]
 
 
-class Observation(UncertaintyAware[Any]):
+class Observation(UncertainProperty[Any]):
     def __init__(self, local_timestamp: int = 0, confidence: float = 1):
         assert isinstance(local_timestamp, int) or isinstance(local_timestamp, float)
 
@@ -31,7 +31,7 @@ class GnssObservation(EgoObservation):
         assert isinstance(coords, tuple)
 
         super().__init__(timestamp)
-        self.value = coords
+        self.value: _Vec3 = coords
 
     def to_quadkey(self, level=20) -> quadkey.QuadKey:
         return quadkey.from_geo(self.value[:2], level)
@@ -44,9 +44,9 @@ class GnssObservation(EgoObservation):
 
 
 class LidarObservation(EgoObservation):
-    def __init__(self, timestamp, points: Iterable):
+    def __init__(self, timestamp, points: np.ndarray):
         super().__init__(timestamp)
-        self.value = points
+        self.value: np.ndarray = points
 
     def __str__(self):
         return f'[{self.timestamp}] Point Cloud: {self.value.shape}'
@@ -57,7 +57,7 @@ class CameraRGBObservation(EgoObservation):
         assert isinstance(image, np.ndarray)
 
         super().__init__(timestamp)
-        self.value = image
+        self.value: np.ndarray = image
 
     def __str__(self):
         return f'[{self.timestamp}] RGB Image: {self.value.shape}'
@@ -68,7 +68,7 @@ class PositionObservation(Observation):
         assert isinstance(coords, tuple)
 
         super().__init__(timestamp)
-        self.value = coords
+        self.value: _Vec3 = coords
 
     def __str__(self):
         return f'[{self.timestamp}] World Position: {self.value}'
@@ -79,7 +79,7 @@ class ActorsObservation(Observation):
         assert isinstance(actors, list)
 
         super().__init__(timestamp)
-        self.value = actors
+        self.value: List[DynamicActor] = actors
 
     def __str__(self):
         return f'[{self.timestamp}] Actor List of length {len(self.value)}'
@@ -90,8 +90,8 @@ class OccupancyGridObservation(Observation):
         assert isinstance(grid, Grid)
 
         super().__init__(timestamp)
-        self.value = grid
+        self.value: Grid = grid
 
     def __str__(self):
-        n_occupied = len(list(filter(lambda c: c.state == GridCellState.OCCUPIED, self.value.cells)))
+        n_occupied = len(list(filter(lambda c: c.state.value == GridCellState.OCCUPIED, self.value.cells)))
         return f'[{self.timestamp}] Occupancy grid with {len(self.value.cells)} cells ({n_occupied} occupied)'

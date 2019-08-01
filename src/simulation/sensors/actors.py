@@ -3,7 +3,7 @@ from typing import List
 import carla
 from client.client import TalkyClient
 from common.constants import *
-from common.model import DynamicActor, ActorType, ActorDynamics, Point3D, ActorProperties, UncertaintyAware
+from common.model import DynamicActor, ActorType, ActorDynamics, Point3D, ActorProperties, UncertainProperty
 from common.observation import ActorsObservation
 from . import Sensor
 
@@ -45,17 +45,17 @@ class ActorsSensor(Sensor):
 
         return DynamicActor(
             id=carla_actor.id,
-            type=UncertaintyAware(1., self._resolve_carla_type(carla_actor.type_id)),
+            type=UncertainProperty(1., self._resolve_carla_type(carla_actor.type_id)),
             type_id=carla_actor.type_id,
-            location=UncertaintyAware(1., Point3D(location.x, location.y, location.z)),
-            gnss=UncertaintyAware(1., Point3D(gnss.latitude, gnss.longitude, gnss.altitude)),
+            location=UncertainProperty(1., Point3D(location.x, location.y, location.z)),
+            gnss=UncertainProperty(1., Point3D(gnss.latitude, gnss.longitude, gnss.altitude)),
             dynamics=ActorDynamics(
-                velocity=UncertaintyAware(1., (velocity.x, velocity.y, velocity.z)),
-                acceleration=UncertaintyAware(1., (acceleration.x, acceleration.y, acceleration.z))
+                velocity=UncertainProperty(1., (velocity.x, velocity.y, velocity.z)),
+                acceleration=UncertainProperty(1., (acceleration.x, acceleration.y, acceleration.z))
             ),
             props=ActorProperties(
-                color=UncertaintyAware(1., color),
-                extent=UncertaintyAware(1., (extent.x, extent.y, extent.z))
+                color=UncertainProperty(1., color),
+                extent=UncertainProperty(1., (extent.x, extent.y, extent.z))
             )
         )
 

@@ -4,7 +4,7 @@ from typing import Callable, List, Tuple, Set
 import numpy as np
 
 from common import quadkey
-from common.model import BBox3D, Point3D, Point2D
+from common.model import BBox3D, Point3D, Point2D, UncertainProperty
 from common.quadkey import QuadKey, TileAnchor
 
 
@@ -15,13 +15,12 @@ class GridCellState(Enum):
 
 
 class GridCell(BBox3D):
-    def __init__(self, quad_key: QuadKey, convert: Callable, offset: float = 0, height: float = 3, confidence: float = 1):
+    def __init__(self, quad_key: QuadKey, convert: Callable, offset: float = 0, height: float = 3):
         self.quad_key: QuadKey = quad_key
         self.convert: Callable = convert
         self.offset: float = offset
         self.height: float = height
-        self.state: GridCellState = GridCellState.UNKNOWN
-        self.confidence: float = confidence
+        self.state: UncertainProperty[GridCellState] = UncertainProperty(1., GridCellState.UNKNOWN)
 
         pixel_corners: List[Point2D] = self._quadkey_to_box(quad_key)
         world_corners: List[Point2D] = list(map(self._map_to_world, pixel_corners))

@@ -1,7 +1,7 @@
 from enum import Enum
 from typing import Tuple
 
-from common.model import UncertaintyAware
+from common.model import UncertainProperty
 from .geom import Point3D
 
 _Vec3 = Tuple[float, float, float]
@@ -14,24 +14,24 @@ class ActorType(Enum):
 
 
 class ActorDynamics:
-    def __init__(self, velocity: UncertaintyAware[_Vec3] = None, acceleration: UncertaintyAware[_Vec3] = None):
-        self.velocity: UncertaintyAware[_Vec3] = velocity
-        self.acceleration: UncertaintyAware[_Vec3] = acceleration
+    def __init__(self, velocity: UncertainProperty[_Vec3] = None, acceleration: UncertainProperty[_Vec3] = None):
+        self.velocity: UncertainProperty[_Vec3] = velocity
+        self.acceleration: UncertainProperty[_Vec3] = acceleration
 
 
 class ActorProperties:
-    def __init__(self, color: UncertaintyAware[str] = None, extent: UncertaintyAware[_Vec3] = None):
-        self.color: UncertaintyAware[str] = color
-        self.extent: UncertaintyAware[_Vec3] = extent
+    def __init__(self, color: UncertainProperty[str] = None, extent: UncertainProperty[_Vec3] = None):
+        self.color: UncertainProperty[str] = color
+        self.extent: UncertainProperty[_Vec3] = extent
 
 
 class DynamicActor:
-    def __init__(self, id: int, type: UncertaintyAware[ActorType], type_id: str = None, location: UncertaintyAware[Point3D] = None, gnss: UncertaintyAware[Point3D] = None, dynamics: ActorDynamics = None, props: ActorProperties = None):
+    def __init__(self, id: int, type: UncertainProperty[ActorType], type_id: str = None, location: UncertainProperty[Point3D] = None, gnss: UncertainProperty[Point3D] = None, dynamics: ActorDynamics = None, props: ActorProperties = None):
         self.id: int = id
-        self.type: UncertaintyAware[ActorType] = type
+        self.type: UncertainProperty[ActorType] = type
         self.type_id: str = type_id
-        self.location: UncertaintyAware[Point3D] = location  # unused
-        self.gnss: UncertaintyAware[Point3D] = gnss
+        self.location: UncertainProperty[Point3D] = location  # unused
+        self.gnss: UncertainProperty[Point3D] = gnss
         self.dynamics: ActorDynamics = dynamics
         self.props: ActorProperties = props
 

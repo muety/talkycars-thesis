@@ -176,7 +176,7 @@ class Ego:
             bb_cam = BBoxUtils.to_camera(bb.T, self.sensors['camera_rgb'].sensor, self.sensors['camera_rgb'].sensor)
             if not all(bb_cam[:, 2] > 0): continue
             bboxes.append(bb_cam)
-            states.append(cell.state)
+            states.append(cell.state.value)
         BBoxUtils.draw_bounding_boxes(self.display, bboxes, states)
 
 
