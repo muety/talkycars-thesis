@@ -30,7 +30,7 @@ class DynamicActor:
         self.id: int = id
         self.type: UncertaintyAware[ActorType] = type
         self.type_id: str = type_id
-        self.location: UncertaintyAware[Point3D] = location
+        self.location: UncertaintyAware[Point3D] = location  # unused
         self.gnss: UncertaintyAware[Point3D] = gnss
         self.dynamics: ActorDynamics = dynamics
         self.props: ActorProperties = props

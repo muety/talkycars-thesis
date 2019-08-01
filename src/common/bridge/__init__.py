@@ -1,11 +1,8 @@
 import logging
 from threading import Thread
-from typing import Tuple, Callable, Dict, Iterable, Set
+from typing import Tuple, Callable, Dict, Set
 
 import paho.mqtt.client as mqtt
-
-from common.constants import *
-from common.quadkey import QuadKey
 
 
 class MqttBridge:
@@ -72,16 +69,4 @@ class MqttBridge:
 
 
 class MqttBridgeUtils:
-    @staticmethod
-    def topics_raw_in(current_pos: QuadKey) -> Iterable[str]:
-        # TODO
-        if not current_pos:
-            return frozenset()
-        return {f'{TOPIC_PREFIX_GRAPH_RAW_IN}/{current_pos.key}'}
-
-    @staticmethod
-    def topics_fused_out(current_pos: QuadKey) -> Iterable[str]:
-        # TODO
-        if not current_pos:
-            return frozenset()
-        return {f'{TOPIC_PREFIX_GRAPH_FUSED_OUT}/{current_pos.key}'}
+    pass

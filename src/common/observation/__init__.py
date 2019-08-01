@@ -74,7 +74,6 @@ class PositionObservation(Observation):
         return f'[{self.timestamp}] World Position: {self.value}'
 
 
-# TODO: Find way to separately specify confidences for DynamicActor's properties
 class ActorsObservation(Observation):
     def __init__(self, timestamp, actors: List[DynamicActor]):
         assert isinstance(actors, list)

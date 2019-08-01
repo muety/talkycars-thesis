@@ -98,7 +98,6 @@ class TalkyClient:
         # Generate PEM complex object attributes
         ts = int(min([ts1, actors_ego_obs.timestamp, actors_others_obs.timestamp]))
 
-        # TODO: Find way to separately specify confidences for DynamicActor's properties
         pem_ego = self._map_pem_actor(ego_actor)
 
         pem_grid = PEMOccupancyGrid(cells=[])
@@ -109,9 +108,8 @@ class TalkyClient:
                 state=PEMRelation(confidence=cell.confidence, object=GridCellState(cell.state)))
             if len(visible_actors[cell.quad_key.key]) > 0:
                 # Assuming that a cell is tiny enough to contain at max one actor
-                # TODO: Confidence
                 pem_cell.occupant = PEMRelation(
-                    confidence=1,
+                    confidence=1.,  # TODO: Confidence
                     object=self._map_pem_actor(visible_actors[cell.quad_key.key][0])
                 )
             pem_grid.cells.append(pem_cell)
@@ -157,7 +155,6 @@ class TalkyClient:
 
         return matches
 
-    # TODO: Confidence
     @staticmethod
     def _map_pem_actor(actor: DynamicActor) -> PEMDynamicActor:
         bbox_corners = (
