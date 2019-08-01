@@ -3,7 +3,8 @@ from typing import Tuple, Iterable, List
 
 import numpy as np
 
-from common import quadkey, DynamicActor
+from common import quadkey
+from common.model import DynamicActor
 from common.occupancy import Grid, GridCellState
 
 _Vec3 = Tuple[float, float, float]

@@ -2,8 +2,8 @@ from typing import List
 
 import carla
 from client.client import TalkyClient
-from common import DynamicActor, ActorType, ActorDynamics, Point3D, ActorProperties
 from common.constants import *
+from common.model import DynamicActor, ActorType, ActorDynamics, Point3D, ActorProperties
 from common.observation import ActorsObservation
 from . import Sensor
 

@@ -4,7 +4,7 @@ from typing import Callable, List, Tuple, Set
 import numpy as np
 
 from common import quadkey
-from common.geom import BBox3D, Point3D, Point2D
+from common.model import BBox3D, Point3D, Point2D
 from common.quadkey import QuadKey, TileAnchor
 
 

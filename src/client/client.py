@@ -2,8 +2,9 @@ from enum import Enum
 from typing import cast, List, Tuple, Dict
 
 from client.subscription import TileSubscriptionService
-from common import DynamicActor, quadkey, occupancy
+from common import quadkey, occupancy
 from common.constants import *
+from common.model import DynamicActor
 from common.observation import CameraRGBObservation, ActorsObservation
 from common.observation import OccupancyGridObservation, LidarObservation, PositionObservation, \
     GnssObservation
@@ -96,11 +97,6 @@ class TalkyClient:
 
         # Generate PEM complex object attributes
         ts = int(min([ts1, actors_ego_obs.timestamp, actors_others_obs.timestamp]))
-        bbox_corners = (
-            GeoUtils.gnss_add_meters(ego_actor.gnss.components(), ego_actor.props.extent, delta_factor=-1),
-            GeoUtils.gnss_add_meters(ego_actor.gnss.components(), ego_actor.props.extent)
-        )
-        bbox = RelativeBBox(lower=Vector3D(bbox_corners[0]), higher=Vector3D(bbox_corners[1]))
 
         # TODO: Find way to separately specify confidences for DynamicActor's properties
         pem_ego = self._map_pem_actor(ego_actor, with_conf=actors_ego_obs.confidence)
@@ -137,7 +133,8 @@ class TalkyClient:
         # logging.debug(f'Decoded remote fused state representation from {len(msg) / 1024} kBytes')
 
     # TODO: Maybe abstract from Carla-specific classes?
-    def _match_actors_with_grid(self, grid: Grid, actors: List[DynamicActor]) -> Dict[str, List[DynamicActor]]:
+    @staticmethod
+    def _match_actors_with_grid(grid: Grid, actors: List[DynamicActor]) -> Dict[str, List[DynamicActor]]:
         matches: Dict[str, List[DynamicActor]] = {}
 
         for a in actors:

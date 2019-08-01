@@ -2,12 +2,13 @@ from multiprocessing.pool import Pool
 from typing import List, Set, Dict, Callable, Tuple
 
 import numpy as np
-from common.raycast import raycast
 
-from common import quadkey, Point3D
+from common import quadkey
 from common.constants import *
+from common.model import Point3D
 from common.observation import GnssObservation, LidarObservation
 from common.occupancy import Grid, GridCell, GridCellState
+from common.raycast import raycast
 
 N_THREADS = 6
 

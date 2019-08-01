@@ -3,7 +3,7 @@ from typing import Tuple, Type, Dict
 
 import capnp
 
-from common import ActorType as At
+from common.model import ActorType as At
 from common.occupancy import GridCellState as Gss
 
 capnp.remove_import_hook()
