@@ -3,7 +3,7 @@ from typing import List, Set, Dict, Callable, Tuple
 
 import numpy as np
 
-from client.observation import ObservationTracker
+from client.observation import LinearObservationTracker
 from common import quadkey
 from common.constants import *
 from common.model import Point3D, UncertainProperty
@@ -26,7 +26,7 @@ class OccupancyGridManager:
         # TODO: Prevent memory leak
         self.grids: Dict[str, Grid] = dict()
         self.convert: Callable = lambda x: (x[0] * 4.77733545044234e-5 - 13715477.0910797, x[1] * 4.780960965231e-5 - 9026373.31437847)
-        self.tracker: ObservationTracker = ObservationTracker(n=10)
+        self.tracker: LinearObservationTracker = LinearObservationTracker(n=6)
         self.pool = Pool(processes=N_PROC)
 
     def update_gnss(self, obs: GnssObservation):
