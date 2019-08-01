@@ -115,10 +115,9 @@ class TalkyClient:
                 actor = visible_actors[cell.quad_key.key][0]
 
                 self.tracker.track(group_key, str(actor.id))
-                print(self.tracker.get(group_key, str(actor.id)))
 
                 pem_cell.occupant = PEMRelation(
-                    confidence=self.tracker.get(group_key, str(actor.id)),  # TODO: Confidence
+                    confidence=self.tracker.get(group_key, str(actor.id)),
                     object=ClientUtils.map_pem_actor(actor)
                 )
 
