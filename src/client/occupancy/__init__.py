@@ -3,6 +3,7 @@ from typing import List, Set, Dict, Callable, Tuple
 
 import numpy as np
 
+from client.observation import ObservationTracker
 from common import quadkey
 from common.constants import *
 from common.model import Point3D, UncertainProperty
@@ -10,7 +11,7 @@ from common.observation import GnssObservation, LidarObservation
 from common.occupancy import Grid, GridCell, GridCellState
 from common.raycast import raycast
 
-N_THREADS = 6
+N_PROC = 6
 
 
 class OccupancyGridManager:
@@ -25,7 +26,8 @@ class OccupancyGridManager:
         # TODO: Prevent memory leak
         self.grids: Dict[str, Grid] = dict()
         self.convert: Callable = lambda x: (x[0] * 4.77733545044234e-5 - 13715477.0910797, x[1] * 4.780960965231e-5 - 9026373.31437847)
-        self.pool = Pool(processes=N_THREADS)
+        self.tracker: ObservationTracker = ObservationTracker(n=10)
+        self.pool = Pool(processes=N_PROC)
 
     def update_gnss(self, obs: GnssObservation):
         key = obs.to_quadkey(self.level)
@@ -52,14 +54,17 @@ class OccupancyGridManager:
 
         n = len(grid.cells)
         grid_cells = list(grid.cells)
-        batch_size = np.math.ceil(n / N_THREADS)
+        batch_size = np.math.ceil(n / N_PROC)
         batches = [(list(map(lambda c: c.bounds, grid_cells[i * batch_size:i * batch_size + batch_size])), obs.value, self.location) for i in range(n)]
 
         result = self.pool.map(self._match_cells, batches)
 
         for i, r in enumerate(result):
             for j, s in enumerate(r):
-                grid_cells[i * batch_size + j].state = UncertainProperty(1., s)  # TODO: Confidence
+                group_key = f'grid_cell_{i * batch_size + j}'
+                self.tracker.track(group_key, s.value)
+                self.tracker.cycle_group(group_key)
+                grid_cells[i * batch_size + j].state = UncertainProperty(self.tracker.get(group_key, s.value), s)
 
         return True
 

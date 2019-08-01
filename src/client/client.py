@@ -1,6 +1,7 @@
 from enum import Enum
 from typing import cast, List, Tuple, Dict
 
+from client.observation import ObservationManager
 from client.subscription import TileSubscriptionService
 from common import quadkey, occupancy
 from common.constants import *
@@ -17,7 +18,6 @@ from common.serialization.schema.occupancy import PEMOccupancyGrid, PEMGridCell
 from common.serialization.schema.relation import PEMRelation
 from common.util import GeoUtils
 from .inbound import InboundController
-from .observation import ObservationManager
 from .occupancy import OccupancyGridManager
 from .outbound import OutboundController
 
