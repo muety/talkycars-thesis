@@ -1,3 +1,4 @@
+import time
 from multiprocessing.pool import Pool
 from typing import List, Set, Dict, Callable, Tuple
 
@@ -11,7 +12,7 @@ from common.observation import GnssObservation, LidarObservation
 from common.occupancy import Grid, GridCell, GridCellState
 from common.raycast import raycast
 
-N_PROC = 6
+N_PROC = 24  # Experimentally found to be best
 
 
 class OccupancyGridManager:
@@ -57,7 +58,9 @@ class OccupancyGridManager:
         batch_size = np.math.ceil(n / N_PROC)
         batches = [(list(map(lambda c: c.bounds, grid_cells[i * batch_size:i * batch_size + batch_size])), obs.value, self.location) for i in range(n)]
 
+        t0 = time.time()
         result = self.pool.map(self._match_cells, batches)
+        # print(time.time() - t0) # TODO: Keep optimizing this execution time
 
         for i, r in enumerate(result):
             for j, s in enumerate(r):

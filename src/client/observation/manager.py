@@ -1,24 +1,27 @@
 from collections import deque
-from threading import Lock, Thread
-from typing import Callable
+from multiprocessing.dummy import Pool
+from multiprocessing.pool import AsyncResult
+from threading import Lock
+from typing import Callable, Dict, List, Type
 
 from common.observation import Observation
 
 
 class ObservationManager:
     def __init__(self, keep=10):
-        self.default_keep = keep
-        self.observations = {}
-        self.key_types = {}
-        self.subscribers = {}
-        self.locks = {}
-        self.aliases = {}
+        self.default_keep: int = keep
+        self.observations: Dict[str, deque] = {}
+        self.key_types: Dict[str, Type[Observation]] = {}
+        self.subscribers: Dict[str, List[Callable]] = {}
+        self.locks: Dict[str, Lock] = {}
+        self.aliases: Dict[str, str] = {}
+        self.pool: Pool = Pool(processes=4)
 
     '''
     Optional method to explicitly initialize an observation queue for a specific key upfront.
     '''
 
-    def register_key(self, key, obs_type, keep=10):
+    def register_key(self, key: str, obs_type: Type[Observation], keep=10):
         assert isinstance(key, str)
         assert isinstance(obs_type, type)
 
@@ -26,7 +29,7 @@ class ObservationManager:
         self.key_types[key] = obs_type
         self.locks[key] = Lock()
 
-    def unregister_key(self, key):
+    def unregister_key(self, key: str):
         self.observations.pop(key, None)
 
     def register_alias(self, key: str, alias: str):
@@ -35,7 +38,7 @@ class ObservationManager:
 
         self.aliases[alias] = key
 
-    def subscribe(self, key, callable: Callable):
+    def subscribe(self, key: str, callable: Callable):
         if key in self.aliases:
             key = self.aliases[key]
 
@@ -44,7 +47,7 @@ class ObservationManager:
         else:
             self.subscribers[key].append(callable)
 
-    def add(self, key, observation: Observation):
+    def add(self, key: str, observation: Observation):
         assert isinstance(key, str)
         assert isinstance(observation, Observation)
 
@@ -58,29 +61,24 @@ class ObservationManager:
         if lock.locked():
             return
 
-        lock.acquire()
+        with lock:
+            async_results: List[AsyncResult] = []
+            self.observations[key].append(observation)
 
-        self.observations[key].append(observation)
+            if key in self.subscribers:
+                for f in self.subscribers[key]:
+                    async_results.append(self.pool.apply_async(f, (observation,)))
 
-        threads = []
-        if key in self.subscribers:
-            for f in self.subscribers[key]:
-                t = Thread(target=f, args=(observation,))
-                t.start()
-                threads.append(t)
+            for r in async_results:
+                r.wait()
 
-        for t in threads:
-            t.join()
-
-        lock.release()
-
-    def has(self, key) -> bool:
+    def has(self, key: str) -> bool:
         if key in self.aliases:
             key = self.aliases[key]
 
         return key in self.observations and len(self.observations[key]) > 0
 
-    def latest(self, key) -> Observation:
+    def latest(self, key: str) -> Observation:
         if key in self.aliases:
             key = self.aliases[key]
 

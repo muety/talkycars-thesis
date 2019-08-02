@@ -14,37 +14,48 @@ from common.serialization.schema import CapnpObject
 from common.serialization.schema.base import PEMTrafficScene
 from edgenode.fusion import FusionService
 
-EVAL_RATE_SECS = 5
+EVAL_RATE_SECS = 5  # hertz⁻¹
+TICK_RATE = 10  # hertz
 
 class EdgeNode:
     def __init__(self, covered_tile: QuadKey):
         self.mqtt: MqttBridge = None
-        self.fusion_srvc: FusionService = FusionService()
+        self.fusion_srvc: FusionService[PEMTrafficScene] = FusionService[PEMTrafficScene]()
         self.covered_tile: QuadKey = covered_tile
         self.children_tiles: List[QuadKey] = covered_tile.children(REMOTE_GRID_TILE_LEVEL)
         self.children_tile_keys: Set[str] = set(map(lambda t: t.key, self.children_tiles))
 
-        self.rate_count_thread: Thread = Thread(target=self._eval_rate)
-        self.rate_lock: RLock = RLock()
-        self.rate_count: int = 0
+        self.in_rate_count_thread: Thread = Thread(target=self._eval_rate)
+        self.in_rate_lock: RLock = RLock()
+        self.in_rate_count: int = 0
+
+        self.tick_timeout: float = 1 / TICK_RATE
+        self.last_tick: float = time.monotonic()
 
         self.send_pool: Pool = Pool(12)
 
     def run(self):
-        self.rate_count_thread.start()
+        self.in_rate_count_thread.start()
 
         self.mqtt = MqttBridge()
         self.mqtt.subscribe(TOPIC_PREFIX_GRAPH_RAW_IN + '/#', self._on_graph)
-        self.mqtt.listen()
+        self.mqtt.listen(block=False)
+
+        while True:
+            self.last_tick = time.monotonic()
+            self.tick()
+            diff = time.monotonic() - self.last_tick
+            time.sleep(max(.0, self.tick_timeout - diff))
+
+    def tick(self):
+        self.send_pool.map_async(self._publish_graph, self.children_tile_keys)
 
     def _on_graph(self, message: bytes):
         graph: PEMTrafficScene = cast(PEMTrafficScene, self._decode_capnp_msg(message, target_cls=PEMTrafficScene))
         self.fusion_srvc.push(graph)
 
-        self.send_pool.map_async(self._publish_graph, self.children_tile_keys)
-
-        with self.rate_lock:
-            self.rate_count += 1
+        with self.in_rate_lock:
+            self.in_rate_count += 1
 
     def _publish_graph(self, for_tile: str):
         fused_graph: PEMTrafficScene = cast(PEMTrafficScene, self.fusion_srvc.get(for_tile=quadkey.from_str(for_tile)))
@@ -57,10 +68,10 @@ class EdgeNode:
 
         while self.mqtt.connected:
             time.sleep(EVAL_RATE_SECS)
-            logging.debug(f'Current message rate: {self.rate_count / EVAL_RATE_SECS} msgs / sec')
+            logging.debug(f'Current message rate: {self.in_rate_count / EVAL_RATE_SECS} msgs / sec')
 
-            with self.rate_lock:
-                self.rate_count = 0
+            with self.in_rate_lock:
+                self.in_rate_count = 0
 
     def _decode_capnp_msg(self, bytes: bytes, target_cls: Type[CapnpObject]) -> CapnpObject:
         try:

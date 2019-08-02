@@ -68,6 +68,7 @@ class TalkyClient:
             ego: DynamicActor = cast(ActorsObservation, self.om.latest(OBS_ACTOR_EGO)).value[0]
             self.gm.set_position(ego.location.value)
 
+        # This is what takes most time
         if not self.gm.match_with_lidar(cast(LidarObservation, obs)):
             return
 

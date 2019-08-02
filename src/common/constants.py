@@ -8,7 +8,7 @@ OBS_GNSS_PREFIX = 'pos_gnss_'
 
 ALIAS_EGO = 'ego'
 
-INCREMENTAL_GRIDS = False
+INCREMENTAL_GRIDS = False  # because buggy
 
 OCCUPANCY_RADIUS_DEFAULT = 5  # (5 and 15 or 10 and 9)
 OCCUPANCY_TILE_LEVEL = 24
