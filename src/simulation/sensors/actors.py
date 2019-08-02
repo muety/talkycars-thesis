@@ -30,7 +30,7 @@ class ActorsSensor(Sensor):
 
         all_actors = list(map(self._map_to_actor, vehicle_actors + walker_actors))
         ego_actors: List[DynamicActor] = list(filter(lambda a: a.id == ego_id, all_actors))
-        other_actors: List[DynamicActor] = list(filter(lambda a: a.id != ego_id, all_actors))
+        other_actors: List[DynamicActor] = list(map(self._noisify_actor, filter(lambda a: a.id != ego_id, all_actors)))
 
         self.client.inbound.publish(OBS_ACTOR_EGO, ActorsObservation(event.ts, actors=ego_actors))
         self.client.inbound.publish(OBS_ACTORS_RAW, ActorsObservation(event.ts, actors=other_actors))
@@ -50,12 +50,12 @@ class ActorsSensor(Sensor):
             location=UncertainProperty(1., Point3D(location.x, location.y, location.z)),
             gnss=UncertainProperty(1., Point3D(gnss.latitude, gnss.longitude, gnss.altitude)),
             dynamics=ActorDynamics(
-                velocity=UncertainProperty(1., (velocity.x, velocity.y, velocity.z)),
-                acceleration=UncertainProperty(1., (acceleration.x, acceleration.y, acceleration.z))
+                velocity=UncertainProperty(1., Point3D(velocity.x, velocity.y, velocity.z)),
+                acceleration=UncertainProperty(1., Point3D(acceleration.x, acceleration.y, acceleration.z))
             ),
             props=ActorProperties(
                 color=UncertainProperty(1., color),
-                extent=UncertainProperty(1., (extent.x, extent.y, extent.z))
+                extent=UncertainProperty(1., Point3D(extent.x, extent.y, extent.z))
             )
         )
 
@@ -66,3 +66,21 @@ class ActorsSensor(Sensor):
         if carla_type.startswith('walker'):
             return ActorType.PEDESTRIAN
         return ActorType.UNKNOWN
+
+    @staticmethod
+    def _noisify_actor(actor: DynamicActor) -> DynamicActor:
+        return DynamicActor(
+            id=actor.id,
+            type=actor.type.with_uncertainty(),
+            type_id=actor.type_id,
+            gnss=actor.gnss.with_uncertainty().with_gaussian_noise(sigma=.001),
+            location=actor.location.with_uncertainty().with_gaussian_noise(sigma=.01),
+            dynamics=ActorDynamics(
+                velocity=actor.dynamics.velocity.with_uncertainty().with_gaussian_noise(sigma=.01),
+                acceleration=actor.dynamics.acceleration.with_uncertainty().with_gaussian_noise(sigma=.01)
+            ),
+            props=ActorProperties(
+                color=actor.props.color.with_uncertainty(),
+                extent=actor.props.extent.with_gaussian_noise(sigma=.1)
+            )
+        )

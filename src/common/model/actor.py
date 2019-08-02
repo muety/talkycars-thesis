@@ -14,15 +14,15 @@ class ActorType(Enum):
 
 
 class ActorDynamics:
-    def __init__(self, velocity: UncertainProperty[_Vec3] = None, acceleration: UncertainProperty[_Vec3] = None):
-        self.velocity: UncertainProperty[_Vec3] = velocity
-        self.acceleration: UncertainProperty[_Vec3] = acceleration
+    def __init__(self, velocity: UncertainProperty[Point3D] = None, acceleration: UncertainProperty[Point3D] = None):
+        self.velocity: UncertainProperty[Point3D] = velocity
+        self.acceleration: UncertainProperty[Point3D] = acceleration
 
 
 class ActorProperties:
-    def __init__(self, color: UncertainProperty[str] = None, extent: UncertainProperty[_Vec3] = None):
+    def __init__(self, color: UncertainProperty[str] = None, extent: UncertainProperty[Point3D] = None):
         self.color: UncertainProperty[str] = color
-        self.extent: UncertainProperty[_Vec3] = extent
+        self.extent: UncertainProperty[Point3D] = extent
 
 
 class DynamicActor:
@@ -30,7 +30,7 @@ class DynamicActor:
         self.id: int = id
         self.type: UncertainProperty[ActorType] = type
         self.type_id: str = type_id
-        self.location: UncertainProperty[Point3D] = location  # unused
+        self.location: UncertainProperty[Point3D] = location
         self.gnss: UncertainProperty[Point3D] = gnss
         self.dynamics: ActorDynamics = dynamics
         self.props: ActorProperties = props

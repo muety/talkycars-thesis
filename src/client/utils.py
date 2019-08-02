@@ -15,8 +15,8 @@ class ClientUtils:
     @staticmethod
     def map_pem_actor(actor: DynamicActor) -> PEMDynamicActor:
         bbox_corners = (
-            GeoUtils.gnss_add_meters(actor.gnss.value.components(), actor.props.extent.value, delta_factor=-1),
-            GeoUtils.gnss_add_meters(actor.gnss.value.components(), actor.props.extent.value)
+            GeoUtils.gnss_add_meters(actor.gnss.value.components(), actor.props.extent.value.components(), delta_factor=-1),
+            GeoUtils.gnss_add_meters(actor.gnss.value.components(), actor.props.extent.value.components())
         )
         bbox = RelativeBBox(lower=Vector3D(bbox_corners[0]), higher=Vector3D(bbox_corners[1]))
 
@@ -26,8 +26,8 @@ class ClientUtils:
             position=PEMRelation(confidence=actor.gnss.confidence, object=Vector3D(actor.gnss.value.components())),
             color=PEMRelation(confidence=actor.props.color.confidence, object=actor.props.color.value),
             bounding_box=PEMRelation(confidence=actor.props.extent.confidence, object=bbox),
-            velocity=PEMRelation(confidence=actor.dynamics.velocity.confidence, object=Vector3D(actor.dynamics.velocity.value)),
-            acceleration=PEMRelation(confidence=actor.dynamics.acceleration.confidence, object=Vector3D(actor.dynamics.acceleration.value))
+            velocity=PEMRelation(confidence=actor.dynamics.velocity.confidence, object=Vector3D(actor.dynamics.velocity.value.components())),
+            acceleration=PEMRelation(confidence=actor.dynamics.acceleration.confidence, object=Vector3D(actor.dynamics.acceleration.value.components()))
         )
 
         # TODO: Maybe abstract from Carla-specific classes?
@@ -37,8 +37,8 @@ class ClientUtils:
         matches: Dict[str, List[DynamicActor]] = {}
 
         for a in actors:
-            c1: Tuple[float, float] = GeoUtils.gnss_add_meters(a.gnss.value.components(), a.props.extent.value, delta_factor=-1)[:2]
-            c2: Tuple[float, float] = GeoUtils.gnss_add_meters(a.gnss.value.components(), a.props.extent.value)[:2]
+            c1: Tuple[float, float] = GeoUtils.gnss_add_meters(a.gnss.value.components(), a.props.extent.value.components(), delta_factor=-1)[:2]
+            c2: Tuple[float, float] = GeoUtils.gnss_add_meters(a.gnss.value.components(), a.props.extent.value.components())[:2]
             c3: Tuple[float, float] = (c1[0], c2[1])
             c4: Tuple[float, float] = (c2[0], c1[1])
             quadkeys: List[QuadKey] = list(map(lambda c: quadkey.from_geo(c, OCCUPANCY_TILE_LEVEL), [c1, c2, c3, c4]))

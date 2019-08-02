@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod
 from typing import TypeVar, Generic
 
 T = TypeVar('T')
@@ -12,11 +13,25 @@ class Singleton(type):
         return cls._instances[cls]
 
 
+class Noisifiable(ABC):
+    @abstractmethod
+    def with_gaussian_noise(self, mu: float, sigma: float) -> 'Noisifiable':
+        pass
+
+
 class UncertainProperty(Generic[T]):
     def __init__(self, confidence: float = None, value: T = None):
         self.confidence: float = confidence
         self.value: T = value
 
+    def with_uncertainty(self) -> 'UncertainProperty':
+        conf = self.confidence - abs(random.gauss(0, .1))
+        return UncertainProperty(conf, self.value)
+
+    def with_gaussian_noise(self, mu: float = 0, sigma: float = .1) -> 'UncertainProperty':
+        if isinstance(self.value, Noisifiable):
+            return UncertainProperty(self.confidence, self.value.with_gaussian_noise(mu, sigma))
+        raise NotImplementedError('value does not support noise simulation')
 
 from .actor import *
 from .geom import *

@@ -1,23 +1,48 @@
+import random
 from abc import ABC, abstractmethod
 from typing import Tuple, Iterable
 
 import numpy as np
 
+from common.model import Noisifiable
 
-class Point(ABC):
+
+class Point(Noisifiable, ABC):
+    @abstractmethod
+    def dim(self) -> int:
+        pass
+
     @abstractmethod
     def components(self) -> Tuple:
         pass
 
+    @abstractmethod
+    def __add__(self, other):
+        pass
+
+    def with_gaussian_noise(self, mu: float, sigma: float) -> 'Noisifiable':
+        noise = Point3D(*[random.gauss(mu, sigma) for i in range(self.dim())])
+        return self + noise
 
 class Point2D(Point):
     def __init__(self, x: float, y: float):
         self.x = x
         self.y = y
 
+    def __str__(self):
+        return f'{self.x}, {self.y}'
+
+    def __repr__(self):
+        return self.__str__()
+
+    def __add__(self, other):
+        return Point2D(self.x + other.x, self.y + other.y)
+
+    def dim(self) -> int:
+        return 2
+
     def components(self) -> Tuple[float, float]:
         return self.x, self.y
-
 
 class Point3D(Point):
     def __init__(self, x: float, y: float, z: float):
@@ -30,6 +55,12 @@ class Point3D(Point):
 
     def __repr__(self):
         return self.__str__()
+
+    def __add__(self, other):
+        return Point3D(self.x + other.x, self.y + other.y, self.z + other.z)
+
+    def dim(self) -> int:
+        return 3
 
     def components(self) -> Tuple[float, float, float]:
         return self.x, self.y, self.z
