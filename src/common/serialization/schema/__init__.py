@@ -119,6 +119,16 @@ class GridCellState(CapnpObject):
     def unknown() -> 'GridCellState':
         return GridCellState(value=Gss.UNKNOWN)
 
+    @staticmethod
+    def options():
+        return [GridCellState.free(), GridCellState.occupied(), GridCellState.unknown()]
+
+    def index(self) -> int:
+        if self.value == self.free(): return 0
+        if self.value == self.occupied(): return 1
+        if self.value == self.unknown(): return 2
+        return -1
+
     def to_message(self):
         return str(self.value).split('.')[1].lower()
 

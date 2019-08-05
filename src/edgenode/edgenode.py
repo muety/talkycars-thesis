@@ -15,7 +15,7 @@ from common.serialization.schema.base import PEMTrafficScene
 from edgenode.fusion import FusionService, FusionServiceFactory
 
 EVAL_RATE_SECS = 5  # hertz⁻¹
-TICK_RATE = 10  # hertz
+TICK_RATE = 1  # hertz
 
 class EdgeNode:
     def __init__(self, covered_tile: QuadKey):
@@ -45,22 +45,25 @@ class EdgeNode:
             self.last_tick = time.monotonic()
             self.tick()
             diff = time.monotonic() - self.last_tick
-            time.sleep(max(.0, self.tick_timeout - diff))
+            time.sleep(max(0.0, self.tick_timeout - diff))
 
     def tick(self):
         self.send_pool.map_async(self._publish_graph, self.children_tile_keys)
 
     def _on_graph(self, message: bytes):
         graph: PEMTrafficScene = cast(PEMTrafficScene, self._decode_capnp_msg(message, target_cls=PEMTrafficScene))
-        self.fusion_srvc.push(graph)
+        self.fusion_srvc.push(graph.measured_by.id, graph)
 
         with self.in_rate_lock:
             self.in_rate_count += 1
 
     def _publish_graph(self, for_tile: str):
-        fused_graph: PEMTrafficScene = cast(PEMTrafficScene, self.fusion_srvc.get(for_tile=quadkey.from_str(for_tile)))
-        encoded_graph: bytes = fused_graph.to_bytes()
-        self.mqtt.publish(f'{TOPIC_PREFIX_GRAPH_FUSED_OUT}/{for_tile}', encoded_graph)
+        try:
+            fused_graph: PEMTrafficScene = cast(PEMTrafficScene, self.fusion_srvc.get(for_tile=quadkey.from_str(for_tile)))
+            encoded_graph: bytes = fused_graph.to_bytes()
+            self.mqtt.publish(f'{TOPIC_PREFIX_GRAPH_FUSED_OUT}/{for_tile}', encoded_graph)
+        except Exception:
+            pass
 
     def _eval_rate(self):
         while not self.mqtt or not self.mqtt.connected:
