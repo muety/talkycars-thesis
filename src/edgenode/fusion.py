@@ -31,7 +31,7 @@ class FusionService(Generic[T], ABC):
         pass
 
     @abstractmethod
-    def get(self, for_tile: QuadKey) -> T:
+    def get(self) -> Dict[str, T]:
         pass
 
 
@@ -51,40 +51,52 @@ class PEMFusionService(FusionService[PEMTrafficScene]):
             self.observations[sender_id] = deque(maxlen=self.keep)
         self.observations[sender_id].append(observation)
 
-    def get(self, for_tile: QuadKey) -> PEMTrafficScene:
+    def get(self) -> Dict[str, PEMTrafficScene]:
         if len(self.observations) == 0:
             return None
-        t0 = time.time()
-        all_obs = [dq.pop() for dq in self.observations.values() for i in range(len(dq))]
-        a = self._fuse_scene(for_tile, all_obs)  # TODO: Make order of magnitude faster!!
-        print(time.time() - t0)
+        all_obs = [dq[i] for dq in self.observations.values() for i in range(len(dq))]
+        a = self._fuse_scene(all_obs)
         return a
 
-    def _fuse_scene(self, for_tile: QuadKey, scenes: List[PEMTrafficScene]) -> PEMTrafficScene:
-        fused_scene: PEMTrafficScene = PEMTrafficScene(timestamp=int(time.time()))
-        fused_grid: PEMOccupancyGrid = self._fuse_grid(for_tile, list(map(lambda t: (t.timestamp, t.occupancy_grid), scenes)))
+    def _fuse_scene(self, scenes: List[PEMTrafficScene]) -> Dict[str, PEMTrafficScene]:
+        fused_scenes: Dict[str, PEMTrafficScene] = dict()
+        fused_grids: Dict[str, PEMOccupancyGrid] = self._fuse_grid(list(map(lambda t: (t.timestamp, t.occupancy_grid), scenes)))
 
-        fused_scene.occupancy_grid = fused_grid
+        for k, grid in fused_grids.items():
+            fused_scenes[k] = PEMTrafficScene(ts=time.time(), occupancy_grid=grid)
 
-        return fused_scene
+        return fused_scenes
 
-    def _fuse_grid(self, for_tile: QuadKey, grids: List[Tuple[int, PEMOccupancyGrid]]) -> PEMOccupancyGrid:
-        fused_grid: PEMOccupancyGrid = PEMOccupancyGrid()
-        fused_cells: List[PEMGridCell] = self._fuse_cells(for_tile, list(map(lambda t: (t[0], t[1].cells), grids)))
+    def _fuse_grid(self, grids: List[Tuple[int, PEMOccupancyGrid]]) -> Dict[str, PEMOccupancyGrid]:
+        fused_grids: Dict[str, PEMOccupancyGrid] = dict()
+        fused_cells: Dict[str, List[PEMGridCell]] = self._fuse_cells(list(map(lambda t: (t[0], t[1].cells), grids)))
 
-        fused_grid.cells = fused_cells
+        for k, cells in fused_cells.items():
+            fused_grids[k] = PEMOccupancyGrid(cells=cells)
 
-        return fused_grid
+        return fused_grids
 
-    def _fuse_cells(self, for_tile: QuadKey, cells: List[Tuple[int, List[PEMGridCell]]]) -> List[PEMGridCell]:
-        fused_cells: List[PEMGridCell] = []
+    def _fuse_cells(self, cells: List[Tuple[int, List[PEMGridCell]]]) -> Dict[str, List[PEMGridCell]]:
+        fused_cells: Dict[str, List[PEMGridCell]] = dict()
+        cell_map: Dict[str, List[Tuple[int, PEMGridCell]]] = dict()
 
-        tiles: List[QuadKey] = for_tile.children(at_level=OCCUPANCY_TILE_LEVEL)
-        cells_flattened: List[Tuple[int, PEMGridCell]] = [(t1[0], t2) for t1 in cells for t2 in t1[1]]
+        for cell_obs in cells:
+            for cell in cell_obs[1]:
+                hash = cell.hash[:REMOTE_GRID_TILE_LEVEL]
+                if hash not in cell_map:
+                    cell_map[hash] = []
+                    fused_cells[hash] = []
+                cell_map[hash].append((cell_obs[0], cell))
 
-        for qk in tiles:
-            cells_filtered: List[Tuple[int, PEMGridCell]] = list(filter(lambda e: e[1].hash == qk.key, cells_flattened))
-            fused_cells.append(self._fuse_cell(qk, cells_filtered))
+        for tile in cell_map.keys():
+            tiles: List[QuadKey] = quadkey.from_str(tile).children(at_level=OCCUPANCY_TILE_LEVEL)
+
+            for qk in tiles:
+                hash = qk.key[:REMOTE_GRID_TILE_LEVEL]
+                if hash not in cell_map:
+                    continue
+                a = self._fuse_cell(qk, cell_map[hash])
+                fused_cells[hash].append(a)
 
         return fused_cells
 
@@ -99,8 +111,8 @@ class PEMFusionService(FusionService[PEMTrafficScene]):
             state_obs[cell.state.object.index()].append(self._decay(ts) * cell.state.confidence)
         state_probs = [float(np.mean(p)) if len(p) > 0 else 0 for p in state_obs]
         fused_cell.state = PEMRelation[GridCellState](
-            confidence=np.max(state_probs),
-            object=GridCellState.options()[np.amax(state_probs)]
+            confidence=float(np.max(state_probs)),
+            object=GridCellState.options()[int(np.amax(state_probs))]
         )
 
         return fused_cell

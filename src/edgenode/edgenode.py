@@ -4,7 +4,7 @@ import sys
 import time
 from multiprocessing.dummy import Pool
 from threading import RLock, Thread
-from typing import Type, cast, List, Set
+from typing import Type, cast, List, Set, Dict
 
 from common import quadkey
 from common.bridge import MqttBridge
@@ -15,7 +15,7 @@ from common.serialization.schema.base import PEMTrafficScene
 from edgenode.fusion import FusionService, FusionServiceFactory
 
 EVAL_RATE_SECS = 5  # hertz⁻¹
-TICK_RATE = 1  # hertz
+TICK_RATE = 10  # hertz
 
 class EdgeNode:
     def __init__(self, covered_tile: QuadKey):
@@ -32,7 +32,7 @@ class EdgeNode:
         self.tick_timeout: float = 1 / TICK_RATE
         self.last_tick: float = time.monotonic()
 
-        self.send_pool: Pool = Pool(12)
+        self.send_pool: Pool = Pool(4)
 
     def run(self):
         self.in_rate_count_thread.start()
@@ -48,7 +48,13 @@ class EdgeNode:
             time.sleep(max(0.0, self.tick_timeout - diff))
 
     def tick(self):
-        self.send_pool.map_async(self._publish_graph, self.children_tile_keys)
+        t0 = time.monotonic()
+        fused_graphs: Dict[str, PEMTrafficScene] = self.fusion_srvc.get()  # TODO: Speed up! Takes ~ 1 sec -> max. is 0.1 sec
+        if not fused_graphs:
+            return
+
+        self.send_pool.map_async(self._publish_graph, fused_graphs.items())
+        print(time.monotonic() - t0)
 
     def _on_graph(self, message: bytes):
         graph: PEMTrafficScene = cast(PEMTrafficScene, self._decode_capnp_msg(message, target_cls=PEMTrafficScene))
@@ -57,13 +63,15 @@ class EdgeNode:
         with self.in_rate_lock:
             self.in_rate_count += 1
 
-    def _publish_graph(self, for_tile: str):
+    def _publish_graph(self, args):
+        for_tile: str = args[0]
+        graph: PEMTrafficScene = args[1]
+
         try:
-            fused_graph: PEMTrafficScene = cast(PEMTrafficScene, self.fusion_srvc.get(for_tile=quadkey.from_str(for_tile)))
-            encoded_graph: bytes = fused_graph.to_bytes()
+            encoded_graph: bytes = graph.to_bytes()
             self.mqtt.publish(f'{TOPIC_PREFIX_GRAPH_FUSED_OUT}/{for_tile}', encoded_graph)
-        except Exception:
-            pass
+        except Exception as e:
+            logging.warning(e)
 
     def _eval_rate(self):
         while not self.mqtt or not self.mqtt.connected:
