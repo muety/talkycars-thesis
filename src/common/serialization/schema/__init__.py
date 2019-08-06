@@ -104,6 +104,8 @@ class RelativeBBox(CapnpObject):
 
 
 class GridCellState(CapnpObject):
+    N: int = 3
+
     def __init__(self, value: Gss = None):
         self.value: GridCellState = value
 

@@ -1,6 +1,7 @@
 import time
 from abc import ABC, abstractmethod
 from collections import deque
+from itertools import starmap
 from typing import TypeVar, Generic, Type, Set, List, Dict, Tuple, Union, Deque
 
 import numpy as np
@@ -36,7 +37,7 @@ class FusionService(Generic[T], ABC):
 
 
 class PEMFusionService(FusionService[PEMTrafficScene]):
-    def __init__(self, sector: Union[QuadKey, str], keep=5):
+    def __init__(self, sector: Union[QuadKey, str], keep=3):
         if isinstance(sector, str):
             sector = quadkey.from_str(sector)
         assert sector.level == EDGE_DISTRIBUTION_TILE_LEVEL
@@ -55,29 +56,32 @@ class PEMFusionService(FusionService[PEMTrafficScene]):
         if len(self.observations) == 0:
             return None
         all_obs = [dq[i] for dq in self.observations.values() for i in range(len(dq))]
-        a = self._fuse_scene(all_obs)
-        return a
+        return self._fuse_scene(all_obs)
 
-    def _fuse_scene(self, scenes: List[PEMTrafficScene]) -> Dict[str, PEMTrafficScene]:
+    @classmethod
+    def _fuse_scene(cls, scenes: List[PEMTrafficScene]) -> Dict[str, PEMTrafficScene]:
         fused_scenes: Dict[str, PEMTrafficScene] = dict()
-        fused_grids: Dict[str, PEMOccupancyGrid] = self._fuse_grid(list(map(lambda t: (t.timestamp, t.occupancy_grid), scenes)))
+        fused_grids: Dict[str, PEMOccupancyGrid] = cls._fuse_grid(list(map(lambda t: (t.timestamp, t.occupancy_grid), scenes)))
 
         for k, grid in fused_grids.items():
             fused_scenes[k] = PEMTrafficScene(ts=time.time(), occupancy_grid=grid)
 
         return fused_scenes
 
-    def _fuse_grid(self, grids: List[Tuple[int, PEMOccupancyGrid]]) -> Dict[str, PEMOccupancyGrid]:
+    @classmethod
+    def _fuse_grid(cls, grids: List[Tuple[int, PEMOccupancyGrid]]) -> Dict[str, PEMOccupancyGrid]:
         fused_grids: Dict[str, PEMOccupancyGrid] = dict()
-        fused_cells: Dict[str, List[PEMGridCell]] = self._fuse_cells(list(map(lambda t: (t[0], t[1].cells), grids)))
+        fused_cells: Dict[str, List[PEMGridCell]] = cls._fuse_cells(list(map(lambda t: (t[0], t[1].cells), grids)))
 
         for k, cells in fused_cells.items():
             fused_grids[k] = PEMOccupancyGrid(cells=cells)
 
         return fused_grids
 
-    def _fuse_cells(self, cells: List[Tuple[int, List[PEMGridCell]]]) -> Dict[str, List[PEMGridCell]]:
+    @classmethod
+    def _fuse_cells(cls, cells: List[Tuple[int, List[PEMGridCell]]]) -> Dict[str, List[PEMGridCell]]:
         fused_cells: Dict[str, List[PEMGridCell]] = dict()
+        used_cells: Dict[str, Set[str]] = dict()
         cell_map: Dict[str, List[Tuple[int, PEMGridCell]]] = dict()
 
         for cell_obs in cells:
@@ -86,32 +90,32 @@ class PEMFusionService(FusionService[PEMTrafficScene]):
                 if hash not in cell_map:
                     cell_map[hash] = []
                     fused_cells[hash] = []
+                    used_cells[hash] = set()
                 cell_map[hash].append((cell_obs[0], cell))
+                used_cells[hash].add(cell.hash)
 
+        # Performance bottleneck -> need to multi-thread for large number of vehicles and larger grids
         for tile in cell_map.keys():
-            tiles: List[QuadKey] = quadkey.from_str(tile).children(at_level=OCCUPANCY_TILE_LEVEL)
-
-            for qk in tiles:
-                hash = qk.key[:REMOTE_GRID_TILE_LEVEL]
-                if hash not in cell_map:
-                    continue
-                a = self._fuse_cell(qk, cell_map[hash])
-                fused_cells[hash].append(a)
+            children_keys: Set[QuadKey] = set(map(lambda k: quadkey.from_str(k), used_cells[tile]))
+            fused_cells[tile] = list(starmap(cls._fuse_cell, list(map(lambda qk: (qk, cell_map[tile]), children_keys))))
 
         return fused_cells
 
-    def _fuse_cell(self, cell_hash: QuadKey, cells: List[Tuple[int, PEMGridCell]]) -> PEMGridCell:
+    @classmethod
+    def _fuse_cell(cls, cell_hash: QuadKey, cells: List[Tuple[int, PEMGridCell]]) -> PEMGridCell:
         fused_cell: PEMGridCell = PEMGridCell(hash=cell_hash.key)
 
         # 1.: Cell State
-        state_count = np.zeros((3,))
-        state_confs = np.zeros((3,))
+        state_count = np.zeros((GridCellState.N,), dtype=np.float32)
+        state_confs = np.zeros((GridCellState.N,), dtype=np.float32)
+
         for ts, cell in cells:
             if cell.hash != cell_hash.key:
                 continue
-            state_confs[cell.state.object.index()] += self._decay(ts) * cell.state.confidence
+            state_confs[cell.state.object.index()] += cls._decay(ts) * cell.state.confidence
             state_count[cell.state.object.index()] += 1
-        state_probs = np.nan_to_num(state_confs / state_count)
+
+        state_probs = np.divide(state_confs, state_count, out=np.zeros_like(state_confs), where=state_count != 0)
         fused_cell.state = PEMRelation[GridCellState](
             confidence=float(np.max(state_probs)),
             object=GridCellState.options()[int(np.amax(state_probs))]
@@ -119,5 +123,6 @@ class PEMFusionService(FusionService[PEMTrafficScene]):
 
         return fused_cell
 
-    def _decay(self, timestamp: int) -> float:
+    @staticmethod
+    def _decay(timestamp: int) -> float:
         return 1  # TODO

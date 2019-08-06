@@ -32,7 +32,7 @@ class EdgeNode:
         self.tick_timeout: float = 1 / TICK_RATE
         self.last_tick: float = time.monotonic()
 
-        self.send_pool: Pool = Pool(4)
+        self.send_pool: Pool = Pool(12)  # GIL Thread Pool
 
     def run(self):
         self.in_rate_count_thread.start()
@@ -49,7 +49,7 @@ class EdgeNode:
 
     def tick(self):
         t0 = time.monotonic()
-        fused_graphs: Dict[str, PEMTrafficScene] = self.fusion_srvc.get()  # TODO: Speed up! Takes ~ 1 sec -> max. is 0.1 sec
+        fused_graphs: Dict[str, PEMTrafficScene] = self.fusion_srvc.get()  # TODO: Speed up! Takes ~ 0.3 sec -> max. is 0.1 sec
         if not fused_graphs:
             return
 
