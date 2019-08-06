@@ -104,12 +104,14 @@ class PEMFusionService(FusionService[PEMTrafficScene]):
         fused_cell: PEMGridCell = PEMGridCell(hash=cell_hash.key)
 
         # 1.: Cell State
-        state_obs = [[] for i in range(len(GridCellState.options()))]
+        state_count = np.zeros((3,))
+        state_confs = np.zeros((3,))
         for ts, cell in cells:
             if cell.hash != cell_hash.key:
                 continue
-            state_obs[cell.state.object.index()].append(self._decay(ts) * cell.state.confidence)
-        state_probs = [float(np.mean(p)) if len(p) > 0 else 0 for p in state_obs]
+            state_confs[cell.state.object.index()] += self._decay(ts) * cell.state.confidence
+            state_count[cell.state.object.index()] += 1
+        state_probs = np.nan_to_num(state_confs / state_count)
         fused_cell.state = PEMRelation[GridCellState](
             confidence=float(np.max(state_probs)),
             object=GridCellState.options()[int(np.amax(state_probs))]
