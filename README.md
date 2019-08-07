@@ -4,6 +4,7 @@
 * Does not consider security
 * Does only consider 2-dimensional road scenes (i.e. no bridges)
 * Intersections and more complex lane types are not modeled
+* Clock inconsistencies are neglected (i.e. it is assumed that all clients as well as the server can retrieve a perfectly accurate and synchronized time)
 
 ## Requirements
 * Python 3.7
