@@ -2,7 +2,7 @@ import argparse
 import logging
 import sys
 import time
-from multiprocessing.dummy import Pool
+from multiprocessing.pool import ThreadPool
 from threading import RLock, Thread
 from typing import Type, cast, List, Set, Dict
 
@@ -32,7 +32,7 @@ class EdgeNode:
         self.tick_timeout: float = 1 / TICK_RATE
         self.last_tick: float = time.monotonic()
 
-        self.send_pool: Pool = Pool(12)  # GIL Thread Pool
+        self.send_pool: ThreadPool = ThreadPool(12)  # GIL Thread Pool
 
     def run(self):
         self.in_rate_count_thread.start()
@@ -48,13 +48,12 @@ class EdgeNode:
             time.sleep(max(0.0, self.tick_timeout - diff))
 
     def tick(self):
-        t0 = time.monotonic()
-        fused_graphs: Dict[str, PEMTrafficScene] = self.fusion_srvc.get()  # TODO: Speed up! Takes ~ 0.3 sec -> max. is 0.1 sec
+        # TODO: Maybe try to speed up a little more. Currently takes ~ 0.12 sec for two agents with 10x10 grids
+        fused_graphs: Dict[str, PEMTrafficScene] = self.fusion_srvc.get()
         if not fused_graphs:
             return
 
         self.send_pool.starmap_async(self._publish_graph, fused_graphs.items())
-        print(time.monotonic() - t0)
 
     def _on_graph(self, message: bytes):
         graph: PEMTrafficScene = cast(PEMTrafficScene, self._decode_capnp_msg(message, target_cls=PEMTrafficScene))
