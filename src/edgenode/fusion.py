@@ -1,9 +1,10 @@
+import collections
 import time
 from abc import ABC, abstractmethod
 from collections import deque
 from itertools import starmap
 from multiprocessing.pool import Pool
-from typing import TypeVar, Generic, Type, Set, List, Dict, Tuple, Union, Deque
+from typing import TypeVar, Generic, Type, Set, List, Dict, Tuple, Union, Deque, OrderedDict
 
 import numpy as np
 
@@ -11,6 +12,7 @@ from common import quadkey
 from common.constants import *
 from common.quadkey import QuadKey
 from common.serialization.schema import GridCellState
+from common.serialization.schema.actor import PEMDynamicActor
 from common.serialization.schema.base import PEMTrafficScene
 from common.serialization.schema.occupancy import PEMGridCell, PEMOccupancyGrid
 from common.serialization.schema.relation import PEMRelation
@@ -48,7 +50,7 @@ class PEMFusionService(FusionService[PEMTrafficScene]):
         self.sector_keys: Set[QuadKey] = set(sector.children(at_level=REMOTE_GRID_TILE_LEVEL))
         self.observations: Dict[int, Deque[PEMTrafficScene]] = {}
 
-        self.fuse_pool: Pool = Pool(12)
+        self.fuse_pool: Pool = Pool(1)
 
     def push(self, sender_id: int, observation: PEMTrafficScene):
         if sender_id not in self.observations:
@@ -108,20 +110,36 @@ class PEMFusionService(FusionService[PEMTrafficScene]):
     def _fuse_tile_cell(cls, cell_hash: QuadKey, cells: Deque[Tuple[int, PEMGridCell]]) -> PEMGridCell:
         fused_cell: PEMGridCell = PEMGridCell(hash=cell_hash.key)
 
-        # 1.: Cell State
-        state_count = np.zeros((GridCellState.N,), dtype=np.float32)
-        state_confs = np.zeros((GridCellState.N,), dtype=np.float32)
+        state_confs: np.ndarray[np.float32] = np.zeros((GridCellState.N,), dtype=np.float32)
+        occ_confs: OrderedDict[int, float] = collections.OrderedDict([(-1, 0.0)])
+        occupants: Dict[int, PEMDynamicActor] = dict()
 
         for ts, cell in cells:
             if cell.hash != cell_hash.key:
                 continue
-            state_confs[cell.state.object.index()] += cls._decay(ts) * cell.state.confidence
-            state_count[cell.state.object.index()] += 1
 
-        state_probs = np.divide(state_confs, state_count, out=np.zeros_like(state_confs), where=state_count != 0)
-        fused_cell.state = PEMRelation[GridCellState](
-            confidence=float(np.max(state_probs)),
-            object=GridCellState.options()[int(np.amax(state_probs))]
+            # 1.: Cell State
+            state_confs[cell.state.object.index()] += cls._decay(ts) * cell.state.confidence
+
+            # 2.: Cell Occupant
+            occid = cell.occupant.object.id if cell.occupant else -1
+            if occid not in occ_confs:
+                occ_confs[occid] = 0
+                occupants[occid] = cell.occupant.object if occid > -1 else None
+            occ_confs[occid] += cls._decay(ts) * (cell.occupant.confidence if cell.occupant else cell.state.confidence)
+
+        state_probs = np.divide(state_confs, np.sum(state_confs))
+
+        occ_confs_arr = np.array(list(occ_confs.values()))
+        occ_probs = np.divide(occ_confs_arr, np.sum(occ_confs_arr))
+
+        state = (float(np.max(state_probs)), GridCellState.options()[int(np.amax(state_probs))])
+        occ_id = (float(np.max(occ_probs)), list(occ_confs.keys())[int(np.amax(occ_probs))])
+
+        fused_cell.state = PEMRelation[GridCellState](*state)
+        fused_cell.occupant = PEMRelation[PEMDynamicActor](
+            confidence=occ_id[0],
+            object=None  # TODO: Actually fuse actor properties
         )
 
         return fused_cell
