@@ -1,4 +1,3 @@
-import time
 from multiprocessing.pool import Pool
 from typing import List, Set, Dict, Callable, Tuple
 
@@ -12,7 +11,7 @@ from common.observation import GnssObservation, LidarObservation
 from common.occupancy import Grid, GridCell, GridCellState
 from common.raycast import raycast
 
-N_PROC = 24  # Experimentally found to be best
+N_PROC = 6  # Experimentally found to be best
 
 
 class OccupancyGridManager:
@@ -56,11 +55,13 @@ class OccupancyGridManager:
         n = len(grid.cells)
         grid_cells = list(grid.cells)
         batch_size = np.math.ceil(n / N_PROC)
-        batches = [(list(map(lambda c: c.bounds, grid_cells[i * batch_size:i * batch_size + batch_size])), obs.value, self.location) for i in range(n)]
+        batches = [(
+            np.array(list(map(lambda c: c.bounds, grid_cells[i * batch_size:i * batch_size + batch_size])), dtype=np.float32),
+            obs.value,
+            np.array(self.location, dtype=np.float32)
+        ) for i in range(n)]
 
-        t0 = time.time()
-        result = self.pool.map(self._match_cells, batches)
-        # print(time.time() - t0) # TODO: Keep optimizing this execution time
+        result = self.pool.starmap(self._match_cells, batches)
 
         for i, r in enumerate(result):
             for j, s in enumerate(r):
@@ -72,32 +73,34 @@ class OccupancyGridManager:
         return True
 
     @staticmethod
-    def _match_cells(args):
-        bounds, points, loc = args
-        states = [GridCellState.UNKNOWN] * len(bounds)
-        loc = np.array(loc, dtype=np.float32)
+    def _match_cells(bounds: np.ndarray, points: np.ndarray, loc: np.ndarray):
+        if bounds.shape[0] == 0:
+            return []
 
-        for i, cell in enumerate(bounds):
-            cell = np.array(cell, dtype=np.float32)
+        def check_occupied(cell):
             for point in points:
-                if raycast.aabb_contains(cell, point.astype(np.float32)):
-                    states[i] = GridCellState.OCCUPIED
-                    break
+                if raycast.aabb_contains(cell, point):
+                    return True
+            return False
 
-        for i, cell in enumerate(bounds):
-            cell = np.array(cell, dtype=np.float32)
-            if states[i] != GridCellState.UNKNOWN:
-                continue
+        def check_intersect(cell):
+            cell_dist = np.min(np.linalg.norm(loc - cell, axis=1))
 
             for point in points:
                 direction = np.array(point - loc, dtype=np.float32)
 
                 if raycast.aabb_intersect(cell, raycast.Ray3D(loc, direction)):
-                    cell_dist = np.min(np.linalg.norm(loc - cell, axis=1))
                     hit_dist = np.linalg.norm(loc - point)
                     if cell_dist < hit_dist:
-                        states[i] = GridCellState.FREE
-                        break
+                        return True
+            return False
+
+        states = np.full(bounds.shape[:1], GridCellState.UNKNOWN)
+        occupied_mask = np.array(list(map(check_occupied, bounds)))
+        states[occupied_mask] = GridCellState.OCCUPIED
+
+        free_mask = np.array(list(map(check_intersect, bounds)))  # Discarding already occupied cells doesn't give performance
+        states[free_mask & np.invert(occupied_mask)] = GridCellState.FREE
 
         return states
 

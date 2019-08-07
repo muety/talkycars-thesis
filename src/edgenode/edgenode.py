@@ -53,7 +53,7 @@ class EdgeNode:
         if not fused_graphs:
             return
 
-        self.send_pool.map_async(self._publish_graph, fused_graphs.items())
+        self.send_pool.starmap_async(self._publish_graph, fused_graphs.items())
         print(time.monotonic() - t0)
 
     def _on_graph(self, message: bytes):
@@ -63,10 +63,7 @@ class EdgeNode:
         with self.in_rate_lock:
             self.in_rate_count += 1
 
-    def _publish_graph(self, args):
-        for_tile: str = args[0]
-        graph: PEMTrafficScene = args[1]
-
+    def _publish_graph(self, for_tile: str, graph: PEMTrafficScene):
         try:
             encoded_graph: bytes = graph.to_bytes()
             self.mqtt.publish(f'{TOPIC_PREFIX_GRAPH_FUSED_OUT}/{for_tile}', encoded_graph)

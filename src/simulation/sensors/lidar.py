@@ -54,7 +54,7 @@ class LidarSensor(Sensor):
         # TODO: Make sure transformations are actually correct
         points = map(t.transform, image)
         points = map(lambda p: (p.x, p.y, p.z - image.transform.location.z), points)
-        points = np.array(list(filter(lambda p: 0 <= p[2] < 30, points)))
+        points = np.array(list(filter(lambda p: 0 <= p[2] < 30, points)), dtype=np.float32)
 
         obs = LidarObservation(image.timestamp, points)
         self.client.inbound.publish(OBS_LIDAR_POINTS, obs)
