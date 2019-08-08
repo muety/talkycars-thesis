@@ -1,3 +1,4 @@
+import logging
 from enum import Enum
 from typing import cast, List, Dict
 
@@ -122,6 +123,8 @@ class TalkyClient:
                     confidence=self.tracker.get(group_key, str(actor.id)),
                     object=ClientUtils.map_pem_actor(actor)
                 )
+            else:
+                pem_cell.occupant = PEMRelation(confidence=cell.state.confidence, object=None)
 
             self.tracker.cycle_group(group_key)
 
@@ -133,7 +136,7 @@ class TalkyClient:
                                 occupancy_grid=pem_grid)
 
         encoded_msg = graph.to_bytes()
-        # logging.debug(f'Encoded state representation to {len(encoded_msg) / 1024} kBytes')
+        logging.debug(f'Encoded state representation to {len(encoded_msg) / 1024} kBytes')
 
         contained_tiles = frozenset(map(lambda c: c.quad_key.key, grid.cells))
         self.tss.publish_graph(encoded_msg, contained_tiles)
@@ -141,4 +144,4 @@ class TalkyClient:
     def _on_remote_grid(self, msg: bytes):
         # TODO: Maybe do asynchronously?
         decoded_msg = PEMTrafficScene.from_bytes(msg)
-        # logging.debug(f'Decoded remote fused state representation from {len(msg) / 1024} kBytes')
+        logging.debug(f'Decoded remote fused state representation from {len(msg) / 1024} kBytes')

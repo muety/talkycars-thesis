@@ -14,6 +14,7 @@ capnp.remove_import_hook()
 dirname = os.path.dirname(__file__)
 
 occupancy = capnp.load(os.path.join(dirname, './capnp/occupancy.capnp'))
+relation = capnp.load(os.path.join(dirname, './capnp/relation.capnp'))
 
 
 class PEMGridCell(CapnpObject):
@@ -33,7 +34,7 @@ class PEMGridCell(CapnpObject):
         if self.state:
             cell.state = self.state.to_message()
         if self.occupant:
-            cell.occupant = self.occupant.to_message()
+            cell.occupant = self.occupant.to_message(type_hint=relation.DynamicActorRelation)
 
         return cell
 
