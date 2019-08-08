@@ -22,7 +22,7 @@ class MqttBridge:
         self.client.on_message = self._on_message
 
     def __del__(self):
-        self.tear_down()
+        self.disconnect()
 
     def listen(self, block=True):
         self.client.connect(*self.broker_config[:2])
@@ -34,7 +34,7 @@ class MqttBridge:
                 self.loop_thread = Thread(target=self.client.loop_forever, daemon=True)
                 self.loop_thread.start()
         except:
-            self.tear_down()
+            self.disconnect()
 
     def subscribe(self, topic: str, callback: Callable):
         if topic not in self.subscriptions:
@@ -52,7 +52,7 @@ class MqttBridge:
     def publish(self, topic: str, message: bytes):
         self.client.publish(topic, message)
 
-    def tear_down(self):
+    def disconnect(self):
         self.client.disconnect()
         self.loop_thread = None
 

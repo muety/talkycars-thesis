@@ -50,7 +50,7 @@ class TileSubscriptionService:
         for node_key in set(self.active_bridges.keys()).difference(node_tiles):
             logging.debug(f'Tearing down connection for {node_key}')
 
-            self.active_bridges[node_key].tear_down()
+            self.active_bridges[node_key].disconnect()
             del self.active_bridges[node_key]
 
         # Handle connections: init new
@@ -114,7 +114,7 @@ class TileSubscriptionService:
 
     def tear_down(self):
         for b in self.active_bridges.values():
-            b.tear_down()
+            b.disconnect()
 
     def _try_get_bridge(self, for_key: str) -> MqttBridge:
         for_key = for_key[:EDGE_DISTRIBUTION_TILE_LEVEL]

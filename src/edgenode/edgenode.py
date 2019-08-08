@@ -46,7 +46,7 @@ class EdgeNode:
 
         while True:
             if self.killer.kill_now:
-                self.mqtt.tear_down()
+                self.mqtt.disconnect()
                 break
 
             self.last_tick = time.monotonic()
