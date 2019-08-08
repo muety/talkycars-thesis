@@ -109,9 +109,10 @@ class PEMFusionService(FusionService[PEMTrafficScene]):
     def _fuse_tile_cell(cls, cell_hash: QuadKey, cells: Deque[Tuple[int, PEMGridCell]]) -> PEMGridCell:
         fused_cell: PEMGridCell = PEMGridCell(hash=cell_hash.key)
 
-        state_confs: np.ndarray[np.float32, np.float32] = np.array([[] for i in range(GridCellState.N)], dtype=np.float32)
-        occ_confs: np.ndarray[np.float32, np.float32] = np.expand_dims(np.array([], dtype=np.float32), -1)
+        state_confs: np.ndarray[np.float32, np.float32] = np.empty((3, 0), dtype=np.float32)
+        occ_confs: np.ndarray[np.float32, np.float32] = np.empty((0, 0), dtype=np.float32)
 
+        states: List[GridCellState] = GridCellState.options()
         occupants: Dict[int, PEMDynamicActor] = dict()
 
         for ts, cell in cells:
@@ -120,38 +121,37 @@ class PEMFusionService(FusionService[PEMTrafficScene]):
 
             # 1.: Cell State
             state_conf = cls._decay(ts) * cell.state.confidence
-            state_conf_vec = np.array([state_conf if i == cell.state.object.index() else (1 - state_conf) / GridCellState.N for i in range(GridCellState.N)], dtype=np.float32)
-            state_confs = np.hstack((state_confs, np.expand_dims(state_conf_vec, 1)))
+            state_conf_vec = np.array([state_conf
+                                       if i == cell.state.object.index()
+                                       else np.minimum((1 - state_conf) / GridCellState.N, 1 / GridCellState.N)
+                                       for i in range(GridCellState.N)], dtype=np.float32)
+            state_confs = np.hstack((state_confs, state_conf_vec.reshape(-1, 1)))
 
             # 2.: Cell Occupant
-            occid = cell.occupant.object.id if cell.occupant.object else -1
             occ_conf = cls._decay(ts) * cell.occupant.confidence
-            if occid not in occupants:
-                occupants[occid] = cell.occupant.object if occid > -1 else None
-                if occ_confs.shape[0] > 0:
-                    occ_confs = np.vstack((occ_confs, np.full(occ_confs.shape[1:], np.nan)))
-
-            if occ_confs.shape[0] > 0:
-                occ_confs = np.hstack((occ_confs, np.vstack((np.full((max(occ_confs.shape[0] - 1, 0), 1), np.nan), [occ_conf]))))
-            else:
-                occ_confs = np.vstack((np.full((max(occ_confs.shape[0] - 1, 0), 1), np.nan), [occ_conf]))
+            occ_id = cell.occupant.object.id if cell.occupant.object else -1
+            if occ_id not in occupants:
+                occupants[occ_id] = cell.occupant.object if occ_id > -1 else None
+                occ_confs = np.vstack((occ_confs, np.full(occ_confs.shape[1:], np.nan)))
+            occ_confs = np.hstack((occ_confs, np.vstack((np.full((max(occ_confs.shape[0] - 1, 0), 1), np.nan), [occ_conf]))))
 
         # 1.: Cell State
         state_probs = np.mean(state_confs, axis=1)
-        state = (float(np.max(state_probs)), GridCellState.options()[int(np.amax(state_probs))])
+        state = (float(np.max(state_probs)), states[int(np.amax(state_probs))])
 
-        # 2.: Cell Occpant
-        occ_col_max_inv = 1 - np.nanmax(occ_confs, axis=0)
-        occ_conf_inv_clipped = np.minimum(occ_col_max_inv / max((occ_confs.shape[0] - 1), 1), 1 / occ_confs.shape[0])
-        occ_inds = np.where(np.isnan(occ_confs))
-        occ_confs[occ_inds] = np.take(occ_conf_inv_clipped, occ_inds[1])
+        # 2.: Cell Occupant
+        if np.sum(np.isnan(occ_confs)) > 0:
+            occ_col_max_inv = 1 - np.nanmax(occ_confs, axis=0)
+            occ_conf_inv_clipped = np.minimum(occ_col_max_inv / max((occ_confs.shape[0] - 1), 1), 1 / occ_confs.shape[0])
+            occ_inds = np.where(np.isnan(occ_confs))
+            occ_confs[occ_inds] = np.take(occ_conf_inv_clipped, occ_inds[1])
         occ_probs = np.mean(occ_confs, axis=1)
         occ = (float(np.max(occ_probs)), list(occupants.values())[int(np.amax(occ_probs))])
 
         fused_cell.state = PEMRelation[GridCellState](*state)
         fused_cell.occupant = PEMRelation[PEMDynamicActor](
             confidence=occ[0],
-            object=occ[1]  # TODO: Actually fuse actor properties
+            object=occ[1]  # TODO: Actually fuse actor properties (or maybe not?)
         )
 
         return fused_cell
