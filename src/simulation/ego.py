@@ -11,7 +11,7 @@ from sensors import GnssSensor, LidarSensor, CameraRGBSensor
 from sensors.actors import ActorsSensor
 from strategy import Strategy, ManualStrategy
 from strategy.empty import EmptyStrategy
-from util import BBoxUtils
+from util import BBoxUtils, SimulationUtils
 
 import carla
 from client import ClientDialect, TalkyClient
@@ -33,6 +33,7 @@ class Ego:
                  grid_radius: float = OCCUPANCY_RADIUS_DEFAULT,
                  lidar_angle: float = LIDAR_ANGLE_DEFAULT
                  ):
+        self.sim: carla.Client = client
         self.client: TalkyClient = None
         self.world: carla.World = client.get_world()
         self.map: carla.Map = self.world.get_map()
@@ -115,6 +116,7 @@ class Ego:
                 if killer.kill_now:
                     try:
                         self.destroy()
+                        return
                     finally:
                         return
 
@@ -153,17 +155,12 @@ class Ego:
             self._render_bboxes()
 
     def destroy(self):
-        sensors = [
-            self.sensors['camera_rgb'],
-            self.sensors['lidar'],
-            self.sensors['gnss'],
-        ]
+        sensors = list(map(lambda s: s.sensor, filter(lambda s: hasattr(s, 'sensor'), self.sensors.values())))
 
-        for sensor in sensors:
-            if sensor and sensor.sensor:
-                sensor.sensor.destroy()
+        SimulationUtils.multi_destroy(self.world, self.sim, sensors + [self.vehicle])
 
-        self.vehicle.destroy()
+        if self.client:
+            self.client.tear_down()
 
     def _render_bboxes(self):
         if not self.grid:

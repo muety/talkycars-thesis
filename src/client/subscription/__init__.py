@@ -112,6 +112,10 @@ class TileSubscriptionService:
     def active(self) -> bool:
         return len(self.active_bridges) > 0 and all(list(map(lambda b: b.connected, self.active_bridges.values())))
 
+    def tear_down(self):
+        for b in self.active_bridges.values():
+            b.tear_down()
+
     def _try_get_bridge(self, for_key: str) -> MqttBridge:
         for_key = for_key[:EDGE_DISTRIBUTION_TILE_LEVEL]
         if for_key not in self.active_bridges:

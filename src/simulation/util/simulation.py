@@ -72,5 +72,5 @@ class SimulationUtils:
 
     @staticmethod
     def multi_destroy(world: carla.World, carla_client: carla.Client, actors: Iterable[carla.Actor]):
-        batch = list(map(lambda c: carla.command.DestroyActor(c.id), actors))
+        batch = list(map(lambda a: carla.command.DestroyActor(a), actors))
         carla_client.apply_batch_sync(batch)

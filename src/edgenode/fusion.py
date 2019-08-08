@@ -49,7 +49,7 @@ class PEMFusionService(FusionService[PEMTrafficScene]):
         self.sector_keys: Set[QuadKey] = set(sector.children(at_level=REMOTE_GRID_TILE_LEVEL))
         self.observations: Dict[int, Deque[PEMTrafficScene]] = {}
 
-        self.fuse_pool: Pool = Pool(6)
+        self.fuse_pool: Pool = Pool(6, )
 
     def push(self, sender_id: int, observation: PEMTrafficScene):
         if sender_id not in self.observations:

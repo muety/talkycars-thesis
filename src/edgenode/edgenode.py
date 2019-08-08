@@ -12,6 +12,7 @@ from common.constants import *
 from common.quadkey import QuadKey
 from common.serialization.schema import CapnpObject
 from common.serialization.schema.base import PEMTrafficScene
+from common.util import GracefulKiller
 from edgenode.fusion import FusionService, FusionServiceFactory
 
 EVAL_RATE_SECS = 5  # hertz⁻¹
@@ -19,13 +20,15 @@ TICK_RATE = 10  # hertz
 
 class EdgeNode:
     def __init__(self, covered_tile: QuadKey):
+        self.killer: GracefulKiller = GracefulKiller()
+
         self.mqtt: MqttBridge = None
         self.fusion_srvc: FusionService[PEMTrafficScene] = FusionServiceFactory.get(PEMTrafficScene, covered_tile)
         self.covered_tile: QuadKey = covered_tile
         self.children_tiles: List[QuadKey] = covered_tile.children(REMOTE_GRID_TILE_LEVEL)
         self.children_tile_keys: Set[str] = set(map(lambda t: t.key, self.children_tiles))
 
-        self.in_rate_count_thread: Thread = Thread(target=self._eval_rate)
+        self.in_rate_count_thread: Thread = Thread(target=self._eval_rate, daemon=True)
         self.in_rate_lock: RLock = RLock()
         self.in_rate_count: int = 0
 
@@ -42,6 +45,10 @@ class EdgeNode:
         self.mqtt.listen(block=False)
 
         while True:
+            if self.killer.kill_now:
+                self.mqtt.tear_down()
+                break
+
             self.last_tick = time.monotonic()
             self.tick()
             diff = time.monotonic() - self.last_tick
@@ -90,7 +97,6 @@ class EdgeNode:
             logging.debug(e1)
             logging.error(e2)
             raise e2
-
 
 def run(args=sys.argv[1:]):
     argparser = argparse.ArgumentParser(description='TalkyCars Edge Node Server')

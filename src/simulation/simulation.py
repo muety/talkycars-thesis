@@ -89,9 +89,9 @@ class World(object):
                 return True
 
     def destroy(self):
-        all_actors = self.npcs + list(map(lambda e: e.vehicle, self.egos))
-        SimulationUtils.multi_destroy(self.world, self.sim, all_actors)
-
+        for e in self.egos:
+            e.destroy()
+        SimulationUtils.multi_destroy(self.world, self.sim, self.npcs)
 
 def game_loop(args):
     killer = GracefulKiller()
@@ -109,8 +109,7 @@ def game_loop(args):
 
     finally:
         if world is not None:
-            world.destroy()
-            return
+            return world.destroy()
 
 
 def run(args=sys.argv[1:]):

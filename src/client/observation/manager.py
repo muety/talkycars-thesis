@@ -85,3 +85,8 @@ class ObservationManager:
         if key not in self.observations or len(self.observations[key]) == 0:
             return None
         return self.observations[key][-1]
+
+    def tear_down(self):
+        self.pool.close()
+        self.pool.join()
+        self.pool.terminate()

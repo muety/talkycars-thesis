@@ -61,6 +61,11 @@ class TalkyClient:
         self.outbound.subscribe(OBS_OCCUPANCY_GRID, self._on_grid)
         self.outbound.subscribe(OBS_GNSS_PREFIX + ALIAS_EGO, self._on_gnss)
 
+    def tear_down(self):
+        self.tss.tear_down()
+        self.om.tear_down()
+        self.gm.tear_down()
+
     def _on_lidar(self, obs: LidarObservation):
         if self.om.has(OBS_GNSS_PREFIX + ALIAS_EGO):
             self.gm.update_gnss(cast(GnssObservation, self.om.latest(OBS_GNSS_PREFIX + ALIAS_EGO)))

@@ -72,6 +72,11 @@ class OccupancyGridManager:
 
         return True
 
+    def tear_down(self):
+        self.pool.close()
+        self.pool.join()
+        self.pool.terminate()
+
     @staticmethod
     def _match_cells(bounds: np.ndarray, points: np.ndarray, loc: np.ndarray):
         if bounds.shape[0] == 0:
