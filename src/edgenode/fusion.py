@@ -1,10 +1,9 @@
-import collections
 import time
 from abc import ABC, abstractmethod
 from collections import deque
 from itertools import starmap
 from multiprocessing.pool import Pool
-from typing import TypeVar, Generic, Type, Set, List, Dict, Tuple, Union, Deque, OrderedDict
+from typing import TypeVar, Generic, Type, Set, List, Dict, Tuple, Union, Deque
 
 import numpy as np
 
@@ -50,7 +49,7 @@ class PEMFusionService(FusionService[PEMTrafficScene]):
         self.sector_keys: Set[QuadKey] = set(sector.children(at_level=REMOTE_GRID_TILE_LEVEL))
         self.observations: Dict[int, Deque[PEMTrafficScene]] = {}
 
-        self.fuse_pool: Pool = Pool(1)
+        self.fuse_pool: Pool = Pool(6)
 
     def push(self, sender_id: int, observation: PEMTrafficScene):
         if sender_id not in self.observations:
@@ -111,7 +110,8 @@ class PEMFusionService(FusionService[PEMTrafficScene]):
         fused_cell: PEMGridCell = PEMGridCell(hash=cell_hash.key)
 
         state_confs: np.ndarray[np.float32, np.float32] = np.array([[] for i in range(GridCellState.N)], dtype=np.float32)
-        occ_confs: OrderedDict[int, float] = collections.OrderedDict([(-1, 0.0)])
+        occ_confs: np.ndarray[np.float32, np.float32] = np.expand_dims(np.array([], dtype=np.float32), -1)
+
         occupants: Dict[int, PEMDynamicActor] = dict()
 
         for ts, cell in cells:
@@ -124,25 +124,35 @@ class PEMFusionService(FusionService[PEMTrafficScene]):
             state_confs = np.hstack((state_confs, np.expand_dims(state_conf_vec, 1)))
 
             # 2.: Cell Occupant
-            # occid = cell.occupant.object.id if cell.occupant else -1
-            # if occid not in occ_confs:
-            #     occ_confs[occid] = 0
-            #     occupants[occid] = cell.occupant.object if occid > -1 else None
-            # occ_confs[occid] += cls._decay(ts) * (cell.occupant.confidence if cell.occupant else cell.state.confidence)
+            occid = cell.occupant.object.id if cell.occupant.object else -1
+            occ_conf = cls._decay(ts) * cell.occupant.confidence
+            if occid not in occupants:
+                occupants[occid] = cell.occupant.object if occid > -1 else None
+                if occ_confs.shape[0] > 0:
+                    occ_confs = np.vstack((occ_confs, np.full(occ_confs.shape[1:], np.nan)))
 
+            if occ_confs.shape[0] > 0:
+                occ_confs = np.hstack((occ_confs, np.vstack((np.full((max(occ_confs.shape[0] - 1, 0), 1), np.nan), [occ_conf]))))
+            else:
+                occ_confs = np.vstack((np.full((max(occ_confs.shape[0] - 1, 0), 1), np.nan), [occ_conf]))
+
+        # 1.: Cell State
         state_probs = np.mean(state_confs, axis=1)
-
-        # occ_confs_arr = np.array(list(occ_confs.values()))
-        # occ_probs = np.divide(occ_confs_arr, np.sum(occ_confs_arr))
-
         state = (float(np.max(state_probs)), GridCellState.options()[int(np.amax(state_probs))])
-        #occ_id = (float(np.max(occ_probs)), list(occ_confs.keys())[int(np.amax(occ_probs))])
+
+        # 2.: Cell Occpant
+        occ_col_max_inv = 1 - np.nanmax(occ_confs, axis=0)
+        occ_conf_inv_clipped = np.minimum(occ_col_max_inv / max((occ_confs.shape[0] - 1), 1), 1 / occ_confs.shape[0])
+        occ_inds = np.where(np.isnan(occ_confs))
+        occ_confs[occ_inds] = np.take(occ_conf_inv_clipped, occ_inds[1])
+        occ_probs = np.mean(occ_confs, axis=1)
+        occ = (float(np.max(occ_probs)), list(occupants.values())[int(np.amax(occ_probs))])
 
         fused_cell.state = PEMRelation[GridCellState](*state)
-        # fused_cell.occupant = PEMRelation[PEMDynamicActor](
-        #    confidence=occ_id[0],
-        #    object=None  # TODO: Actually fuse actor properties
-        #)
+        fused_cell.occupant = PEMRelation[PEMDynamicActor](
+            confidence=occ[0],
+            object=occ[1]  # TODO: Actually fuse actor properties
+        )
 
         return fused_cell
 
