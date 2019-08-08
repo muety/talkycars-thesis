@@ -49,11 +49,13 @@ class EdgeNode:
 
     def tick(self):
         # TODO: Maybe try to speed up a little more. Currently takes ~ 0.12 sec for two agents with 10x10 grids
+        t0 = time.monotonic()
         fused_graphs: Dict[str, PEMTrafficScene] = self.fusion_srvc.get()
         if not fused_graphs:
             return
 
         self.send_pool.starmap_async(self._publish_graph, fused_graphs.items())
+        print(time.monotonic() - t0)
 
     def _on_graph(self, message: bytes):
         graph: PEMTrafficScene = cast(PEMTrafficScene, self._decode_capnp_msg(message, target_cls=PEMTrafficScene))

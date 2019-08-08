@@ -107,7 +107,7 @@ class GridCellState(CapnpObject):
     N: int = 3
 
     def __init__(self, value: Gss = None):
-        self.value: GridCellState = value
+        self.value: Gss = value
 
     @staticmethod
     def free() -> 'GridCellState':
@@ -126,9 +126,9 @@ class GridCellState(CapnpObject):
         return [GridCellState.free(), GridCellState.occupied(), GridCellState.unknown()]
 
     def index(self) -> int:
-        if self.value == self.free(): return 0
-        if self.value == self.occupied(): return 1
-        if self.value == self.unknown(): return 2
+        if self.value == Gss.FREE: return 0
+        if self.value == Gss.OCCUPIED: return 1
+        if self.value == Gss.UNKNOWN: return 2
         return -1
 
     def to_message(self):
