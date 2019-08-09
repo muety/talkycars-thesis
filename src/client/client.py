@@ -118,7 +118,6 @@ class TalkyClient:
             group_key = f'cell_occupant_{cell.quad_key.key}'
 
             if len(visible_actors[cell.quad_key.key]) > 0:
-                # TODO: Fix! This branch is called way too seldomly!!!
                 # Assuming that a cell is tiny enough to contain at max one actor
                 actor = visible_actors[cell.quad_key.key][0]
 

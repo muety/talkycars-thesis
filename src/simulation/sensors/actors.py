@@ -73,11 +73,11 @@ class ActorsSensor(Sensor):
             id=actor.id,
             type=actor.type.with_uncertainty(),
             type_id=actor.type_id,
-            gnss=actor.gnss.with_uncertainty().with_gaussian_noise(sigma=.001),
-            location=actor.location.with_uncertainty().with_gaussian_noise(sigma=.01),
+            gnss=actor.gnss.with_uncertainty().with_gaussian_noise(sigma=1e-5),
+            location=actor.location.with_uncertainty().with_gaussian_noise(sigma=1e-3),
             dynamics=ActorDynamics(
-                velocity=actor.dynamics.velocity.with_uncertainty().with_gaussian_noise(sigma=.01),
-                acceleration=actor.dynamics.acceleration.with_uncertainty().with_gaussian_noise(sigma=.01)
+                velocity=actor.dynamics.velocity.with_uncertainty().with_gaussian_noise(sigma=1e-3),
+                acceleration=actor.dynamics.acceleration.with_uncertainty().with_gaussian_noise(sigma=1e-3)
             ),
             props=ActorProperties(
                 color=actor.props.color.with_uncertainty(),
