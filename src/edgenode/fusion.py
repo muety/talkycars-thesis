@@ -132,19 +132,14 @@ class PEMFusionService(FusionService[PEMTrafficScene]):
             occ_id = cell.occupant.object.id if cell.occupant.object else -1
             if occ_id not in occupants:
                 occupants[occ_id] = cell.occupant.object if occ_id > -1 else None
-                occ_confs = np.vstack((occ_confs, np.full(occ_confs.shape[1:], np.nan)))
-            occ_confs = np.hstack((occ_confs, np.vstack((np.full((max(occ_confs.shape[0] - 1, 0), 1), np.nan), [occ_conf]))))
+                occ_confs = np.vstack((occ_confs, np.zeros(occ_confs.shape[1:])))
+            occ_confs = np.hstack((occ_confs, np.vstack((np.zeros((max(occ_confs.shape[0] - 1, 0), 1)), [occ_conf]))))
 
         # 1.: Cell State
         state_probs = np.mean(state_confs, axis=1)
         state = (float(np.max(state_probs)), states[int(np.amax(state_probs))])
 
         # 2.: Cell Occupant
-        if np.sum(np.isnan(occ_confs)) > 0:
-            occ_col_max_inv = 1 - np.nanmax(occ_confs, axis=0)
-            occ_conf_inv_clipped = np.minimum(occ_col_max_inv / max((occ_confs.shape[0] - 1), 1), 1 / occ_confs.shape[0])
-            occ_inds = np.where(np.isnan(occ_confs))
-            occ_confs[occ_inds] = np.take(occ_conf_inv_clipped, occ_inds[1])
         occ_probs = np.mean(occ_confs, axis=1)
         occ = (float(np.max(occ_probs)), list(occupants.values())[int(np.amax(occ_probs))])
 
