@@ -30,6 +30,8 @@ class PEMDynamicActor(CapnpObject):
         me = dynamic_actor.DynamicActor.new_message()
 
         me.id = self.id
+        if self.type and self.type.object:
+            me.type = self.type.to_message()
         if self.color and self.color.object:
             me.color = self.color.to_message()
         if self.position and self.position.object:
@@ -46,7 +48,7 @@ class PEMDynamicActor(CapnpObject):
     @classmethod
     def from_message_dict(cls, object_dict: Dict, target_cls: Type = None) -> 'PEMDynamicActor':
         id = object_dict['id'] if 'id' in object_dict else None
-        type = PEMRelation.from_message_dict(object_dict['type']) if 'type' in object_dict else None
+        type = PEMRelation.from_message_dict(object_dict['type'], target_cls=ActorType) if 'type' in object_dict else None
         color = PEMRelation.from_message_dict(object_dict['color']) if 'color' in object_dict else None
         position = PEMRelation.from_message_dict(object_dict['position'], target_cls=Vector3D) if 'position' in object_dict else None
         bounding_box = PEMRelation.from_message_dict(object_dict['boundingBox'], target_cls=RelativeBBox) if 'boundingBox' in object_dict else None
