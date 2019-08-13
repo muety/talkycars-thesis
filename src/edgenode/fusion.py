@@ -112,6 +112,9 @@ class PEMFusionService(FusionService[PEMTrafficScene]):
         state_confs: np.ndarray[np.float32, np.float32] = np.empty((3, 0), dtype=np.float32)
         occ_confs: np.ndarray[np.float32, np.float32] = np.empty((0, 0), dtype=np.float32)
 
+        occ_weightsum: float = 0.0
+        state_weightsum: float = 0.0
+
         states: List[GridCellState] = GridCellState.options()
         occupants: Dict[int, PEMDynamicActor] = dict()
 
@@ -120,27 +123,30 @@ class PEMFusionService(FusionService[PEMTrafficScene]):
                 continue
 
             # 1.: Cell State
-            state_conf = cls._decay(ts) * cell.state.confidence
+            weight = cls._decay(ts)
+            state_conf = weight * cell.state.confidence
             state_conf_vec = np.array([state_conf
                                        if i == cell.state.object.index()
                                        else np.minimum((1 - state_conf) / GridCellState.N, 1 / GridCellState.N)
                                        for i in range(GridCellState.N)], dtype=np.float32)
             state_confs = np.hstack((state_confs, state_conf_vec.reshape(-1, 1)))
+            state_weightsum += weight
 
             # 2.: Cell Occupant
-            occ_conf = cls._decay(ts) * cell.occupant.confidence
+            occ_conf = weight * cell.occupant.confidence
             occ_id = cell.occupant.object.id if cell.occupant.object else -1
             if occ_id not in occupants:
                 occupants[occ_id] = cell.occupant.object if occ_id > -1 else None
                 occ_confs = np.vstack((occ_confs, np.zeros(occ_confs.shape[1:])))
             occ_confs = np.hstack((occ_confs, np.vstack((np.zeros((max(occ_confs.shape[0] - 1, 0), 1)), [occ_conf]))))
+            occ_weightsum += weight
 
         # 1.: Cell State
-        state_probs = np.mean(state_confs, axis=1)
+        state_probs = np.sum(state_confs, axis=1) / state_weightsum
         state = (float(np.max(state_probs)), states[int(np.amax(state_probs))])
 
         # 2.: Cell Occupant
-        occ_probs = np.mean(occ_confs, axis=1)
+        occ_probs = np.sum(occ_confs, axis=1) / occ_weightsum
         occ = (float(np.max(occ_probs)), list(occupants.values())[int(np.amax(occ_probs))])
 
         fused_cell.state = PEMRelation[GridCellState](*state)
