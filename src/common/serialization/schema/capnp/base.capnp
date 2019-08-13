@@ -4,7 +4,7 @@ using import "actor.capnp".DynamicActor;
 using import "occupancy.capnp".OccupancyGrid;
 
 struct TrafficScene {
-    timestamp @0 :UInt32;
+    timestamp @0 :Float64;
     measuredBy @1 :DynamicActor;
     occupancyGrid @2 :OccupancyGrid;
 }

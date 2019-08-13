@@ -1,3 +1,4 @@
+import math
 import time
 from abc import ABC, abstractmethod
 from collections import deque
@@ -124,21 +125,19 @@ class PEMFusionService(FusionService[PEMTrafficScene]):
 
             # 1.: Cell State
             weight = cls._decay(ts)
-            state_conf = weight * cell.state.confidence
-            state_conf_vec = np.array([state_conf
+            state_conf_vec = weight * np.array([cell.state.confidence
                                        if i == cell.state.object.index()
-                                       else np.minimum((1 - state_conf) / GridCellState.N, 1 / GridCellState.N)
-                                       for i in range(GridCellState.N)], dtype=np.float32)
+                                                else np.minimum((1 - cell.state.confidence) / GridCellState.N, 1 / GridCellState.N)
+                                                for i in range(GridCellState.N)], dtype=np.float32)
             state_confs = np.hstack((state_confs, state_conf_vec.reshape(-1, 1)))
             state_weightsum += weight
 
             # 2.: Cell Occupant
-            occ_conf = weight * cell.occupant.confidence
             occ_id = cell.occupant.object.id if cell.occupant.object else -1
             if occ_id not in occupants:
                 occupants[occ_id] = cell.occupant.object if occ_id > -1 else None
                 occ_confs = np.vstack((occ_confs, np.zeros(occ_confs.shape[1:])))
-            occ_confs = np.hstack((occ_confs, np.vstack((np.zeros((max(occ_confs.shape[0] - 1, 0), 1)), [occ_conf]))))
+            occ_confs = weight * np.hstack((occ_confs, np.vstack((np.zeros((max(occ_confs.shape[0] - 1, 0), 1)), [cell.occupant.confidence]))))
             occ_weightsum += weight
 
         # 1.: Cell State
@@ -148,15 +147,14 @@ class PEMFusionService(FusionService[PEMTrafficScene]):
         # 2.: Cell Occupant
         occ_probs = np.sum(occ_confs, axis=1) / occ_weightsum
         occ = (float(np.max(occ_probs)), list(occupants.values())[int(np.amax(occ_probs))])
+        print(occ[0])
 
         fused_cell.state = PEMRelation[GridCellState](*state)
-        fused_cell.occupant = PEMRelation[PEMDynamicActor](
-            confidence=occ[0],
-            object=occ[1]  # TODO: Actually fuse actor properties (or maybe not?)
-        )
+        fused_cell.occupant = PEMRelation[PEMDynamicActor](*occ)
 
         return fused_cell
 
     @staticmethod
-    def _decay(timestamp: int) -> float:
-        return 1  # TODO
+    def _decay(timestamp: float) -> float:
+        t = int((time.time() - timestamp) * 10)  # t in 100ms
+        return math.exp(-t * FUSION_DECAY_LAMBDA)

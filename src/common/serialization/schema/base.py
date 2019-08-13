@@ -20,7 +20,7 @@ base = capnp.load(os.path.join(dirname, './capnp/base.capnp'))
 class PEMTrafficScene(CapnpObject):
     def __init__(self, **entries):
         # NOTE: This is only the default. You might wanna set this explicitly.
-        self.timestamp: int = int(time.time())  # UTC Unix timestamp
+        self.timestamp: float = time.time()  # UTC Unix timestamp
         self.measured_by: PEMDynamicActor = None
         self.occupancy_grid: PEMOccupancyGrid = None
 

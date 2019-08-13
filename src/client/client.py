@@ -101,7 +101,7 @@ class TalkyClient:
         visible_actors: Dict[str, List[DynamicActor]] = ClientUtils.match_actors_with_grid(grid, actors_others_obs.value)
 
         # Generate PEM complex object attributes
-        ts = int(min([ts1, actors_ego_obs.timestamp, actors_others_obs.timestamp]))
+        ts: float = max([ts1, actors_ego_obs.timestamp, actors_others_obs.timestamp])
 
         pem_ego = ClientUtils.map_pem_actor(ego_actor)
 
