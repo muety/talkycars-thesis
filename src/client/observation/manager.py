@@ -1,3 +1,4 @@
+import time
 from collections import deque
 from multiprocessing.dummy import Pool
 from multiprocessing.pool import AsyncResult
@@ -11,7 +12,8 @@ class ObservationManager:
     def __init__(self, keep=10):
         self.default_keep: int = keep
         self.observations: Dict[str, deque] = {}
-        self.key_types: Dict[str, Type[Observation]] = {}
+        self.types: Dict[str, Type[Observation]] = {}
+        self.last_update: Dict[str, float] = {}
         self.subscribers: Dict[str, List[Callable]] = {}
         self.locks: Dict[str, Lock] = {}
         self.aliases: Dict[str, str] = {}
@@ -21,16 +23,20 @@ class ObservationManager:
     Optional method to explicitly initialize an observation queue for a specific key upfront.
     '''
 
-    def register_key(self, key: str, obs_type: Type[Observation], keep=10):
+    def register_key(self, key: str, obs_type: Type[Observation], keep: int = 10, ttl: float = float('inf')):
         assert isinstance(key, str)
         assert isinstance(obs_type, type)
 
         self.observations[key] = deque(maxlen=keep)
-        self.key_types[key] = obs_type
+        self.types[key] = obs_type
         self.locks[key] = Lock()
+        self.last_update[key] = float('inf')
 
     def unregister_key(self, key: str):
         self.observations.pop(key, None)
+        del self.types[key]
+        del self.locks[key]
+        del self.last_update[key]
 
     def register_alias(self, key: str, alias: str):
         if key not in self.observations:
@@ -64,6 +70,7 @@ class ObservationManager:
         with lock:
             async_results: List[AsyncResult] = []
             self.observations[key].append(observation)
+            self.last_update[key] = observation.timestamp
 
             if key in self.subscribers:
                 for f in self.subscribers[key]:
@@ -72,18 +79,23 @@ class ObservationManager:
             for r in async_results:
                 r.wait()
 
-    def has(self, key: str) -> bool:
+    def has(self, key: str, max_age: float = float('inf')) -> bool:
         if key in self.aliases:
             key = self.aliases[key]
 
-        return key in self.observations and len(self.observations[key]) > 0
+        return key in self.observations \
+               and len(self.observations[key]) > 0 \
+               and time.time() - self.last_update[key] <= max_age
 
-    def latest(self, key: str) -> Observation:
+    def latest(self, key: str, max_age: float = float('inf')) -> Observation:
         if key in self.aliases:
             key = self.aliases[key]
 
-        if key not in self.observations or len(self.observations[key]) == 0:
+        if key not in self.observations \
+                or len(self.observations[key]) == 0 \
+                or time.time() - self.last_update[key] >= max_age:
             return None
+
         return self.observations[key][-1]
 
     def tear_down(self):
