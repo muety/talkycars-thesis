@@ -1,3 +1,4 @@
+import logging
 import math
 import time
 from abc import ABC, abstractmethod
@@ -163,11 +164,19 @@ class PEMFusionService(FusionService[PEMTrafficScene]):
 
         # 1.: Cell State
         state_probs = np.sum(state_confs, axis=1) / state_weightsum
-        state = (float(np.max(state_probs)), states[int(np.argmax(state_probs))])
+        try:
+            state = (float(np.max(state_probs)), states[int(np.argmax(state_probs))])
+        except:
+            logging.warning(f'Got state probs of shape {state_probs.shape}.')
+            state = (0, GridCellState.unknown())
 
         # 2.: Cell Occupant
         occ_probs = np.sum(occ_confs, axis=1) / occ_weightsum
-        occ = (float(np.max(occ_probs)), list(occupants.values())[int(np.argmax(occ_probs))])
+        try:
+            occ = (float(np.max(occ_probs)), list(occupants.values())[int(np.argmax(occ_probs))])
+        except:
+            logging.warning(f'Got occ probs of shape {occ_probs.shape}.')
+            occ = (0, None)
 
         fused_cell.state = PEMRelation[GridCellState](*state)
         fused_cell.occupant = PEMRelation[PEMDynamicActor](*occ)
