@@ -1,5 +1,6 @@
 import logging
 import time
+from multiprocessing.pool import ThreadPool
 from threading import Lock
 from typing import Iterable, Dict, Tuple, Callable, Set
 
@@ -34,6 +35,8 @@ class TileSubscriptionService:
         self.on_graph_cb = self._wrap_graph_callback(on_graph_cb)
         self.rate_limit: float = rate_limit
         self.locks: Dict[str, Lock] = {'graph': Lock()}
+
+        self.pool: ThreadPool = ThreadPool(1)
 
     def update_position(self, qk: QuadKey):
         parent = quadkey.from_str(qk.key[:REMOTE_GRID_TILE_LEVEL])
@@ -128,10 +131,19 @@ class TileSubscriptionService:
             lock = self.locks['graph']
             if lock.locked():
                 return
+
             lock.acquire()
+
             cb(args)
-            time.sleep(self.rate_limit)
-            lock.release()
+
+            if self.rate_limit > 0:
+                def unlock():
+                    time.sleep(self.rate_limit)
+                    lock.release()
+
+                self.pool.apply_async(unlock)
+            else:
+                lock.release()
 
         return wcb
 

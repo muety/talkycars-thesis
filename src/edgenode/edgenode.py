@@ -9,7 +9,7 @@ from typing import Type, cast, List, Set, Dict
 from common import quadkey
 from common.bridge import MqttBridge
 from common.constants import *
-from common.fusion import FusionService, FusionServiceFactory
+from common.fusion import FusionServiceFactory, PEMFusionService
 from common.quadkey import QuadKey
 from common.serialization.schema import CapnpObject
 from common.serialization.schema.base import PEMTrafficScene
@@ -23,7 +23,7 @@ class EdgeNode:
         self.killer: GracefulKiller = GracefulKiller()
 
         self.mqtt: MqttBridge = None
-        self.fusion_srvc: FusionService[PEMTrafficScene] = FusionServiceFactory.get(PEMTrafficScene, covered_tile)
+        self.fusion_srvc: PEMFusionService = FusionServiceFactory.get(PEMTrafficScene, covered_tile)
         self.covered_tile: QuadKey = covered_tile
         self.children_tiles: List[QuadKey] = covered_tile.children(REMOTE_GRID_TILE_LEVEL)
         self.children_tile_keys: Set[str] = set(map(lambda t: t.key, self.children_tiles))
