@@ -9,7 +9,7 @@ from typing import List
 
 import pygame
 from ego import Ego
-from strategy import ManualStrategy, Observer1Strategy
+from strategy import ManualStrategy
 from util.simulation import SimulationUtils
 
 import carla
@@ -49,23 +49,31 @@ class World(object):
         if scene_name == 'scene1':
             # Create main player
             main_hero = Ego(self.sim,
-                            strategy=ManualStrategy(),
+                            strategy=ManualStrategy(config=0),
                             name='main_hero',
                             render=True,
                             debug=True)
             self.egos.append(main_hero)
             self.world.wait_for_tick()
 
-            # Create observer player
-            observer_hero = Ego(self.sim,
-                                strategy=Observer1Strategy(),
-                                name='observer1',
-                                render=False,
-                                debug=False,
-                                grid_radius=10,
-                                lidar_angle=9)
-            self.egos.append(observer_hero)
+            second_hero = Ego(self.sim,
+                              strategy=ManualStrategy(config=1),
+                              name='second_hero',
+                              render=False,
+                              debug=False)
+            self.egos.append(second_hero)
             self.world.wait_for_tick()
+
+            # Create observer player
+            # observer_hero = Ego(self.sim,
+            #                     strategy=Observer1Strategy(),
+            #                     name='observer1',
+            #                     render=False,
+            #                     debug=False,
+            #                     grid_radius=10,
+            #                     lidar_angle=9)
+            # self.egos.append(observer_hero)
+            # self.world.wait_for_tick()
 
             # Create randomly roaming peds
             self.npcs += SimulationUtils.spawn_pedestrians(self.world, self.sim, N_PEDESTRIANS)
