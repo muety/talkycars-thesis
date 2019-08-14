@@ -1,9 +1,8 @@
 OBS_LIDAR_POINTS = 'lidar_points'
 OBS_CAMERA_RGB_IMAGE = 'camera_image'
 OBS_POSITION = 'player_pos'
-OBS_ACTOR_EGO = 'ego_actor'
-OBS_ACTORS_RAW = 'all_dynamic_actors'
-OBS_OCCUPANCY_GRID = 'player_occupancy_grid'
+OBS_ACTOR_EGO, OBS_ACTORS_RAW = 'ego_actor', 'all_dynamic_actors'
+OBS_GRID_LOCAL, OBS_GRID_COMBINED = 'local_occupancy_grid', 'occupancy_grid'
 OBS_GNSS_PREFIX = 'pos_gnss_'
 
 ALIAS_EGO = 'ego'
@@ -21,8 +20,7 @@ LIDAR_Z_OFFSET = 2.8
 
 GNSS_Z_OFFSET = 2.8
 
-RES_X = 1280
-RES_Y = 720
+RES_X, RES_Y = 1280, 720
 
 N_PEDESTRIANS = 50
 
@@ -33,3 +31,5 @@ EDGE_DISTRIBUTION_TILE_LEVEL = 16
 REMOTE_GRID_TILE_LEVEL = 19
 
 FUSION_DECAY_LAMBDA = .05
+
+REMOTE_PSEUDO_ID = -1

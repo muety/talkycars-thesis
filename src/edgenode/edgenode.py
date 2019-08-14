@@ -9,11 +9,11 @@ from typing import Type, cast, List, Set, Dict
 from common import quadkey
 from common.bridge import MqttBridge
 from common.constants import *
+from common.fusion import FusionService, FusionServiceFactory
 from common.quadkey import QuadKey
 from common.serialization.schema import CapnpObject
 from common.serialization.schema.base import PEMTrafficScene
 from common.util import GracefulKiller
-from edgenode.fusion import FusionService, FusionServiceFactory
 
 EVAL_RATE_SECS = 5  # hertz⁻¹
 TICK_RATE = 10  # hertz

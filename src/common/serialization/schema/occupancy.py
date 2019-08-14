@@ -45,6 +45,23 @@ class PEMGridCell(CapnpObject):
         occupant = PEMRelation.from_message_dict(object_dict['occupant'], target_cls=PEMDynamicActor) if 'occupant' in object_dict else None
         return cls(hash=hash, state=state, occupant=occupant)
 
+    def __str__(self):
+        return f'PEM Grid Cell @ {self.hash} : {self.state.object} [{self.state.confidence}]'
+
+    def __repr__(self):
+        return self.__str__()
+
+    def __eq__(self, other):
+        return all([
+            self.hash == other.hash,
+            self.state.object.value == other.state.object.value,
+            self.state.confidence == other.state.confidence,
+            (self.occupant is None) == (other.occupant is None)
+        ])
+
+    def __hash__(self):
+        return hash(self.__str__())
+
 
 class PEMOccupancyGrid(CapnpObject):
     def __init__(self, **entries):

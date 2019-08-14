@@ -1,4 +1,4 @@
-import logging
+import time
 from enum import Enum
 from typing import cast, List, Dict
 
@@ -6,10 +6,13 @@ from client.observation import ObservationManager, LinearObservationTracker
 from client.subscription import TileSubscriptionService
 from client.utils import ClientUtils
 from common.constants import *
+from common.fusion import FusionService, FusionServiceFactory
+from common.fusion.util import FusionUtils
 from common.model import DynamicActor
 from common.observation import CameraRGBObservation, ActorsObservation
 from common.observation import OccupancyGridObservation, LidarObservation, PositionObservation, \
     GnssObservation
+from common.occupancy import Grid
 from common.quadkey import QuadKey
 from common.serialization.schema import GridCellState
 from common.serialization.schema.base import PEMTrafficScene
@@ -37,6 +40,11 @@ class TalkyClient:
         self.outbound: OutboundController = OutboundController(self.om, self.gm)
         self.tss: TileSubscriptionService = TileSubscriptionService(self._on_remote_grid, rate_limit=.1)
         self.tracker: LinearObservationTracker = LinearObservationTracker(n=6)
+        self.fs: FusionService[PEMTrafficScene] = FusionServiceFactory.get(
+            PEMTrafficScene,
+            '0' * EDGE_DISTRIBUTION_TILE_LEVEL,
+            keep=2
+        )
 
         self.ego_id = str(for_subject_id)
 
@@ -46,7 +54,7 @@ class TalkyClient:
         self.om.register_key(OBS_POSITION, PositionObservation)
         self.om.register_key(OBS_LIDAR_POINTS, LidarObservation)
         self.om.register_key(OBS_CAMERA_RGB_IMAGE, CameraRGBObservation)
-        self.om.register_key(OBS_OCCUPANCY_GRID, OccupancyGridObservation)
+        self.om.register_key(OBS_GRID_LOCAL, OccupancyGridObservation)
         self.om.register_key(OBS_ACTOR_EGO, ActorsObservation)
         self.om.register_key(OBS_ACTORS_RAW, ActorsObservation)
         self.om.register_key(OBS_GNSS_PREFIX + self.ego_id, GnssObservation)
@@ -57,9 +65,9 @@ class TalkyClient:
         self.gm.offset_z = LIDAR_Z_OFFSET
 
         # Business logic
-        self.outbound.subscribe(OBS_LIDAR_POINTS, self._on_lidar)
-        self.outbound.subscribe(OBS_OCCUPANCY_GRID, self._on_grid)
         self.outbound.subscribe(OBS_GNSS_PREFIX + ALIAS_EGO, self._on_gnss)
+        self.outbound.subscribe(OBS_LIDAR_POINTS, self._on_lidar)
+        self.outbound.subscribe(OBS_GRID_LOCAL, self._on_grid)
 
     def tear_down(self):
         self.tss.tear_down()
@@ -83,11 +91,12 @@ class TalkyClient:
             return
 
         obs = OccupancyGridObservation(obs.timestamp, grid)
-        self.om.add(OBS_OCCUPANCY_GRID, obs)
+        self.om.add(OBS_GRID_LOCAL, obs)
 
     def _on_gnss(self, obs: GnssObservation):
         qk = obs.to_quadkey(level=REMOTE_GRID_TILE_LEVEL)
         self.tss.update_position(qk)
+        self.fs.set_sector(QuadKey(qk.key[:EDGE_DISTRIBUTION_TILE_LEVEL]))
 
     def _on_grid(self, obs: OccupancyGridObservation):
         ts1, grid = obs.timestamp, obs.value
@@ -140,12 +149,18 @@ class TalkyClient:
                                 occupancy_grid=pem_grid)
 
         encoded_msg = graph.to_bytes()
-        logging.debug(f'Encoded state representation to {len(encoded_msg) / 1024} kBytes')
+        # logging.debug(f'Encoded state representation to {len(encoded_msg) / 1024} kBytes')
 
         contained_tiles = frozenset(map(lambda c: c.quad_key.key, grid.cells))
         self.tss.publish_graph(encoded_msg, contained_tiles)
 
+        self.fs.push(int(self.ego_id), graph)
+
+        fused_grid: Grid = FusionUtils.scenes_to_single_grid(list(self.fs.get().values()), self.gm.convert, self.gm.get_cell_base_z())
+        self.inbound.publish(OBS_GRID_COMBINED, OccupancyGridObservation(time.time(), fused_grid))  # TODO: time ?
+
     def _on_remote_grid(self, msg: bytes):
         # TODO: Maybe do asynchronously?
         decoded_msg = PEMTrafficScene.from_bytes(msg)
-        logging.debug(f'Decoded remote fused state representation from {len(msg) / 1024} kBytes')
+        # logging.debug(f'Decoded remote fused state representation from {len(msg) / 1024} kBytes')
+        self.fs.push(REMOTE_PSEUDO_ID, decoded_msg)

@@ -22,9 +22,9 @@ T = TypeVar('T')
 
 class FusionServiceFactory:
     @staticmethod
-    def get(for_class: Type, *args):
+    def get(for_class: Type, *args, **kwargs):
         if for_class == PEMTrafficScene:
-            return PEMFusionService(*args)
+            return PEMFusionService(*args, **kwargs)
 
         raise ModuleNotFoundError('no implementation available for given type')
 
@@ -38,25 +38,39 @@ class FusionService(Generic[T], ABC):
     def get(self) -> Dict[str, T]:
         pass
 
+    @abstractmethod
+    def set_sector(self, sector: Union[QuadKey, str]):
+        pass
+
 
 class PEMFusionService(FusionService[PEMTrafficScene]):
     def __init__(self, sector: Union[QuadKey, str], keep=3):
+        self.sector: QuadKey = None
+        self.sector_keys: Set[str] = None
+
+        self.keep: int = keep
+        self.observations: Dict[int, Deque[PEMTrafficScene]] = {}
+
+        self.fuse_pool: Pool = Pool(6, )
+
+        self.set_sector(sector)
+
+    def set_sector(self, sector: Union[QuadKey, str]):
         if isinstance(sector, str):
             sector = quadkey.from_str(sector)
         assert sector.level == EDGE_DISTRIBUTION_TILE_LEVEL
 
-        self.keep: int = keep
-        self.sector: QuadKey = sector
-        self.sector_keys: Set[QuadKey] = set(sector.children(at_level=REMOTE_GRID_TILE_LEVEL))
-        self.observations: Dict[int, Deque[PEMTrafficScene]] = {}
-
-        self.fuse_pool: Pool = Pool(6, )
+        self.sector = sector
+        self.sector_keys = set(map(lambda qk: qk.key, sector.children(at_level=REMOTE_GRID_TILE_LEVEL)))
 
     def push(self, sender_id: int, observation: PEMTrafficScene):
         if sender_id not in self.observations:
             self.observations[sender_id] = deque(maxlen=self.keep)
         self.observations[sender_id].append(observation)
 
+    '''
+    Returns a map from tiles at REMOTE_GRID_TILE_LEVEL to fused PEMTrafficScenes
+    '''
     def get(self) -> Dict[str, PEMTrafficScene]:
         if len(self.observations) == 0:
             return None
@@ -89,6 +103,8 @@ class PEMFusionService(FusionService[PEMTrafficScene]):
         for cell_obs in cells:
             for cell in cell_obs[1]:
                 hash = cell.hash[:REMOTE_GRID_TILE_LEVEL]
+                if hash not in self.sector_keys:
+                    continue
                 if hash not in cell_map:
                     cell_map[hash] = deque(maxlen=4 ** (len(cell.hash) - REMOTE_GRID_TILE_LEVEL))
                     used_cells[hash] = set()
@@ -142,12 +158,11 @@ class PEMFusionService(FusionService[PEMTrafficScene]):
 
         # 1.: Cell State
         state_probs = np.sum(state_confs, axis=1) / state_weightsum
-        state = (float(np.max(state_probs)), states[int(np.amax(state_probs))])
+        state = (float(np.max(state_probs)), states[int(np.argmax(state_probs))])
 
         # 2.: Cell Occupant
         occ_probs = np.sum(occ_confs, axis=1) / occ_weightsum
-        occ = (float(np.max(occ_probs)), list(occupants.values())[int(np.amax(occ_probs))])
-        print(occ[0])
+        occ = (float(np.max(occ_probs)), list(occupants.values())[int(np.argmax(occ_probs))])
 
         fused_cell.state = PEMRelation[GridCellState](*state)
         fused_cell.occupant = PEMRelation[PEMDynamicActor](*occ)

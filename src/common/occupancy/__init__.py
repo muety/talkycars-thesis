@@ -15,12 +15,17 @@ class GridCellState(Enum):
 
 
 class GridCell(BBox3D):
-    def __init__(self, quad_key: QuadKey, convert: Callable, offset: float = 0, height: float = 3):
+    def __init__(self,
+                 quad_key: QuadKey,
+                 convert: Callable,
+                 offset: float = 0,
+                 height: float = 3,
+                 state: UncertainProperty[GridCellState] = UncertainProperty(1., GridCellState.UNKNOWN)):
         self.quad_key: QuadKey = quad_key
         self.convert: Callable = convert
         self.offset: float = offset
         self.height: float = height
-        self.state: UncertainProperty[GridCellState] = UncertainProperty(1., GridCellState.UNKNOWN)
+        self.state: UncertainProperty[GridCellState] = state
 
         pixel_corners: List[Point2D] = self._quadkey_to_box(quad_key)
         world_corners: List[Point2D] = list(map(self._map_to_world, pixel_corners))

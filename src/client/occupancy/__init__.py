@@ -29,9 +29,12 @@ class OccupancyGridManager:
         self.tracker: LinearObservationTracker = LinearObservationTracker(n=6)
         self.pool = Pool(processes=N_PROC)
 
+        self._cell_base_z: float = 0.0
+
     def update_gnss(self, obs: GnssObservation):
         key = obs.to_quadkey(self.level)
         self.gnss_current = obs
+        self._cell_base_z = (self.gnss_current.value[2] - self.offset_z / 2) + OCCUPANCY_BBOX_OFFSET
 
         if self.quadkey_current is None or key != self.quadkey_current:
             self.quadkey_current = key
@@ -46,6 +49,9 @@ class OccupancyGridManager:
 
     def get_grid(self) -> Grid:
         return self.grids[self.quadkey_current.key] if self.quadkey_current and self.quadkey_current.key in self.grids and self.grids[self.quadkey_current.key] else None
+
+    def get_cell_base_z(self) -> float:
+        return self._cell_base_z
 
     def match_with_lidar(self, obs: LidarObservation):
         grid = self.get_grid()
@@ -156,7 +162,6 @@ class OccupancyGridManager:
 
         assert len(nearby) == (self.radius * 2 + 1) ** 2
 
-        base_z = (self.gnss_current.value[2] - self.offset_z / 2) + OCCUPANCY_BBOX_OFFSET
         quadkeys: List[quadkey.QuadKey] = list(map(lambda k: quadkey.QuadKey(k), nearby))
-        cells: Set[GridCell] = set(map(lambda q: GridCell(q, self.convert, base_z, OCCUPANCY_BBOX_HEIGHT), quadkeys))
+        cells: Set[GridCell] = set(map(lambda q: GridCell(q, self.convert, self.get_cell_base_z(), OCCUPANCY_BBOX_HEIGHT), quadkeys))
         return Grid(cells)
