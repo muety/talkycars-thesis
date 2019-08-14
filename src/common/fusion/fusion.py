@@ -35,7 +35,7 @@ class FusionService(Generic[T], ABC):
         pass
 
     @abstractmethod
-    def get(self) -> Dict[str, T]:
+    def get(self, max_age: float) -> Dict[str, T]:
         pass
 
     @abstractmethod
@@ -71,10 +71,15 @@ class PEMFusionService(FusionService[PEMTrafficScene]):
     '''
     Returns a map from tiles at REMOTE_GRID_TILE_LEVEL to fused PEMTrafficScenes
     '''
-    def get(self) -> Dict[str, PEMTrafficScene]:
+
+    def get(self, max_age: float = float('inf')) -> Dict[str, PEMTrafficScene]:
         if len(self.observations) == 0:
             return None
-        all_obs = [dq[i] for dq in self.observations.values() for i in range(len(dq))]
+        now: float = time.time()
+        all_obs: List[PEMTrafficScene] = [dq[i]
+                                          for dq in self.observations.values()
+                                          for i in range(len(dq))
+                                          if now - dq[i].timestamp < max_age]
         return self._fuse_scene(all_obs)
 
     def _fuse_scene(self, scenes: List[PEMTrafficScene]) -> Dict[str, PEMTrafficScene]:
@@ -142,7 +147,7 @@ class PEMFusionService(FusionService[PEMTrafficScene]):
             # 1.: Cell State
             weight = cls._decay(ts)
             state_conf_vec = weight * np.array([cell.state.confidence
-                                       if i == cell.state.object.index()
+                                                if i == cell.state.object.index()
                                                 else np.minimum((1 - cell.state.confidence) / GridCellState.N, 1 / GridCellState.N)
                                                 for i in range(GridCellState.N)], dtype=np.float32)
             state_confs = np.hstack((state_confs, state_conf_vec.reshape(-1, 1)))

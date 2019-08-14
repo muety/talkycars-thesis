@@ -156,7 +156,7 @@ class TalkyClient:
 
         self.fs.push(int(self.ego_id), graph)
 
-        fused_grid: Grid = FusionUtils.scenes_to_single_grid(list(self.fs.get().values()), self.gm.convert, self.gm.get_cell_base_z())
+        fused_grid: Grid = FusionUtils.scenes_to_single_grid(list(self.fs.get(max_age=GRID_TTL_SEC).values()), self.gm.convert, self.gm.get_cell_base_z())
         self.inbound.publish(OBS_GRID_COMBINED, OccupancyGridObservation(time.time(), fused_grid))  # TODO: time ?
 
     def _on_remote_grid(self, msg: bytes):
