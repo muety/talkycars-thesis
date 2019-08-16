@@ -80,7 +80,7 @@ class TalkyClient:
 
         if self.om.has(OBS_ACTOR_EGO):
             ego: DynamicActor = cast(ActorsObservation, self.om.latest(OBS_ACTOR_EGO)).value[0]
-            self.gm.set_position(ego.location.value)
+            self.gm.update_ego(ego)
 
         # This is what takes most time
         if not self.gm.match_with_lidar(cast(LidarObservation, obs)):
@@ -107,7 +107,7 @@ class TalkyClient:
             return
 
         ego_actor: DynamicActor = actors_ego_obs.value[0]
-        visible_actors: Dict[str, List[DynamicActor]] = ClientUtils.match_actors_with_grid(grid, actors_others_obs.value)
+        visible_actors: Dict[str, List[DynamicActor]] = ClientUtils.match_actors_with_grid(grid, actors_others_obs.value + [ego_actor])
 
         # Generate PEM complex object attributes
         ts: float = max([ts1, actors_ego_obs.timestamp, actors_others_obs.timestamp])

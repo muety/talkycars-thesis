@@ -1,4 +1,4 @@
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, FrozenSet
 
 from common import quadkey, occupancy
 from common.constants import *
@@ -33,17 +33,19 @@ class ClientUtils:
         # TODO: Maybe abstract from Carla-specific classes?
 
     @staticmethod
-    def match_actors_with_grid(grid: Grid, actors: List[DynamicActor]) -> Dict[str, List[DynamicActor]]:
+    def get_occupied_cells(for_actor: DynamicActor) -> FrozenSet[QuadKey]:
+        c1: Tuple[float, float] = GeoUtils.gnss_add_meters(for_actor.gnss.value.components(), for_actor.props.extent.value.components(), delta_factor=-1)[:2]
+        c2: Tuple[float, float] = GeoUtils.gnss_add_meters(for_actor.gnss.value.components(), for_actor.props.extent.value.components())[:2]
+        c3: Tuple[float, float] = (c1[0], c2[1])
+        c4: Tuple[float, float] = (c2[0], c1[1])
+        return frozenset(map(lambda c: quadkey.from_geo(c, OCCUPANCY_TILE_LEVEL), [c1, c2, c3, c4]))
+
+    @classmethod
+    def match_actors_with_grid(cls, grid: Grid, actors: List[DynamicActor]) -> Dict[str, List[DynamicActor]]:
         matches: Dict[str, List[DynamicActor]] = {}
 
         for a in actors:
-            c1: Tuple[float, float] = GeoUtils.gnss_add_meters(a.gnss.value.components(), a.props.extent.value.components(), delta_factor=-1)[:2]
-            c2: Tuple[float, float] = GeoUtils.gnss_add_meters(a.gnss.value.components(), a.props.extent.value.components())[:2]
-            c3: Tuple[float, float] = (c1[0], c2[1])
-            c4: Tuple[float, float] = (c2[0], c1[1])
-            quadkeys: List[QuadKey] = list(map(lambda c: quadkey.from_geo(c, OCCUPANCY_TILE_LEVEL), [c1, c2, c3, c4]))
-
-            for qk in quadkeys:
+            for qk in cls.get_occupied_cells(a):
                 for cell in grid.cells:
                     if cell.quad_key.key not in matches:
                         matches[cell.quad_key.key] = []
