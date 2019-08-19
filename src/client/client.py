@@ -97,7 +97,10 @@ class TalkyClient:
                             '../../'
                         )
                     ),
-                    datetime.now().strftime(RECORDING_FILE_TPL))
+                    datetime.now()
+                        .strftime(RECORDING_FILE_TPL)
+                        .replace('<id>', self.ego_id)
+                )
             )
         self.recording = not self.recording
 

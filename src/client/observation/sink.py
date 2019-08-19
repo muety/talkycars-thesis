@@ -35,7 +35,7 @@ class CsvObservationSink(ObservationSink, ABC):
     def __init__(self, keys: List[str], outpath: str):
         super().__init__(keys)
         self.outpath: str = outpath
-        self.filehandle = open(outpath, 'a', buffering=1024 * 100)  # buffer 100 kBytes
+        self.filehandle = open(outpath, 'a', buffering=1024 * 20)  # buffer 20 kBytes
 
     def __del__(self):
         self.filehandle.close()
@@ -71,10 +71,10 @@ class CsvTrafficSceneSink(CsvObservationSink):
         props_dict['velocity_x'] = str(ego_velo[0])
         props_dict['velocity_y'] = str(ego_velo[1])
         props_dict['velocity_z'] = str(ego_velo[2])
-        props_dict['velocity_conf'] = str(ego_velo_conf)
+        props_dict['velocity_conf'] = '{:.3f}'.format(ego_velo_conf)
 
         for i, cell in enumerate(sorted(list(grid.value.cells), key=lambda c: c.quad_key.key)):
-            props_dict[f'cell_state_{i}'] = str(cell.state.value)
-            props_dict[f'cell_state_conf_{i}'] = str(cell.state.confidence)
+            props_dict[f'cell_state_{i}'] = str(int(cell.state.value))
+            props_dict[f'cell_state_conf_{i}'] = '{:.3f}'.format(cell.state.confidence)
 
         return props_dict
