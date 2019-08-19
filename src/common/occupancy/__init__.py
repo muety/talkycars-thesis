@@ -1,4 +1,4 @@
-from enum import Enum
+from enum import IntEnum
 from typing import Callable, List, Tuple, Set
 
 import numpy as np
@@ -8,7 +8,7 @@ from common.model import BBox3D, Point3D, Point2D, UncertainProperty
 from common.quadkey import QuadKey, TileAnchor
 
 
-class GridCellState(Enum):
+class GridCellState(IntEnum):
     FREE = 0
     OCCUPIED = 1
     UNKNOWN = 2

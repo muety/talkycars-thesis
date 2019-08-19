@@ -148,7 +148,7 @@ class PEMFusionService(FusionService[PEMTrafficScene]):
             # 1.: Cell State
             weight = cls._decay(ts)
             state_conf_vec = weight * np.array([cell.state.confidence
-                                                if i == cell.state.object.index()
+                                                if i == cell.state.object.value
                                                 else np.minimum((1 - cell.state.confidence) / GridCellState.N, 1 / GridCellState.N)
                                                 for i in range(GridCellState.N)], dtype=np.float32)
             state_confs = np.hstack((state_confs, state_conf_vec.reshape(-1, 1)))

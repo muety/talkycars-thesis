@@ -1,6 +1,6 @@
 import os
 from abc import ABC, abstractmethod
-from typing import Tuple, Type, Dict
+from typing import Tuple, Type, Dict, List
 
 import capnp
 
@@ -108,6 +108,7 @@ class GridCellState(CapnpObject):
 
     def __init__(self, value: Gss = None):
         self.value: Gss = value
+        self._as_string: List[str] = ['free', 'occupied', 'unknown']
 
     @staticmethod
     def free() -> 'GridCellState':
@@ -125,14 +126,8 @@ class GridCellState(CapnpObject):
     def options():
         return [GridCellState.free(), GridCellState.occupied(), GridCellState.unknown()]
 
-    def index(self) -> int:
-        if self.value == Gss.FREE: return 0
-        if self.value == Gss.OCCUPIED: return 1
-        if self.value == Gss.UNKNOWN: return 2
-        return -1
-
     def to_message(self):
-        return str(self.value).split('.')[1].lower()
+        return self._as_string[self.value]
 
     @classmethod
     def from_message_dict(cls, object_dict: Dict, target_cls: Type = None) -> 'GridCellState':

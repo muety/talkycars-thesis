@@ -79,9 +79,9 @@ class OccupancyGridManager:
                 cell = grid_cells[i * batch_size + j]
                 if cell.quad_key in self.ego_occupied_cells:
                     continue
-                self.tracker.track(group_key, s.value)
+                self.tracker.track(group_key, s)
                 self.tracker.cycle_group(group_key)
-                cell.state = UncertainProperty(self.tracker.get(group_key, s.value), s)
+                cell.state = UncertainProperty(self.tracker.get(group_key, s), s)
 
         return True
 
