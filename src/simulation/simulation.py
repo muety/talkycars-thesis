@@ -52,7 +52,8 @@ class World(object):
                             strategy=ManualStrategy(config=0),
                             name='main_hero',
                             render=True,
-                            debug=True)
+                            debug=True,
+                            record=True)
             self.egos.append(main_hero)
             self.world.wait_for_tick()
 
@@ -60,7 +61,8 @@ class World(object):
                               strategy=ManualStrategy(config=1),
                               name='second_hero',
                               render=False,
-                              debug=False)
+                              debug=False,
+                              record=False)
             self.egos.append(second_hero)
             self.world.wait_for_tick()
 

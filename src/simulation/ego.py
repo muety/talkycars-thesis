@@ -29,6 +29,7 @@ class Ego:
                  name: str = 'hero',
                  render: bool = False,
                  debug: bool = False,
+                 record: bool = False,
                  is_standalone: bool = False,
                  grid_radius: float = OCCUPANCY_RADIUS_DEFAULT,
                  lidar_angle: float = LIDAR_ANGLE_DEFAULT
@@ -43,9 +44,10 @@ class Ego:
         self.grid: Grid = None
         self.hud: HUD = None
         self.strategy: Strategy = strategy
+        self.debug: bool = debug
+        self.record: bool = record
+        self.n_ticked: int = 0
         self.display = None
-        self.debug = debug
-        self.n_ticked = 0
         self.sensors: Dict[str, carla.Sensor] = {
             'gnss': None,
             'lidar': None,
@@ -143,7 +145,9 @@ class Ego:
         return False
 
     def on_kth_tick(self, k: int, snap: carla.WorldSnapshot):
-        pass
+        if k == 10:
+            if self.record:
+                self.client.toggle_recording()
 
     def render(self):
         if 'camera_rgb' not in self.sensors or not self.hud or not self.display:

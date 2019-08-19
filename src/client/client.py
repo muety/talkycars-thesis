@@ -1,8 +1,12 @@
+import os
 import time
+from datetime import datetime
 from enum import Enum
+from threading import Thread
 from typing import cast, List, Dict
 
 from client.observation import ObservationManager, LinearObservationTracker
+from client.observation.sink import CsvTrafficSceneSink, ObservationSink
 from client.subscription import TileSubscriptionService
 from client.utils import ClientUtils
 from common.constants import *
@@ -40,21 +44,27 @@ class TalkyClient:
         self.outbound: OutboundController = OutboundController(self.om, self.gm)
         self.tss: TileSubscriptionService = TileSubscriptionService(self._on_remote_grid, rate_limit=.1)
         self.tracker: LinearObservationTracker = LinearObservationTracker(n=6)
+        self.sink: ObservationSink = None
         self.fs: FusionService[PEMTrafficScene] = FusionServiceFactory.get(
             PEMTrafficScene,
             '0' * EDGE_DISTRIBUTION_TILE_LEVEL,
             keep=2
         )
-
+        self.alive: bool = True
+        self.recording: bool = False
         self.ego_id = str(for_subject_id)
 
         self.remote_grid_quadkey: QuadKey = None
+
+        self.recording_thread: Thread = Thread(target=self._record, daemon=True)
+        self.recording_thread.start()
 
         # Type registrations
         self.om.register_key(OBS_POSITION, PositionObservation)
         self.om.register_key(OBS_LIDAR_POINTS, LidarObservation)
         self.om.register_key(OBS_CAMERA_RGB_IMAGE, CameraRGBObservation)
         self.om.register_key(OBS_GRID_LOCAL, OccupancyGridObservation)
+        self.om.register_key(OBS_GRID_COMBINED, OccupancyGridObservation)
         self.om.register_key(OBS_ACTOR_EGO, ActorsObservation)
         self.om.register_key(OBS_ACTORS_RAW, ActorsObservation)
         self.om.register_key(OBS_GNSS_PREFIX + self.ego_id, GnssObservation)
@@ -70,9 +80,26 @@ class TalkyClient:
         self.outbound.subscribe(OBS_GRID_LOCAL, self._on_grid)
 
     def tear_down(self):
+        self.alive = False
+        self.recording = False
         self.tss.tear_down()
         self.om.tear_down()
         self.gm.tear_down()
+
+    def toggle_recording(self):
+        if not self.recording:
+            self.sink = CsvTrafficSceneSink(
+                keys=[OBS_GRID_COMBINED, OBS_ACTOR_EGO],
+                out_file=os.path.join(
+                    os.path.normpath(
+                        os.path.join(
+                            os.path.dirname(__file__),
+                            '../../'
+                        )
+                    ),
+                    datetime.now().strftime(RECORDING_FILE_TPL))
+            )
+        self.recording = not self.recording
 
     def _on_lidar(self, obs: LidarObservation):
         if self.om.has(OBS_GNSS_PREFIX + ALIAS_EGO):
@@ -164,3 +191,20 @@ class TalkyClient:
         decoded_msg = PEMTrafficScene.from_bytes(msg)
         # logging.debug(f'Decoded remote fused state representation from {len(msg) / 1024} kBytes')
         self.fs.push(REMOTE_PSEUDO_ID, decoded_msg)
+
+    def _record(self):
+        while True:
+            time.sleep(1 / RECORDING_RATE)
+
+            if not self.alive:
+                return
+
+            if not self.recording or not self.sink:
+                continue
+
+            obs1 = self.inbound.om.latest(OBS_GRID_COMBINED)
+            obs2 = self.inbound.om.latest(OBS_ACTOR_EGO)
+
+            if obs1 and obs2:
+                self.sink.push(OBS_GRID_COMBINED, obs1)
+                self.sink.push(OBS_ACTOR_EGO, obs2)
