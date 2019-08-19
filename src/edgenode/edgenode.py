@@ -13,7 +13,7 @@ from common.fusion import FusionServiceFactory, PEMFusionService
 from common.quadkey import QuadKey
 from common.serialization.schema import CapnpObject
 from common.serialization.schema.base import PEMTrafficScene
-from common.util import GracefulKiller
+from common.util import GracefulKiller, proc_wrapper
 
 EVAL_RATE_SECS = 5  # hertz⁻¹
 TICK_RATE = 10  # hertz
@@ -61,7 +61,7 @@ class EdgeNode:
         if not fused_graphs:
             return
 
-        self.send_pool.starmap_async(self._publish_graph, fused_graphs.items())
+        self.send_pool.starmap_async(self._wrapped_pg, fused_graphs.items())
         print(time.monotonic() - t0)
 
     def _on_graph(self, message: bytes):
@@ -77,6 +77,9 @@ class EdgeNode:
             self.mqtt.publish(f'{TOPIC_PREFIX_GRAPH_FUSED_OUT}/{for_tile}', encoded_graph)
         except Exception as e:
             logging.warning(e)
+
+    def _wrapped_pg(self, *args, **kwargs):
+        return proc_wrapper(self._publish_graph, *args, **kwargs)
 
     def _eval_rate(self):
         while not self.mqtt or not self.mqtt.connected:

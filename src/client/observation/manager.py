@@ -6,6 +6,7 @@ from threading import Lock
 from typing import Callable, Dict, List, Type
 
 from common.observation import Observation
+from common.util import proc_wrapper
 
 
 class ObservationManager:
@@ -74,7 +75,7 @@ class ObservationManager:
 
             if key in self.subscribers:
                 for f in self.subscribers[key]:
-                    async_results.append(self.pool.apply_async(f, (observation,)))
+                    async_results.append(self.pool.apply_async(proc_wrapper, (f, observation,)))
 
             for r in async_results:
                 r.wait()

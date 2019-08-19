@@ -1,3 +1,4 @@
+import logging
 import signal
 
 
@@ -11,3 +12,13 @@ class GracefulKiller:
 
     def exit_gracefully(self, signum, frame):
         self.kill_now = True
+
+
+# https://stackoverflow.com/a/46414361/3112139
+def proc_wrapper(func, *args, **kwargs):
+    """Print exception because multiprocessing lib doesn't return them right."""
+    try:
+        return func(*args, **kwargs)
+    except Exception as e:
+        logging.exception(e)
+        raise

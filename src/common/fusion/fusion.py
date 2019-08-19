@@ -17,6 +17,7 @@ from common.serialization.schema.actor import PEMDynamicActor
 from common.serialization.schema.base import PEMTrafficScene
 from common.serialization.schema.occupancy import PEMGridCell, PEMOccupancyGrid
 from common.serialization.schema.relation import PEMRelation
+from common.util import proc_wrapper
 
 T = TypeVar('T')
 
@@ -127,6 +128,10 @@ class PEMFusionService(FusionService[PEMTrafficScene]):
     @classmethod
     def _fuse_tile_cells(cls, tile: str, cells: Deque[Tuple[int, PEMGridCell]], used_keys: Set[QuadKey]) -> Tuple[str, List[PEMGridCell]]:
         return tile, list(starmap(cls._fuse_tile_cell, list(map(lambda qk: (qk, cells), used_keys))))
+
+    @classmethod
+    def _wrapped_ftc(cls, *args, **kwargs):
+        return proc_wrapper(cls._fuse_tile_cells, *args, **kwargs)
 
     @classmethod
     def _fuse_tile_cell(cls, cell_hash: QuadKey, cells: Deque[Tuple[int, PEMGridCell]]) -> PEMGridCell:
