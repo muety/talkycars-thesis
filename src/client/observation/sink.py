@@ -32,9 +32,13 @@ class ObservationSink(ABC):
 
 
 class CsvObservationSink(ObservationSink, ABC):
-    def __init__(self, keys: List[str], out_file: str):
+    def __init__(self, keys: List[str], outpath: str):
         super().__init__(keys)
-        self.out_file: str = out_file
+        self.outpath: str = outpath
+        self.filehandle = open(outpath, 'a', buffering=1024 * 100)  # buffer 100 kBytes
+
+    def __del__(self):
+        self.filehandle.close()
 
     def _dump(self):
         data: Dict[str, Any] = self._get_property_dict()
@@ -42,12 +46,11 @@ class CsvObservationSink(ObservationSink, ABC):
         if not data:
             return
 
-        initialized: bool = os.path.exists(self.out_file)
+        initialized: bool = os.path.exists(self.outpath)
 
-        with open(self.out_file, 'a') as f:
-            if not initialized:
-                f.write(','.join(list(data.keys())) + '\n')
-            f.write(','.join(list(data.values())) + '\n')
+        if not initialized:
+            self.filehandle.write(','.join(list(data.keys())) + '\n')
+        self.filehandle.write(','.join(list(data.values())) + '\n')
 
 
 class CsvTrafficSceneSink(CsvObservationSink):

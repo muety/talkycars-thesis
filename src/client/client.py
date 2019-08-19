@@ -90,7 +90,7 @@ class TalkyClient:
         if not self.recording:
             self.sink = CsvTrafficSceneSink(
                 keys=[OBS_GRID_COMBINED, OBS_ACTOR_EGO],
-                out_file=os.path.join(
+                outpath=os.path.join(
                     os.path.normpath(
                         os.path.join(
                             os.path.dirname(__file__),

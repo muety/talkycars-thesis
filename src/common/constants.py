@@ -35,5 +35,5 @@ FUSION_DECAY_LAMBDA = .05
 
 REMOTE_PSEUDO_ID = -1
 
-RECORDING_RATE = 1  # Hz
+RECORDING_RATE = 10  # Hz
 RECORDING_FILE_TPL = 'data/recordings/%Y-%m-%d_%H-%M-%S.csv'
