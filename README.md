@@ -18,13 +18,13 @@
 
 ## Run
 ### Preparations
-1. Activate virtualenv: `source venv/bin/activate`
-2. Set some paths
-  2.1 `export PYTHONPATH=$PYTHONPATH:"$('pwd')/src/simulation"`
-  2.2. `export PYTHONPATH=$PYTHONPATH:"$('pwd')/carla"`
-  2.3. `export PYTHONPATH=$PYTHONPATH:"$('pwd')/carla/dist/carla-0.9.6-py3.5-linux-x86_64.egg"`
-3. Start Carla: `DISPLAY= ./CarlaUE4.sh -carla-server -windowed -ResX=800 -ResY=600 -opengl`
-4. Start HiveMQ: `docker run -p 1883:1883 --rm skobow/hivemq-ce`
+* Activate virtualenv: `source venv/bin/activate`
+* Set some paths
+  * `export PYTHONPATH=$PYTHONPATH:"$('pwd')/src/simulation"`
+  * `export PYTHONPATH=$PYTHONPATH:"$('pwd')/carla"`
+  * `export PYTHONPATH=$PYTHONPATH:"$('pwd')/carla/dist/carla-0.9.6-py3.5-linux-x86_64.egg"`
+* Start Carla: `DISPLAY= ./CarlaUE4.sh -carla-server -windowed -ResX=800 -ResY=600 -opengl`
+* Start HiveMQ: `docker run -p 1883:1883 --rm skobow/hivemq-ce`
 
 ### Run Modules (examples)
 * Run a **simulation**: `src && python3 run.py sim`
