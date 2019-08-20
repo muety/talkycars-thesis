@@ -16,7 +16,7 @@ def run():
         ego.run(sys.argv[2:])
     elif sys.argv[1] in {'web'}:
         import uvicorn
-        from edgenode.web.server import app
+        from web.server import app
         uvicorn.run(app)
 
 if __name__ == '__main__':
