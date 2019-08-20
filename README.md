@@ -5,6 +5,7 @@
 * Does only consider 2-dimensional road scenes (i.e. no bridges)
 * Intersections and more complex lane types are not modeled
 * Clock inconsistencies are neglected (i.e. it is assumed that all clients as well as the server can retrieve a perfectly accurate and synchronized time)
+* Low FPS 😞
 
 ## Requirements
 * Python 3.7
@@ -16,11 +17,20 @@
 * `pip3 install -r requirements.txt`
 
 ## Run
-* `source venv/bin/activate`
-* `export PYTHONPATH=$PYTHONPATH:"$('pwd')/src/simulation"`
-* `export PYTHONPATH=$PYTHONPATH:"$('pwd')/carla"`
-* `export PYTHONPATH=$PYTHONPATH:"$('pwd')/carla/dist/carla-0.9.6-py3.5-linux-x86_64.egg"`
-* `cd src && python3 simulation/simulation.py`
+### Preparations
+1. Activate virtualenv: `source venv/bin/activate`
+2. Set some paths
+  2.1 `export PYTHONPATH=$PYTHONPATH:"$('pwd')/src/simulation"`
+  2.2. `export PYTHONPATH=$PYTHONPATH:"$('pwd')/carla"`
+  2.3. `export PYTHONPATH=$PYTHONPATH:"$('pwd')/carla/dist/carla-0.9.6-py3.5-linux-x86_64.egg"`
+3. Start Carla: `DISPLAY= ./CarlaUE4.sh -carla-server -windowed -ResX=800 -ResY=600 -opengl`
+4. Start HiveMQ: `docker run -p 1883:1883 --rm skobow/hivemq-ce`
+
+### Run Modules (examples)
+* Run a **simulation**: `src && python3 run.py sim`
+* Run the **edge node** / server / RSU: `cd src && python3 run.py edge --debug --tile 1202032332303131`
+* Run a standalone **ego** vehicle: `src && python3 run.py ego --rolename dummy --render false --debug true`
+* Run the **web** dashboard: `src && python3 run.py web`
 
 ## QuadTiles
 | Tile Level | Ground Resolution @ Equator (m) |
