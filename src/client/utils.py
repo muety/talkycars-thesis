@@ -1,9 +1,8 @@
 from typing import List, Dict, Tuple, FrozenSet
 
-from common import quadkey, occupancy
+from common import quadkey
 from common.constants import *
 from common.model import DynamicActor
-from common.occupancy import Grid
 from common.quadkey import QuadKey
 from common.serialization.schema import RelativeBBox, Vector3D, ActorType
 from common.serialization.schema.actor import PEMDynamicActor
@@ -41,19 +40,12 @@ class ClientUtils:
         return frozenset(map(lambda c: quadkey.from_geo(c, OCCUPANCY_TILE_LEVEL), [c1, c2, c3, c4]))
 
     @classmethod
-    def match_actors_with_grid(cls, grid: Grid, actors: List[DynamicActor]) -> Dict[str, List[DynamicActor]]:
-        matches: Dict[str, List[DynamicActor]] = {}
+    # Assumes that a cell is tiny enough to contain at max one actor
+    def get_occupied_cells_multi(cls, for_actors: List[DynamicActor]) -> Dict[str, DynamicActor]:
+        matches: Dict[str, DynamicActor] = {}
 
-        for a in actors:
-            for qk in cls.get_occupied_cells(a):
-                for cell in grid.cells:
-                    if cell.quad_key.key not in matches:
-                        matches[cell.quad_key.key] = []
-
-                    if cell.state.value is not occupancy.GridCellState.OCCUPIED:
-                        continue
-
-                    if cell.quad_key == qk:
-                        matches[cell.quad_key.key].append(a)
+        for a in for_actors:
+            for c in cls.get_occupied_cells(a):
+                matches[c.key] = a
 
         return matches

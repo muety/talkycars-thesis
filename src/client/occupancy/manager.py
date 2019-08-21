@@ -76,6 +76,7 @@ class OccupancyGridManager:
 
         for i, r in enumerate(result):
             for j, s in enumerate(r):
+                s = GridCellState(s)
                 group_key = f'grid_cell_{i * batch_size + j}'
                 cell = grid_cells[i * batch_size + j]
                 if cell.quad_key in self.ego_occupied_cells:

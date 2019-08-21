@@ -43,12 +43,14 @@ window.addEventListener('load', () => {
     let observedKey
     let observedKeys = new Set()
     let observedTiles = new Set()
+    let running = false
 
-    let cleanUpLoop
     let timerLoop
     let tooltipNode
 
     displayBtn.addEventListener('click', () => {
+        if (running) return
+
         observedKey = qkInput.value
         observedKeys = product(['0', '1', '2', '3'], CLIP_GRID).map(s => s.join(''))
         observedTiles = observedKeys.map(qk2xy)
@@ -57,6 +59,7 @@ window.addEventListener('load', () => {
         ws = new WebSocket(`ws://localhost:8000/ws?tile=${observedKey}`)
 
         reinit()
+        running = true
 
         ws.onopen = reinit
         ws.onclose = reinit
@@ -65,6 +68,16 @@ window.addEventListener('load', () => {
             latestUpdate = new Date(parseInt(parsed.timestamp * 1000))
             onGraphUpdate(parsed.states, parsed.occupants, observedKey)
         }
+
+        timerLoop = setInterval(() => {
+            if (!latestUpdate) return
+            let timeDiff = ((new Date() - latestUpdate) / 1000)
+            tsIndicator.innerText = timeDiff.toString()
+
+            if (timeDiff > MAX_TTL_SEC && parseInt(timeDiff) % MAX_TTL_SEC === 0) {
+                onGraphUpdate({}, {}, observedKey)
+            }
+        }, 100)
     })
 
     disconnectBtn.addEventListener('click', () => {
@@ -75,21 +88,10 @@ window.addEventListener('load', () => {
         ws.close()
         canvas.clear()
         clearInterval(timerLoop)
-        clearInterval(cleanUpLoop)
         tsIndicator.innerText = '–'
+
+        running = false
     })
-
-    timerLoop = setInterval(() => {
-        if (!latestUpdate) return
-        let timeDff = ((new Date() - latestUpdate) / 1000)
-        tsIndicator.innerText = timeDff.toString()
-
-        if (timeDff > MAX_TTL_SEC && !cleanUpLoop) {
-            cleanUpLoop = setInterval(() => onGraphUpdate({}, {}, observedKey), 1000)
-        } else if (timeDff < MAX_TTL_SEC && cleanUpLoop) {
-            clearInterval(cleanUpLoop)
-        }
-    }, 100)
 
     function reinit() {
         canvas.clear()

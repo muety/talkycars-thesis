@@ -3,7 +3,7 @@ import time
 from datetime import datetime
 from enum import Enum
 from threading import Thread
-from typing import cast, List, Dict
+from typing import cast, Dict
 
 from client.observation import ObservationManager, LinearObservationTracker
 from client.observation.sink import CsvTrafficSceneSink, ObservationSink
@@ -137,7 +137,7 @@ class TalkyClient:
             return
 
         ego_actor: DynamicActor = actors_ego_obs.value[0]
-        visible_actors: Dict[str, List[DynamicActor]] = ClientUtils.match_actors_with_grid(grid, actors_others_obs.value + [ego_actor])
+        visible_actors: Dict[str, DynamicActor] = ClientUtils.get_occupied_cells_multi(actors_others_obs.value + [ego_actor])
 
         # Generate PEM complex object attributes
         ts: float = max([ts1, actors_ego_obs.timestamp, actors_others_obs.timestamp])
@@ -156,9 +156,8 @@ class TalkyClient:
 
             group_key = f'cell_occupant_{cell.quad_key.key}'
 
-            if len(visible_actors[cell.quad_key.key]) > 0:
-                # Assuming that a cell is tiny enough to contain at max one actor
-                actor = visible_actors[cell.quad_key.key][0]
+            if cell.quad_key.key in visible_actors:
+                actor = visible_actors[cell.quad_key.key]
 
                 self.tracker.track(group_key, str(actor.id))
 
