@@ -43,12 +43,12 @@ window.addEventListener('load', () => {
     let observedTiles = new Set()
 
     displayBtn.addEventListener('click', () => {
-        if (ws) ws.close()
-        ws = new WebSocket('ws://localhost:8000/ws')
-
         observedKey = qkInput.value
         observedKeys = product(['0', '1', '2', '3'], CLIP_GRID).map(s => s.join(''))
         observedTiles = observedKeys.map(qk2xy)
+
+        if (ws) ws.close()
+        ws = new WebSocket(`ws://localhost:8000/ws?tile=${observedKey}`)
 
         reinit()
 

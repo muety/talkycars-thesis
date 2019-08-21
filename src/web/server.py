@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import math
 import os
 from collections import deque
@@ -40,17 +41,22 @@ app: FastAPI = FastAPI()
 mqtt: MqttBridge = None
 
 
-@app.on_event('startup')
-def startup():
+def connect_mqtt(for_file: str):
     global mqtt
+
+    if mqtt:
+        mqtt.disconnect()
+
     mqtt = MqttBridge()
-    mqtt.subscribe(f'{TOPIC_PREFIX_GRAPH_FUSED_OUT}/#', on_graph)
+    mqtt.subscribe(f'{TOPIC_PREFIX_GRAPH_FUSED_OUT}/{for_file}', on_graph)
     mqtt.listen(block=False)
 
+    logging.info(f'Subscribed to {TOPIC_PREFIX_GRAPH_FUSED_OUT}/{for_file}')
 
 @app.on_event('shutdown')
 def shutdown():
-    mqtt.disconnect()
+    if mqtt:
+        mqtt.disconnect()
 
 
 '''
@@ -73,6 +79,10 @@ app.mount('/status', StaticFiles(
 @app.websocket('/ws')
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
+
+    tile: str = websocket.query_params.get('tile')
+    connect_mqtt(tile)
+
     while True:
         try:
             data: Dict[str, Any] = graph_queue.pop()
