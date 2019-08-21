@@ -26,13 +26,19 @@ def on_graph(message: bytes):
 
 def graph2json(graph: PEMTrafficScene) -> Dict[str, Any]:
     data: Dict[str, Any] = {
-        'timestamp': graph.timestamp
+        'timestamp': graph.timestamp,
+        'states': {},
+        'occupants': {}
     }
 
     for c in graph.occupancy_grid.cells:
         if not c.state.confidence or math.isnan(c.state.confidence):
             continue
-        data[c.hash] = [int(c.state.object.value), c.state.confidence]
+        data['states'][c.hash] = [int(c.state.object.value), c.state.confidence]
+
+        if not c.occupant.object:
+            continue
+        data['occupants'][c.hash] = [c.occupant.object.id, c.occupant.confidence]
 
     return data
 

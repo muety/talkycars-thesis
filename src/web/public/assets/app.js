@@ -61,7 +61,7 @@ window.addEventListener('load', () => {
         ws.onmessage = event => {
             const parsed = JSON.parse(event.data)
             latestUpdate = new Date(parseInt(parsed.timestamp * 1000))
-            onStatesUpdated(parsed, observedKey)
+            onGraphUpdate(parsed.states, parsed.occupants, observedKey)
         }
     })
 
@@ -105,7 +105,10 @@ window.addEventListener('load', () => {
         canvas.on('mouse:over', (e) => {
             if (!e.target.id) return
             if (tooltipNode) canvas.remove(tooltipNode)
-            tooltipNode = new fabric.Text(`${e.target.id}\n${e.target.opacity}`, {
+
+            let text = `${e.target.id}\n${e.target.opacity}`
+            if (e.target.occupant) text += `\n${e.target.occupant}`
+            tooltipNode = new fabric.Text(text, {
                 top: e.target.top,
                 left: e.target.left,
                 fontFamily: 'Arial',
@@ -118,18 +121,28 @@ window.addEventListener('load', () => {
         })
     }
 
-    function onStatesUpdated(statemap, observedKey) {
-        if (Object.keys(statemap).length <= 1) return
+    function onGraphUpdate(stateMap, occupantMap, observedKey) {
+        if (Object.keys(stateMap).length < 1) return
+
         observedKeys.forEach((key, i) => {
             const fullKey = `${observedKey}${key}`
-            const isPresent = statemap.hasOwnProperty(fullKey)
-            const color = isPresent ? COLORS[statemap[fullKey][0]] : null
+            const state = stateMap.hasOwnProperty(fullKey) ? stateMap[fullKey] : null
+            const occupant = occupantMap.hasOwnProperty(fullKey) ? occupantMap[fullKey] : null
+            const color = state ? COLORS[state[0]] : null
+            const cellItem = canvas.item(i)
 
-            canvas.item(i).set('fill', color)
-            if (isPresent) {
-                canvas.item(i).set('opacity', statemap[fullKey][1].toFixed(2))
+            cellItem.set('fill', color)
+
+            if (state) cellItem.set('opacity', state[1].toFixed(2))
+            if (occupant) {
+                cellItem.set('strokeWidth', 4)
+                cellItem.set('occupant', occupant[0])
+            } else {
+                cellItem.set('strokeWidth', 1)
+                cellItem.set('occupant', null)
             }
         })
+
         canvas.renderAll()
     }
 })
