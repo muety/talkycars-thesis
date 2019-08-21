@@ -90,9 +90,14 @@ window.addEventListener('load', () => {
     function onStatesUpdated(statemap, observedKey) {
         if (Object.keys(statemap).length <= 1) return
         observedKeys.forEach((key, i) => {
-            let fullKey = `${observedKey}${key}`
-            let color = statemap.hasOwnProperty(fullKey) ? COLORS[statemap[fullKey][0]] : null
+            const fullKey = `${observedKey}${key}`
+            const isPresent = statemap.hasOwnProperty(fullKey)
+            const color = isPresent ? COLORS[statemap[fullKey][0]] : null
+
             canvas.item(i).set('fill', color)
+            if (isPresent) {
+                canvas.item(i).set('opacity', statemap[fullKey][1])
+            }
         })
         canvas.renderAll()
     }
