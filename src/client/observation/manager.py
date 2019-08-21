@@ -88,7 +88,7 @@ class ObservationManager:
                and len(self.observations[key]) > 0 \
                and time.time() - self.last_update[key] <= max_age
 
-    def latest(self, key: str, max_age: float = float('inf')) -> Observation:
+    def get(self, key: str, index: int = -1, max_age: float = float('inf')):
         if key in self.aliases:
             key = self.aliases[key]
 
@@ -97,7 +97,10 @@ class ObservationManager:
                 or time.time() - self.last_update[key] >= max_age:
             return None
 
-        return self.observations[key][-1]
+        return self.observations[key][index]
+
+    def latest(self, key: str, max_age: float = float('inf')) -> Observation:
+        return self.get(key, -1, max_age)
 
     def tear_down(self):
         self.pool.close()

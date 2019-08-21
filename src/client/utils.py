@@ -33,11 +33,18 @@ class ClientUtils:
 
     @staticmethod
     def get_occupied_cells(for_actor: DynamicActor) -> FrozenSet[QuadKey]:
-        c1: Tuple[float, float] = GeoUtils.gnss_add_meters(for_actor.gnss.value.components(), for_actor.props.extent.value.components(), delta_factor=-1)[:2]
-        c2: Tuple[float, float] = GeoUtils.gnss_add_meters(for_actor.gnss.value.components(), for_actor.props.extent.value.components())[:2]
+        c1: Tuple[float, float] = GeoUtils.gnss_add_meters(for_actor.gnss.value.components(), for_actor.props.extent.value.components(), perm=(1, 0, 2))[:2]
+        c2: Tuple[float, float] = GeoUtils.gnss_add_meters(for_actor.gnss.value.components(), for_actor.props.extent.value.components(), perm=(1, 0, 2), delta_factor=-1)[:2]
         c3: Tuple[float, float] = (c1[0], c2[1])
         c4: Tuple[float, float] = (c2[0], c1[1])
-        return frozenset(map(lambda c: quadkey.from_geo(c, OCCUPANCY_TILE_LEVEL), [c1, c2, c3, c4]))
+
+        qks: List[QuadKey] = list(map(lambda c: quadkey.from_geo(c, OCCUPANCY_TILE_LEVEL), [c1, c2, c3, c4]))
+        qks += qks[0].difference(qks[1])
+        qks += qks[2].difference(qks[3])
+        qks += qks[0].difference(qks[2])
+        qks += qks[1].difference(qks[3])
+
+        return frozenset(qks)
 
     @classmethod
     # Assumes that a cell is tiny enough to contain at max one actor

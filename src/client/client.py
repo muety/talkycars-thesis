@@ -130,8 +130,9 @@ class TalkyClient:
 
     def _on_grid(self, obs: OccupancyGridObservation):
         ts1, grid = obs.timestamp, obs.value
-        actors_ego_obs = self.om.latest(OBS_ACTOR_EGO)
-        actors_others_obs = self.om.latest(OBS_ACTORS_RAW)
+        # TODO: Solve properly. Cell state (computed in gm) lags behind ego position by 1
+        actors_ego_obs = self.om.get(OBS_ACTOR_EGO, -2)
+        actors_others_obs = self.om.get(OBS_ACTORS_RAW, -2)
 
         if not grid or not actors_ego_obs or not actors_others_obs or not actors_ego_obs.value or len(actors_ego_obs.value) < 1:
             return
