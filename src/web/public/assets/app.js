@@ -31,8 +31,9 @@ function qk2xy(qk) {
 }
 
 window.addEventListener('load', () => {
-    const canvas = new fabric.StaticCanvas('c')
+    const canvas = new fabric.Canvas('c')
     const displayBtn = document.getElementById('btn-display')
+    const disconnectBtn = document.getElementById('btn-disconnect')
     const qkInput = document.getElementById('input-qk')
     const tsIndicator = document.getElementById('timestamp-indicator')
 
@@ -41,6 +42,9 @@ window.addEventListener('load', () => {
     let observedKey
     let observedKeys = new Set()
     let observedTiles = new Set()
+
+    let updateTimer
+    let tooltipNode
 
     displayBtn.addEventListener('click', () => {
         observedKey = qkInput.value
@@ -61,7 +65,18 @@ window.addEventListener('load', () => {
         }
     })
 
-    setInterval(() => {
+    disconnectBtn.addEventListener('click', () => {
+        ws.onopen = undefined
+        ws.onclose = undefined
+        ws.onmessage = undefined
+
+        ws.close()
+        canvas.clear()
+        clearInterval(updateTimer)
+        tsIndicator.innerText = '–'
+    })
+
+    updateTimer = setInterval(() => {
         if (!latestUpdate) return
         tsIndicator.innerText = ((new Date() - latestUpdate) / 1000).toString()
     }, 100)
@@ -82,8 +97,24 @@ window.addEventListener('load', () => {
                 width: size,
                 height: size,
                 fill: null,
-                stroke: '#c8c8c8'
+                stroke: '#c8c8c8',
+                selectable: false
             }))
+        })
+
+        canvas.on('mouse:over', (e) => {
+            if (!e.target.id) return
+            if (tooltipNode) canvas.remove(tooltipNode)
+            tooltipNode = new fabric.Text(`${e.target.id}\n${e.target.opacity}`, {
+                top: e.target.top,
+                left: e.target.left,
+                fontFamily: 'Arial',
+                fontSize: 10,
+                textAlign: 'center',
+                backgroundColor: '#c8c8c8'
+            })
+            canvas.add(tooltipNode)
+            tooltipNode.render()
         })
     }
 
@@ -96,7 +127,7 @@ window.addEventListener('load', () => {
 
             canvas.item(i).set('fill', color)
             if (isPresent) {
-                canvas.item(i).set('opacity', statemap[fullKey][1])
+                canvas.item(i).set('opacity', statemap[fullKey][1].toFixed(2))
             }
         })
         canvas.renderAll()
