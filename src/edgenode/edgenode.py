@@ -57,7 +57,7 @@ class EdgeNode:
     def tick(self):
         # TODO: Maybe try to speed up a little more. Currently takes ~ 0.12 sec for two agents with 10x10 grids
         t0 = time.monotonic()
-        fused_graphs: Dict[str, PEMTrafficScene] = self.fusion_srvc.get()
+        fused_graphs: Dict[str, PEMTrafficScene] = self.fusion_srvc.get(max_age=GRID_TTL_SEC)
         if not fused_graphs:
             return
 

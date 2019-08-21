@@ -2,6 +2,7 @@ const SIZE = 1024
 const GRID_LEVEL = 19
 const OBSERVATION_LEVEL = 24
 const CLIP_GRID = OBSERVATION_LEVEL - GRID_LEVEL
+const MAX_TTL_SEC = 3
 const COLORS = ['green', 'red', 'blue']
 
 function qk2xy(qk) {
@@ -43,7 +44,8 @@ window.addEventListener('load', () => {
     let observedKeys = new Set()
     let observedTiles = new Set()
 
-    let updateTimer
+    let cleanUpLoop
+    let timerLoop
     let tooltipNode
 
     displayBtn.addEventListener('click', () => {
@@ -72,13 +74,21 @@ window.addEventListener('load', () => {
 
         ws.close()
         canvas.clear()
-        clearInterval(updateTimer)
+        clearInterval(timerLoop)
+        clearInterval(cleanUpLoop)
         tsIndicator.innerText = '–'
     })
 
-    updateTimer = setInterval(() => {
+    timerLoop = setInterval(() => {
         if (!latestUpdate) return
-        tsIndicator.innerText = ((new Date() - latestUpdate) / 1000).toString()
+        let timeDff = ((new Date() - latestUpdate) / 1000)
+        tsIndicator.innerText = timeDff.toString()
+
+        if (timeDff > MAX_TTL_SEC && !cleanUpLoop) {
+            cleanUpLoop = setInterval(() => onGraphUpdate({}, {}, observedKey), 1000)
+        } else if (timeDff < MAX_TTL_SEC && cleanUpLoop) {
+            clearInterval(cleanUpLoop)
+        }
     }, 100)
 
     function reinit() {
@@ -122,8 +132,6 @@ window.addEventListener('load', () => {
     }
 
     function onGraphUpdate(stateMap, occupantMap, observedKey) {
-        if (Object.keys(stateMap).length < 1) return
-
         observedKeys.forEach((key, i) => {
             const fullKey = `${observedKey}${key}`
             const state = stateMap.hasOwnProperty(fullKey) ? stateMap[fullKey] : null
