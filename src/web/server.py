@@ -13,7 +13,7 @@ from common.bridge import MqttBridge
 from common.constants import *
 from common.serialization.schema.base import PEMTrafficScene
 
-PUBLISH_RATE = 1  # Hz
+PUBLISH_RATE = 5  # Hz
 
 graph_queue: Deque[Dict[str, Any]] = deque(maxlen=1)
 

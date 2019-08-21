@@ -31,17 +31,22 @@ function qk2xy(qk) {
 }
 
 window.addEventListener('load', () => {
-    const ws = new WebSocket('ws://localhost:8000/ws')
     const canvas = new fabric.StaticCanvas('c')
     const displayBtn = document.getElementById('btn-display')
     const qkInput = document.getElementById('input-qk')
+    const tsIndicator = document.getElementById('timestamp-indicator')
 
-    let observedKey = qkInput.value
+    let ws
+    let latestUpdate
+    let observedKey
     let observedKeys = new Set()
     let observedTiles = new Set()
 
     displayBtn.addEventListener('click', () => {
-        canvas.clear()
+        if (ws) ws.close()
+        ws = new WebSocket('ws://localhost:8000/ws')
+
+        observedKey = qkInput.value
         observedKeys = product(['0', '1', '2', '3'], CLIP_GRID).map(s => s.join(''))
         observedTiles = observedKeys.map(qk2xy)
 
@@ -50,9 +55,16 @@ window.addEventListener('load', () => {
         ws.onopen = reinit
         ws.onclose = reinit
         ws.onmessage = event => {
-            onStatesUpdated(JSON.parse(event.data), observedKey)
+            const parsed = JSON.parse(event.data)
+            latestUpdate = new Date(parseInt(parsed.timestamp * 1000))
+            onStatesUpdated(parsed, observedKey)
         }
     })
+
+    setInterval(() => {
+        if (!latestUpdate) return
+        tsIndicator.innerText = ((new Date() - latestUpdate) / 1000).toString()
+    }, 100)
 
     function reinit() {
         canvas.clear()
