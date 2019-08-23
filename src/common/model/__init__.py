@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import TypeVar, Generic
+from typing import TypeVar, Generic, cast
 
 T = TypeVar('T')
 
@@ -29,9 +29,17 @@ class UncertainProperty(Generic[T]):
         return UncertainProperty(conf, self.value)
 
     def with_gaussian_noise(self, mu: float = 0, sigma: float = .1) -> 'UncertainProperty':
+        e: NotImplementedError = NotImplementedError('value does not support noise simulation')
+
         if isinstance(self.value, Noisifiable):
             return UncertainProperty(self.confidence, self.value.with_gaussian_noise(mu, sigma))
-        raise NotImplementedError('value does not support noise simulation')
+        elif isinstance(self.value, list):
+            if not all([isinstance(v, Noisifiable) for v in self.value]): raise e
+            return UncertainProperty(self.confidence, [cast(Noisifiable, v).with_gaussian_noise(mu, sigma) for v in self.value])
+        elif isinstance(self.value, tuple):
+            if not all([isinstance(v, Noisifiable) for v in self.value]): raise e
+            return UncertainProperty(self.confidence, tuple([cast(Noisifiable, v).with_gaussian_noise(mu, sigma) for v in self.value]))
+        raise e
 
 from .actor import *
 from .geom import *

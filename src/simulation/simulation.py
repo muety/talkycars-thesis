@@ -52,19 +52,19 @@ class World(object):
                             strategy=ManualStrategy(config=0),
                             name='main_hero',
                             render=True,
-                            debug=False,
+                            debug=True,
                             record=False)
             self.egos.append(main_hero)
             self.world.wait_for_tick()
 
-            second_hero = Ego(self.sim,
-                              strategy=ManualStrategy(config=1),
-                              name='second_hero',
-                              render=False,
-                              debug=False,
-                              record=False)
-            self.egos.append(second_hero)
-            self.world.wait_for_tick()
+            # second_hero = Ego(self.sim,
+            #                   strategy=ManualStrategy(config=1),
+            #                   name='second_hero',
+            #                   render=False,
+            #                   debug=False,
+            #                   record=False)
+            # self.egos.append(second_hero)
+            # self.world.wait_for_tick()
 
             # Create observer player
             # observer_hero = Ego(self.sim,

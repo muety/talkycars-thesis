@@ -1,9 +1,9 @@
-from typing import List
+from typing import List, Tuple, cast
 
 import carla
 from client.client import TalkyClient
 from common.constants import *
-from common.model import DynamicActor, ActorType, ActorDynamics, Point3D, ActorProperties, UncertainProperty
+from common.model import DynamicActor, ActorType, ActorDynamics, Point3D, ActorProperties, UncertainProperty, Point2D
 from common.observation import ActorsObservation
 from . import Sensor
 
@@ -41,7 +41,22 @@ class ActorsSensor(Sensor):
         velocity: carla.Vector3D = carla_actor.get_velocity()
         acceleration: carla.Vector3D = carla_actor.get_acceleration()
         color: str = str(carla_actor.attributes['color']) if 'color' in carla_actor.attributes else None
-        extent: carla.BoundingBox = carla_actor.bounding_box.extent
+        extent: carla.Vector3D = carla_actor.bounding_box.extent
+
+        transform: carla.Transform = carla.Transform(rotation=carla_actor.get_transform().rotation)
+
+        transformed_extent: Tuple[carla.Location, carla.Location, carla.Location, carla.Location] = (
+            transform.transform(carla.Location(+extent.x, +extent.y, 0)),
+            transform.transform(carla.Location(+extent.x, -extent.y, 0)),
+            transform.transform(carla.Location(-extent.x, +extent.y, 0)),
+            transform.transform(carla.Location(-extent.x, -extent.y, 0)),
+        )
+
+        bbox: Tuple[Point2D, Point2D, Point2D, Point2D] = cast(Tuple[Point2D, Point2D, Point2D, Point2D], tuple(map(
+            lambda t: self._geoloc2point2d(
+                self._map.transform_to_geolocation(carla.Location(location.x + t.x, location.y + t.y, location.z))
+            ), transformed_extent)
+        ))
 
         return DynamicActor(
             id=carla_actor.id,
@@ -55,9 +70,14 @@ class ActorsSensor(Sensor):
             ),
             props=ActorProperties(
                 color=UncertainProperty(1., color),
-                extent=UncertainProperty(1., Point3D(extent.x, extent.y, extent.z))
+                extent=UncertainProperty(1., Point3D(extent.x, extent.y, extent.z)),
+                bbox=UncertainProperty(1., bbox)
             )
         )
+
+    @staticmethod
+    def _geoloc2point2d(location: carla.GeoLocation) -> Point2D:
+        return Point2D(location.latitude, location.longitude, )
 
     @staticmethod
     def _resolve_carla_type(carla_type: str) -> ActorType:
@@ -81,6 +101,7 @@ class ActorsSensor(Sensor):
             ),
             props=ActorProperties(
                 color=actor.props.color.with_uncertainty(),
-                extent=actor.props.extent.with_gaussian_noise(sigma=.1)
+                extent=actor.props.extent.with_gaussian_noise(sigma=.01),
+                bbox=actor.props.bbox.with_gaussian_noise(sigma=1e-5)
             )
         )

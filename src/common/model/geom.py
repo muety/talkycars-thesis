@@ -21,7 +21,7 @@ class Point(Noisifiable, ABC):
         pass
 
     def with_gaussian_noise(self, mu: float, sigma: float) -> 'Noisifiable':
-        noise = Point3D(*[random.gauss(mu, sigma) for i in range(self.dim())])
+        noise = self.__class__(*[random.gauss(mu, sigma) for i in range(self.dim())])
         return self + noise
 
 class Point2D(Point):

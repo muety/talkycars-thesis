@@ -2,9 +2,10 @@ from enum import Enum
 from typing import Tuple
 
 from common.model import UncertainProperty
-from .geom import Point3D
+from .geom import Point3D, Point2D
 
 _Vec3 = Tuple[float, float, float]
+_BBox = Tuple[Point2D, Point2D, Point2D, Point2D]
 
 
 class ActorType(Enum):
@@ -20,9 +21,10 @@ class ActorDynamics:
 
 
 class ActorProperties:
-    def __init__(self, color: UncertainProperty[str] = None, extent: UncertainProperty[Point3D] = None):
+    def __init__(self, color: UncertainProperty[str] = None, extent: UncertainProperty[Point3D] = None, bbox: UncertainProperty[_BBox] = None):
         self.color: UncertainProperty[str] = color
         self.extent: UncertainProperty[Point3D] = extent
+        self.bbox: UncertainProperty[_BBox] = bbox
 
 
 class DynamicActor:
