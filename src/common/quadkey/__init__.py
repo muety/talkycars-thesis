@@ -63,32 +63,50 @@ class QuadKey:
         side = self.side()
         return side * side
 
-    def xdifference(self, to: 'QuadKey') -> Generator['QuadKey', None, None]:
+    @staticmethod
+    def xdifference(first: 'QuadKey', second: 'QuadKey') -> Generator['QuadKey', None, None]:
         """ Generator
             Gives the difference of quadkeys between self and to
             Generator in case done on a low level
             Only works with quadkeys of same level
         """
         x, y = 0, 1
-        assert self.level == to.level
-        self_tile = list(self.to_tile()[0])
-        to_tile = list(to.to_tile()[0])
-        if self_tile[x] >= to_tile[x] and self_tile[y] <= self_tile[y]:
-            ne_tile, sw_tile = self_tile, to_tile
-        else:
-            sw_tile, ne_tile = self_tile, to_tile
-        cur = ne_tile[:]
-        while cur[x] >= sw_tile[x]:
-            while cur[y] <= sw_tile[y]:
-                yield from_tile(tuple(cur), self.level)
-                cur[y] += 1
+        assert first.level == second.level
+        self_tile = list(first.to_tile()[0])
+        to_tile = list(second.to_tile()[0])
+        se, sw, ne, nw = None, None, None, None
+        if self_tile[x] >= to_tile[x] and self_tile[y] <= to_tile[y]:
+            ne, sw = self_tile, to_tile
+        elif self_tile[x] <= to_tile[x] and self_tile[y] >= to_tile[y]:
+            sw, ne = self_tile, to_tile
+        elif self_tile[x] <= to_tile[x] and self_tile[y] <= to_tile[y]:
+            nw, se = self_tile, to_tile
+        elif self_tile[x] >= to_tile[x] and self_tile[y] >= to_tile[y]:
+            se, nw = self_tile, to_tile
+        cur = ne[:] if ne else se[:]
+        while cur[x] >= (sw[x] if sw else nw[x]):
+            while (sw and cur[y] <= sw[y]) or (se and cur[y] >= se[y]):
+                yield from_tile(tuple(cur), first.level)
+                cur[y] += 1 if sw else -1
             cur[x] -= 1
-            cur[y] = ne_tile[y]
+            cur[y] = ne[y] if ne else se[y]
 
     def difference(self, to: 'QuadKey') -> List['QuadKey']:
         """ Non generator version of xdifference
         """
-        return [qk for qk in self.xdifference(to)]
+        return [qk for qk in self.xdifference(self, to)]
+
+    @staticmethod
+    def bbox_filled(quadkeys: List['QuadKey']) -> List['QuadKey']:
+        assert len(quadkeys) > 0
+
+        level = quadkeys[0].level
+        tiles = [qk.to_tile()[0] for qk in quadkeys]
+        x, y = zip(*tiles)
+        ne = from_tile((max(x), min(y)), level)
+        sw = from_tile((min(x), max(y)), level)
+
+        return ne.difference(sw)
 
     def unwind(self) -> List['QuadKey']:
         """ Get a list of all ancestors in descending order of level, including a new instance  of self

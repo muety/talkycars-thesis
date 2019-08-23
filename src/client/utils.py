@@ -34,12 +34,8 @@ class ClientUtils:
     @staticmethod
     def get_occupied_cells(for_actor: DynamicActor) -> FrozenSet[QuadKey]:
         qks: List[QuadKey] = list(map(lambda c: quadkey.from_geo(c.components(), OCCUPANCY_TILE_LEVEL), for_actor.props.bbox.value))
-        # qks += qks[0].difference(qks[1])
-        # qks += qks[2].difference(qks[3])
-        # qks += qks[0].difference(qks[2])
-        # qks += qks[1].difference(qks[3])
 
-        return frozenset(qks)
+        return frozenset(quadkey.QuadKey.bbox_filled(qks))
 
     @classmethod
     # Assumes that a cell is tiny enough to contain at max one actor

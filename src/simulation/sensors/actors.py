@@ -48,8 +48,8 @@ class ActorsSensor(Sensor):
         transformed_extent: Tuple[carla.Location, carla.Location, carla.Location, carla.Location] = (
             transform.transform(carla.Location(+extent.x, +extent.y, 0)),
             transform.transform(carla.Location(+extent.x, -extent.y, 0)),
-            transform.transform(carla.Location(-extent.x, +extent.y, 0)),
             transform.transform(carla.Location(-extent.x, -extent.y, 0)),
+            transform.transform(carla.Location(-extent.x, +extent.y, 0)),
         )
 
         bbox: Tuple[Point2D, Point2D, Point2D, Point2D] = cast(Tuple[Point2D, Point2D, Point2D, Point2D], tuple(map(
