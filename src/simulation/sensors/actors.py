@@ -101,7 +101,7 @@ class ActorsSensor(Sensor):
             ),
             props=ActorProperties(
                 color=actor.props.color.with_uncertainty(),
-                extent=actor.props.extent.with_gaussian_noise(sigma=.01),
-                bbox=actor.props.bbox.with_gaussian_noise(sigma=1e-5)
+                extent=actor.props.extent.with_uncertainty().with_gaussian_noise(sigma=.01),
+                bbox=actor.props.bbox.with_uncertainty().with_gaussian_noise(sigma=1e-5)
             )
         )
