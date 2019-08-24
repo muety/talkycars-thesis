@@ -14,7 +14,7 @@ from util.simulation import SimulationUtils
 
 import carla
 from common.constants import *
-from common.util import GracefulKiller
+from common.util import GracefulKiller, proc_wrap
 
 
 class World(object):
@@ -95,7 +95,7 @@ class World(object):
         self.world.tick()
 
         for ego in self.egos:
-            if ego.tick(clock):
+            if proc_wrap(ego.tick, clock):
                 return True
 
     def destroy(self):

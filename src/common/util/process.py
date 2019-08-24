@@ -15,7 +15,7 @@ class GracefulKiller:
 
 
 # https://stackoverflow.com/a/46414361/3112139
-def proc_wrapper(func, *args, **kwargs):
+def proc_wrap(func, *args, **kwargs):
     """Print exception because multiprocessing lib doesn't return them right."""
     try:
         return func(*args, **kwargs)

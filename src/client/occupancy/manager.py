@@ -11,7 +11,7 @@ from common.model import UncertainProperty, DynamicActor
 from common.observation import GnssObservation, LidarObservation
 from common.occupancy import Grid, GridCell, GridCellState
 from common.raycast import raycast
-from common.util import proc_wrapper
+from common.util import proc_wrap
 
 N_PROC = 6  # Experimentally found to be best
 
@@ -126,7 +126,7 @@ class OccupancyGridManager:
 
     @classmethod
     def _wrapped_mcwl(cls, *args, **kwargs):
-        return proc_wrapper(cls._match_cells_with_lidar, *args, **kwargs)
+        return proc_wrap(cls._match_cells_with_lidar, *args, **kwargs)
 
     def _recompute(self):
         key = self.quadkey_current

@@ -54,7 +54,7 @@ class ActorsSensor(Sensor):
 
         bbox: Tuple[Point2D, Point2D, Point2D, Point2D] = cast(Tuple[Point2D, Point2D, Point2D, Point2D], tuple(map(
             lambda t: self._geoloc2point2d(
-                self._map.transform_to_geolocation(carla.Location(location.x + t.x, location.y + t.y, location.z))
+                self._map.transform_to_geolocation(carla.Vector3D(location.x + t.x, location.y + t.y, location.z))
             ), transformed_extent)
         ))
 

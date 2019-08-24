@@ -13,7 +13,7 @@ from common.fusion import FusionServiceFactory, PEMFusionService
 from common.quadkey import QuadKey
 from common.serialization.schema import CapnpObject
 from common.serialization.schema.base import PEMTrafficScene
-from common.util import GracefulKiller, proc_wrapper
+from common.util import GracefulKiller, proc_wrap
 
 EVAL_RATE_SECS = 5  # hertz⁻¹
 TICK_RATE = 10  # hertz
@@ -79,7 +79,7 @@ class EdgeNode:
             logging.warning(e)
 
     def _wrapped_pg(self, *args, **kwargs):
-        return proc_wrapper(self._publish_graph, *args, **kwargs)
+        return proc_wrap(self._publish_graph, *args, **kwargs)
 
     def _eval_rate(self):
         while not self.mqtt or not self.mqtt.connected:
