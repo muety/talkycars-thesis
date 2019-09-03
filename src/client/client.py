@@ -1,9 +1,13 @@
+import logging
 import os
 import time
+from collections import deque
 from datetime import datetime
 from enum import Enum
 from threading import Thread
-from typing import cast, Dict, Optional
+from typing import cast, Dict, Optional, Deque, List
+
+import numpy as np
 
 from client.observation import ObservationManager, LinearObservationTracker
 from client.observation.sink import CsvTrafficSceneSink, ObservationSink
@@ -80,6 +84,9 @@ class TalkyClient:
         self.outbound.subscribe(OBS_LIDAR_POINTS, self._on_lidar)
         self.outbound.subscribe(OBS_GRID_LOCAL, self._on_grid)
 
+        self.tsdiffhistory1: Deque[float] = deque(maxlen=100)
+        self.tsdiffhistory2: Deque[float] = deque(maxlen=100)
+
     def tear_down(self):
         self.alive = False
         self.recording = False
@@ -106,6 +113,8 @@ class TalkyClient:
         self.recording = not self.recording
 
     def _on_lidar(self, obs: LidarObservation):
+        _ts = time.monotonic()
+
         if self.om.has(OBS_GNSS_PREFIX + ALIAS_EGO):
             self.gm.update_gnss(cast(GnssObservation, self.om.latest(OBS_GNSS_PREFIX + ALIAS_EGO)))
 
@@ -114,7 +123,7 @@ class TalkyClient:
             self.gm.update_ego(ego)
 
         # This is what takes most time
-        if not self.gm.match_with_lidar(cast(LidarObservation, obs)):
+        if not self.gm.match_with_lidar(cast(LidarObservation, obs)):  # Performance: ~ 0.65 sec
             return
 
         grid = self.gm.get_grid()
@@ -122,7 +131,10 @@ class TalkyClient:
             return
 
         obs = OccupancyGridObservation(obs.timestamp, grid)
-        self.om.add(OBS_GRID_LOCAL, obs)
+        self.inbound.publish(OBS_GRID_LOCAL, obs)
+
+        self.tsdiffhistory1.append(time.monotonic() - _ts)
+        logging.debug(f'LIDAR: {np.mean(self.tsdiffhistory1)}')
 
     def _on_gnss(self, obs: GnssObservation):
         qk = obs.to_quadkey(level=REMOTE_GRID_TILE_LEVEL)
@@ -130,6 +142,8 @@ class TalkyClient:
         self.fs.set_sector(QuadKey(qk.key[:EDGE_DISTRIBUTION_TILE_LEVEL]))
 
     def _on_grid(self, obs: OccupancyGridObservation):
+        _ts = time.monotonic()
+
         ts1, grid = obs.timestamp, obs.value
         # TODO: Solve properly. Cell state (computed in gm) lags behind ego position by 1
         actors_ego_obs = self.om.latest(OBS_ACTOR_EGO)
@@ -142,7 +156,7 @@ class TalkyClient:
         visible_actors: Dict[str, DynamicActor] = ClientUtils.get_occupied_cells_multi(actors_others_obs.value + [ego_actor])
 
         # Generate PEM complex object attributes
-        ts: float = max([ts1, actors_ego_obs.timestamp, actors_others_obs.timestamp])
+        ts: float = min([ts1, actors_ego_obs.timestamp, actors_others_obs.timestamp])
         pem_ego = ClientUtils.map_pem_actor(ego_actor)
         pem_grid = PEMOccupancyGrid(cells=[])
 
@@ -187,8 +201,14 @@ class TalkyClient:
 
         self.fs.push(int(self.ego_id), graph)
 
-        fused_grid: Grid = FusionUtils.scenes_to_single_grid(list(self.fs.get(max_age=GRID_TTL_SEC).values()), self.gm.convert, self.gm.get_cell_base_z())
+        # Performance: This call takes most of the time
+        fused_scenes: List[PEMTrafficScene] = list(self.fs.get(max_age=GRID_TTL_SEC).values())  # Performance: ~ 0.13 sec
+        fused_grid: Grid = FusionUtils.scenes_to_single_grid(fused_scenes, self.gm.convert, self.gm.get_cell_base_z())  # Performance: ~ 0.06 sec
+
         self.inbound.publish(OBS_GRID_COMBINED, OccupancyGridObservation(time.time(), fused_grid))  # TODO: time ?
+
+        self.tsdiffhistory2.append(time.monotonic() - _ts)
+        logging.debug(f'GRID: {np.mean(self.tsdiffhistory2)}')
 
     def _on_remote_grid(self, msg: bytes):
         # TODO: Maybe do asynchronously?
