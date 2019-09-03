@@ -122,10 +122,6 @@ class TalkyClient:
             ego: DynamicActor = cast(ActorsObservation, self.om.latest(OBS_ACTOR_EGO)).value[0]
             self.gm.update_ego(ego)
 
-        # This is what takes most time
-        # Performance:
-        # ~ 0.65 sec with 6 processes for matching
-        # ~ 0.22 sec with 24 processes for matching
         if not self.gm.match_with_lidar(cast(LidarObservation, obs)):
             return
 
