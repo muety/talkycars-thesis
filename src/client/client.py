@@ -123,7 +123,10 @@ class TalkyClient:
             self.gm.update_ego(ego)
 
         # This is what takes most time
-        if not self.gm.match_with_lidar(cast(LidarObservation, obs)):  # Performance: ~ 0.65 sec
+        # Performance:
+        # ~ 0.65 sec with 6 processes for matching
+        # ~ 0.22 sec with 24 processes for matching
+        if not self.gm.match_with_lidar(cast(LidarObservation, obs)):
             return
 
         grid = self.gm.get_grid()

@@ -18,7 +18,7 @@ class ObservationManager:
         self.subscribers: Dict[str, List[Callable]] = {}
         self.locks: Dict[str, Lock] = {}
         self.aliases: Dict[str, str] = {}
-        self.pool: Pool = Pool(processes=4)
+        self.pool: Pool = Pool(processes=1)
 
     '''
     Optional method to explicitly initialize an observation queue for a specific key upfront.

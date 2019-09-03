@@ -1,15 +1,18 @@
+# distutils: extra_compile_args=-fopenmp
+# distutils: extra_link_args=-fopenmp
+
 cimport numpy as np
 cimport cython
 import numpy
 
 cdef class Ray3D:
-    cdef public np.float32_t[:] origin
-    cdef public np.float32_t[:] direction
+    cdef public const np.float32_t[:] origin
+    cdef public const np.float32_t[:] direction
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.nonecheck(False)
-    def __cinit__(self, np.float32_t[:] origin, np.float32_t[:] direction):
+    def __cinit__(self, const np.float32_t[:] origin, const np.float32_t[:] direction):
         self.origin = origin
         self.direction = direction
 
@@ -17,9 +20,9 @@ cdef class Ray3D:
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.nonecheck(False)
-cpdef bint aabb_intersect(np.ndarray[np.float32_t, ndim=2] bounds, Ray3D ray):
+cpdef bint aabb_intersect(const np.float32_t[:,:] bounds, Ray3D ray):
     cdef np.float32_t[:] t = numpy.zeros((9,)).astype(numpy.float32)
-    cdef np.float32_t[:] vmin, vmax
+    cdef const np.float32_t[:] vmin, vmax
 
     vmin = bounds[0]
     vmax = bounds[1]
@@ -37,7 +40,7 @@ cpdef bint aabb_intersect(np.ndarray[np.float32_t, ndim=2] bounds, Ray3D ray):
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.nonecheck(False)
-cpdef bint aabb_contains(np.ndarray[np.float32_t, ndim=2] bounds, np.float32_t[:] point):
+cpdef bint aabb_contains(const np.float32_t[:,:] bounds, const np.float32_t[:] point):
     return all([
         bounds[0][0] <= point[0] <= bounds[1][0],
         bounds[0][1] <= point[1] <= bounds[1][1],

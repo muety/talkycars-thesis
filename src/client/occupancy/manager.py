@@ -13,7 +13,7 @@ from common.occupancy import Grid, GridCell, GridCellState
 from common.raycast import raycast
 from common.util import proc_wrap
 
-N_PROC = 6  # Experimentally found to be best
+N_PROC = 18  # Experimentally found to be best
 
 
 class OccupancyGridManager:
@@ -115,11 +115,11 @@ class OccupancyGridManager:
                         return True
             return False
 
-        states = np.full(bounds.shape[:1], GridCellState.UNKNOWN)
-        occupied_mask = np.array(list(map(check_occupied, bounds)))
+        states = np.full(bounds.shape[:1], GridCellState.UNKNOWN, dtype=np.uint)
+        occupied_mask = np.array(list(map(check_occupied, bounds)), dtype=np.bool)
         states[occupied_mask] = GridCellState.OCCUPIED
 
-        free_mask = np.array(list(map(check_intersect, bounds)))  # Discarding already occupied cells doesn't give performance
+        free_mask = np.array(list(map(check_intersect, bounds)), dtype=np.bool)  # Discarding already occupied cells doesn't give performance
         states[free_mask & np.invert(occupied_mask)] = GridCellState.FREE
 
         return states
