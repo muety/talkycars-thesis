@@ -137,6 +137,7 @@ class PEMFusionService(FusionService[PEMTrafficScene]):
     def _fuse_tile_cell(cls, cell_hash: QuadKey, cells: Deque[Tuple[int, PEMGridCell]]) -> PEMGridCell:
         fused_cell: PEMGridCell = PEMGridCell(hash=cell_hash.key)
 
+        state_known_mask: np.ndarray[np.bool] = np.array([], dtype=np.bool)
         state_confs: np.ndarray[np.float32, np.float32] = np.empty((3, 0), dtype=np.float32)
         occ_confs: np.ndarray[np.float32, np.float32] = np.empty((0, 0), dtype=np.float32)
 
@@ -157,6 +158,7 @@ class PEMFusionService(FusionService[PEMTrafficScene]):
                                                 else np.minimum((1 - cell.state.confidence) / GridCellState.N, 1 / GridCellState.N)
                                                 for i in range(GridCellState.N)], dtype=np.float32)
             state_confs = np.hstack((state_confs, state_conf_vec.reshape(-1, 1)))
+            state_known_mask = np.hstack((state_known_mask, [cell.state.object != GridCellState.occupied()]))
             state_weightsum += weight
 
             # 2.: Cell Occupant
@@ -168,6 +170,7 @@ class PEMFusionService(FusionService[PEMTrafficScene]):
             occ_weightsum += weight
 
         # 1.: Cell State
+        state_confs[int(GridCellState.occupied().value), state_known_mask] = 0  # Overwrite unknown state if free or occupied was present in at least one observation
         state_probs = np.sum(state_confs, axis=1) / state_weightsum
         try:
             state = (float(np.max(state_probs)), states[int(np.argmax(state_probs))])
