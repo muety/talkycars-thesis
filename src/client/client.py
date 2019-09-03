@@ -3,7 +3,7 @@ import time
 from datetime import datetime
 from enum import Enum
 from threading import Thread
-from typing import cast, Dict
+from typing import cast, Dict, Optional
 
 from client.observation import ObservationManager, LinearObservationTracker
 from client.observation.sink import CsvTrafficSceneSink, ObservationSink
@@ -19,6 +19,7 @@ from common.observation import OccupancyGridObservation, LidarObservation, Posit
 from common.occupancy import Grid
 from common.quadkey import QuadKey
 from common.serialization.schema import GridCellState
+from common.serialization.schema.actor import PEMDynamicActor
 from common.serialization.schema.base import PEMTrafficScene
 from common.serialization.schema.occupancy import PEMOccupancyGrid, PEMGridCell
 from common.serialization.schema.relation import PEMRelation
@@ -142,36 +143,36 @@ class TalkyClient:
 
         # Generate PEM complex object attributes
         ts: float = max([ts1, actors_ego_obs.timestamp, actors_others_obs.timestamp])
-
         pem_ego = ClientUtils.map_pem_actor(ego_actor)
-
         pem_grid = PEMOccupancyGrid(cells=[])
 
         for cell in grid.cells:
-            pem_cell = PEMGridCell(
-                hash=cell.quad_key.key,
-                state=PEMRelation(
-                    confidence=cell.state.confidence,
-                    object=GridCellState(cell.state.value))
-            )
-
             group_key = f'cell_occupant_{cell.quad_key.key}'
+
+            occupant_relation: PEMRelation[Optional[PEMDynamicActor]] = None
+            state_relation: PEMRelation[GridCellState] = PEMRelation(cell.state.confidence, GridCellState(cell.state.value))
 
             if cell.quad_key.key in visible_actors:
                 actor = visible_actors[cell.quad_key.key]
-
                 self.tracker.track(group_key, str(actor.id))
-
-                pem_cell.occupant = PEMRelation(
-                    confidence=self.tracker.get(group_key, str(actor.id)),
-                    object=ClientUtils.map_pem_actor(actor)
-                )
+                occupant_relation = PEMRelation(self.tracker.get(group_key, str(actor.id)), ClientUtils.map_pem_actor(actor))
             else:
-                pem_cell.occupant = PEMRelation(confidence=cell.state.confidence, object=None)
+                occupant_relation = PEMRelation(cell.state.confidence, None)
 
             self.tracker.cycle_group(group_key)
 
-            pem_grid.cells.append(pem_cell)
+            # Consistency between state and occupant presence
+            if occupant_relation.object and state_relation.object != GridCellState.occupied():
+                if occupant_relation.confidence > state_relation.confidence:
+                    state_relation = PEMRelation(occupant_relation.confidence, GridCellState.occupied())
+                else:
+                    occupant_relation = PEMRelation(state_relation.confidence, None)
+
+            pem_grid.cells.append(PEMGridCell(
+                hash=cell.quad_key.key,
+                state=state_relation,
+                occupant=occupant_relation
+            ))
 
         # Generate PEM graph
         graph = PEMTrafficScene(timestamp=ts,

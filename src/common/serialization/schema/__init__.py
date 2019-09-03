@@ -141,6 +141,12 @@ class GridCellState(CapnpObject):
     def __str__(self):
         return str(self.value)
 
+    def __eq__(self, other):
+        return isinstance(other, GridCellState) and other.value == self.value
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
 
 class ActorType(CapnpObject):
     def __init__(self, value: At = None):

@@ -54,7 +54,7 @@ class PEMGridCell(CapnpObject):
     def __eq__(self, other):
         return all([
             self.hash == other.hash,
-            self.state.object.value == other.state.object.value,
+            self.state.object == other.state.object,
             self.state.confidence == other.state.confidence,
             (self.occupant is None) == (other.occupant is None)
         ])
