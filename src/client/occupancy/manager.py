@@ -16,6 +16,10 @@ from common.util import proc_wrap
 N_PROC = 18  # Experimentally found to be best
 
 
+def convert_coords(x):
+    return x[0] * 4.77733545044234e-5 - 13715477.0910797, x[1] * 4.780960965231e-5 - 9026373.31437847
+
+
 class OccupancyGridManager:
     def __init__(self, level, radius, offset_z=0):
         self.level = level
@@ -30,7 +34,7 @@ class OccupancyGridManager:
         self.offset_z = offset_z
         # TODO: Prevent memory leak
         self.grids: Dict[str, Grid] = dict()
-        self.convert: Callable = lambda x: (x[0] * 4.77733545044234e-5 - 13715477.0910797, x[1] * 4.780960965231e-5 - 9026373.31437847)
+        self.convert: Callable = convert_coords
         self.tracker: LinearObservationTracker = LinearObservationTracker(n=6)
         self.pool = Pool(processes=N_PROC)
 

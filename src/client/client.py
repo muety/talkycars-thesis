@@ -28,7 +28,7 @@ from common.serialization.schema.base import PEMTrafficScene
 from common.serialization.schema.occupancy import PEMOccupancyGrid, PEMGridCell
 from common.serialization.schema.relation import PEMRelation
 from .inbound import InboundController
-from .occupancy import OccupancyGridManager
+from .occupancy import OccupancyGridManager, convert_coords
 from .outbound import OutboundController
 
 
@@ -201,8 +201,9 @@ class TalkyClient:
         self.fs.push(int(self.ego_id), graph)
 
         # Performance: This call takes most of the time
-        fused_scenes: List[PEMTrafficScene] = list(self.fs.get(max_age=GRID_TTL_SEC).values())  # Performance: ~ 0.13 sec
-        fused_grid: Grid = FusionUtils.scenes_to_single_grid(fused_scenes, self.gm.convert, self.gm.get_cell_base_z())  # Performance: ~ 0.06 sec
+        f = self.fs.get(max_age=GRID_TTL_SEC)
+        fused_scenes: List[PEMTrafficScene] = list(f.values())  # Performance: ~ 0.08 sec
+        fused_grid: Grid = FusionUtils.scenes_to_single_grid(fused_scenes, convert_coords, self.gm.get_cell_base_z())  # Performance: ~ 0.07 sec
 
         self.inbound.publish(OBS_GRID_COMBINED, OccupancyGridObservation(time.time(), fused_grid))  # TODO: time ?
 
