@@ -5,11 +5,10 @@ from __future__ import print_function
 import argparse
 import logging
 import sys
-from typing import List
 
 import pygame
 from ego import Ego
-from strategy import ManualStrategy
+from strategy import *
 from util.simulation import SimulationUtils
 
 import carla

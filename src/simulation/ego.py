@@ -9,7 +9,7 @@ import pygame
 from hud import HUD
 from sensors import GnssSensor, LidarSensor, CameraRGBSensor
 from sensors.actors import ActorsSensor
-from strategy import Strategy, ManualStrategy
+from strategy import *
 from strategy.empty import EmptyStrategy
 from util import BBoxUtils, SimulationUtils
 
@@ -186,6 +186,7 @@ def run(args=sys.argv[1:]):
 
     argparser = argparse.ArgumentParser(description='TalkyCars Ego Agent')
     argparser.add_argument('--strategy', default='manual', type=str, help='Strategy to run for this agent')
+    argparser.add_argument('--strategy-config', dest='cfg', default=0, type=int, help='Strategy config to use for this agent')
     argparser.add_argument('--host', default='127.0.0.1', help='IP of the host server (default: 127.0.0.1)')
     argparser.add_argument('-p', '--port', default=2000, type=int, help='TCP port to listen to (default: 2000)')
     argparser.add_argument('--rolename', default='hero', help='actor role name (default: "hero")')
@@ -202,10 +203,17 @@ def run(args=sys.argv[1:]):
         client = carla.Client(args.host, args.port)
         client.set_timeout(2.0)
 
+        strat: Strategy = None
+        if args.strategy == 'manual':
+            strat = ManualStrategy(args.cfg)
+        elif args.strategy == 'observer1':
+            strat = Observer1Strategy()
+
         ego = Ego(client,
                   name=args.rolename,
                   render=args.render.lower() == 'true',
                   debug=args.debug.lower() == 'true',
+                  strategy=strat,
                   is_standalone=True)
 
     finally:
@@ -213,4 +221,4 @@ def run(args=sys.argv[1:]):
 
 
 if __name__ == '__main__':
-   run()
+    run()
