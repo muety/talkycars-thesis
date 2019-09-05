@@ -90,6 +90,7 @@ class TalkyClient:
     def tear_down(self):
         self.alive = False
         self.recording = False
+        self.fs.tear_down()
         self.tss.tear_down()
         self.om.tear_down()
         self.gm.tear_down()

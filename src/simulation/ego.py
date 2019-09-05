@@ -34,6 +34,7 @@ class Ego:
                  grid_radius: float = OCCUPANCY_RADIUS_DEFAULT,
                  lidar_angle: float = LIDAR_ANGLE_DEFAULT
                  ):
+        self.killer: GracefulKiller = GracefulKiller() if is_standalone else None
         self.sim: carla.Client = client
         self.client: TalkyClient = None
         self.world: carla.World = client.get_world()
@@ -100,22 +101,21 @@ class Ego:
         if is_standalone:
             lock = Lock()
             clock = pygame.time.Clock()
-            killer = GracefulKiller()
 
             def on_tick(*args):
-                if lock.locked() or killer.kill_now:
+                if lock.locked() or self.killer.kill_now:
                     return
 
                 lock.acquire()
                 clock.tick_busy_loop(60)
                 if self.tick(clock):
-                    killer.kill_now = True
+                    self.killer.kill_now = True
                 lock.release()
 
             self.world.on_tick(on_tick)
 
             while True:
-                if killer.kill_now:
+                if self.killer.kill_now:
                     try:
                         self.destroy()
                         return

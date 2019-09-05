@@ -44,6 +44,9 @@ class FusionService(Generic[T], ABC):
     def set_sector(self, sector: Union[QuadKey, str]):
         pass
 
+    @abstractmethod
+    def tear_down(self):
+        pass
 
 class PEMFusionService(FusionService[PEMTrafficScene]):
     def __init__(self, sector: Union[QuadKey, str], keep=3):
@@ -83,6 +86,11 @@ class PEMFusionService(FusionService[PEMTrafficScene]):
                                           for i in range(len(dq))
                                           if now - dq[i].timestamp < max_age]
         return self._fuse_scene(all_obs)
+
+    def tear_down(self):
+        self.fuse_pool.close()
+        self.fuse_pool.join()
+        self.fuse_pool.terminate()
 
     def _fuse_scene(self, scenes: List[PEMTrafficScene]) -> Dict[str, PEMTrafficScene]:
         fused_scenes: Dict[str, PEMTrafficScene] = dict()
