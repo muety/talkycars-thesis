@@ -3,7 +3,6 @@ from typing import Callable, List, Tuple, Set
 
 import numpy as np
 
-from common import quadkey
 from common.model import BBox3D, Point3D, Point2D, UncertainProperty
 from common.quadkey import QuadKey, TileAnchor
 
@@ -44,14 +43,10 @@ class GridCell(BBox3D):
     @staticmethod
     def _quadkey_to_box(qk: QuadKey) -> List[Point2D]:
         return [
-            Point2D(*(quadkey.from_geo(qk.to_geo(TileAnchor.ANCHOR_NW), 31).to_pixel(
-                TileAnchor.ANCHOR_CENTER))),
-            Point2D(*(quadkey.from_geo(qk.to_geo(TileAnchor.ANCHOR_NE), 31).to_pixel(
-                TileAnchor.ANCHOR_CENTER))),
-            Point2D(*(quadkey.from_geo(qk.to_geo(TileAnchor.ANCHOR_SW), 31).to_pixel(
-                TileAnchor.ANCHOR_CENTER))),
-            Point2D(*(quadkey.from_geo(qk.to_geo(TileAnchor.ANCHOR_SE), 31).to_pixel(
-                TileAnchor.ANCHOR_CENTER)))
+            Point2D(*(qk.to_pixel(TileAnchor.ANCHOR_NW))),
+            Point2D(*(qk.to_pixel(TileAnchor.ANCHOR_NE))),
+            Point2D(*(qk.to_pixel(TileAnchor.ANCHOR_SW))),
+            Point2D(*(qk.to_pixel(TileAnchor.ANCHOR_SE)))
         ]
 
     def __str__(self):

@@ -9,12 +9,12 @@ LON_STR = 'lon'
 
 IntOrNone = TypeVar('IntOrNone', int, None)
 
-class QuadKey:
 
+class QuadKey:
     @precondition(lambda c, key: valid_key(key))
     def __init__(self, key):
         self.key = key
-        self.level = len(key)
+        self.tile, self.level = TileSystem.quadkey_to_tile(self.key)
 
     def children(self, at_level: int = -1) -> List['QuadKey']:
         if at_level <= 0:
@@ -29,11 +29,10 @@ class QuadKey:
         return QuadKey(self.key[:-1])
 
     def nearby_custom(self, config: Tuple[Iterable[int], Iterable[int]]) -> List[str]:
-        tile, level = TileSystem.quadkey_to_tile(self.key)
         perms = set(itertools.product(config[0], config[1]))
         # TODO: probably won't work for edge cases
-        tiles = set(map(lambda perm: (abs(tile[0] + perm[0]), abs(tile[1] + perm[1])), perms))
-        return [TileSystem.tile_to_quadkey(tile, level) for tile in tiles]
+        tiles = set(map(lambda perm: (abs(self.tile[0] + perm[0]), abs(self.tile[1] + perm[1])), perms))
+        return [TileSystem.tile_to_quadkey(tile, self.level) for tile in tiles]
 
     def nearby(self, n: int = 1) -> List[str]:
         return self.nearby_custom((range(-n, n + 1), range(-n, n + 1)))
@@ -114,17 +113,14 @@ class QuadKey:
         return [QuadKey(self.key[:l + 1]) for l in reversed(range(len(self.key)))]
 
     def to_tile(self) -> Tuple[Tuple[int, int], int]:
-        return TileSystem.quadkey_to_tile(self.key)
+        return self.tile, self.level
 
     def to_pixel(self, anchor: TileAnchor = TileAnchor.ANCHOR_NW) -> Tuple[int, int]:
-        ret = TileSystem.quadkey_to_tile(self.key)
-        tile = ret[0]
-        return TileSystem.tile_to_pixel(tile, anchor)
+        return TileSystem.tile_to_pixel(self.tile, anchor)
 
     def to_geo(self, anchor: TileAnchor = TileAnchor.ANCHOR_NW) -> Tuple[float, float]:
-        ret = TileSystem.quadkey_to_tile(self.key)
-        pixel = TileSystem.tile_to_pixel(ret[0], anchor)
-        return TileSystem.pixel_to_geo(pixel, ret[1])
+        pixel = TileSystem.tile_to_pixel(self.tile, anchor)
+        return TileSystem.pixel_to_geo(pixel, self.level)
 
     def set_level(self, level: int):
         assert level < self.level

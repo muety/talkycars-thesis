@@ -9,6 +9,7 @@ import pygame
 from hud import HUD
 from sensors import GnssSensor, LidarSensor, CameraRGBSensor
 from sensors.actors import ActorsSensor
+from sensors.position import PositionSensor
 from strategy import *
 from strategy.empty import EmptyStrategy
 from util import BBoxUtils, SimulationUtils
@@ -89,6 +90,7 @@ class Ego:
         self.sensors['gnss'] = GnssSensor(self.vehicle, self.client, offset_z=GNSS_Z_OFFSET)
         self.sensors['lidar'] = LidarSensor(self.vehicle, self.client, offset_z=LIDAR_Z_OFFSET, range=lidar_range, angle=lidar_angle)
         self.sensors['actors'] = ActorsSensor(self.vehicle, self.client)
+        self.sensors['position'] = PositionSensor(self.vehicle, self.client)
         if render:
             self.sensors['camera_rgb'] = CameraRGBSensor(self.vehicle, self.hud)
 
@@ -127,6 +129,7 @@ class Ego:
     def tick(self, clock: pygame.time.Clock) -> bool:
         snap = self.world.get_snapshot()
         self.sensors['actors'].tick(snap.timestamp.platform_timestamp)
+        self.sensors['position'].tick(snap.timestamp.platform_timestamp)
 
         self.on_kth_tick(self.n_ticked + 1, snap)
 

@@ -17,7 +17,7 @@ N_PROC = 18  # Experimentally found to be best
 
 
 def convert_coords(x):
-    return x[0] * 4.77733545044234e-5 - 13715477.0910797, x[1] * 4.780960965231e-5 - 9026373.31437847
+    return x[0] * 0.006120484409764 - 13727801.1683672, x[1] * 0.006119086571604 - 9025570.79066416
 
 
 class OccupancyGridManager:

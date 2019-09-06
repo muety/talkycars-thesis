@@ -76,12 +76,9 @@ class TileSystem:
         x = (lon + 180) / 360
         sin_lat = sin(lat * pi / 180)
         y = 0.5 - log((1 + sin_lat) / (1 - sin_lat)) / (4 * pi)
-        # might need to cast to uint
         map_size = TileSystem.map_size(level)
         pixel_x = int(TileSystem.clip(x * map_size + 0.5, (0, map_size - 1)))
         pixel_y = int(TileSystem.clip(y * map_size + 0.5, (0, map_size - 1)))
-        # print '\n'+str( ((lat, lon), sin_lat, (x, y), map_size, (pixel_x,
-        # pixel_y)) )+'\n'
         return pixel_x, pixel_y
 
     @staticmethod
@@ -103,7 +100,7 @@ class TileSystem:
         return pixel[0] // 256, pixel[1] // 256
 
     @classmethod
-    def tile_to_pixel(cls, tile: Tuple[float, float], anchor: TileAnchor = TileAnchor.ANCHOR_NW) -> Tuple[int, int]:
+    def tile_to_pixel(cls, tile: Tuple[int, int], anchor: TileAnchor = TileAnchor.ANCHOR_NW) -> Tuple[int, int]:
         """Transform tile to pixel coordinates"""
         pixel = [tile[0] * 256, tile[1] * 256]
         if anchor is TileAnchor.ANCHOR_CENTER:
