@@ -1,20 +1,40 @@
 import itertools
+import re
+from enum import IntEnum, auto
 from typing import Tuple, Iterable, List, TypeVar, Generator, Dict
 
-from .tile_system import TileSystem, valid_key, TileAnchor
+from .tilesystem import tilesystem
 from .util import precondition
 
 LAT_STR = 'lat'
 LON_STR = 'lon'
+KEY_PATTERN = re.compile("^[0-3]+$")
 
 IntOrNone = TypeVar('IntOrNone', int, None)
 
+
+def valid_level(level):
+    LEVEL_RANGE = (1, 31)
+    return LEVEL_RANGE[0] <= level <= LEVEL_RANGE[1]
+
+
+@precondition(lambda key: valid_level(len(key)))
+def valid_key(key) -> bool:
+    return KEY_PATTERN.match(key) is not None
+
+
+class TileAnchor(IntEnum):
+    ANCHOR_NW = auto()
+    ANCHOR_NE = auto()
+    ANCHOR_SW = auto()
+    ANCHOR_SE = auto()
+    ANCHOR_CENTER = auto()
 
 class QuadKey:
     @precondition(lambda c, key: valid_key(key))
     def __init__(self, key):
         self.key = key
-        self.tile, self.level = TileSystem.quadkey_to_tile(self.key)
+        self.tile, self.level = tilesystem.quadkey_to_tile(self.key)
 
     def children(self, at_level: int = -1) -> List['QuadKey']:
         if at_level <= 0:
@@ -32,7 +52,7 @@ class QuadKey:
         perms = set(itertools.product(config[0], config[1]))
         # TODO: probably won't work for edge cases
         tiles = set(map(lambda perm: (abs(self.tile[0] + perm[0]), abs(self.tile[1] + perm[1])), perms))
-        return [TileSystem.tile_to_quadkey(tile, self.level) for tile in tiles]
+        return [tilesystem.tile_to_quadkey(tile, self.level) for tile in tiles]
 
     def nearby(self, n: int = 1) -> List[str]:
         return self.nearby_custom((range(-n, n + 1), range(-n, n + 1)))
@@ -56,7 +76,7 @@ class QuadKey:
         return node.is_ancestor(self)
 
     def side(self) -> float:
-        return 256 * TileSystem.ground_resolution(0, self.level)
+        return 256 * tilesystem.ground_resolution(0, self.level)
 
     def area(self) -> float:
         side = self.side()
@@ -116,11 +136,11 @@ class QuadKey:
         return self.tile, self.level
 
     def to_pixel(self, anchor: TileAnchor = TileAnchor.ANCHOR_NW) -> Tuple[int, int]:
-        return TileSystem.tile_to_pixel(self.tile, anchor)
+        return tilesystem.tile_to_pixel(self.tile, anchor)
 
     def to_geo(self, anchor: TileAnchor = TileAnchor.ANCHOR_NW) -> Tuple[float, float]:
-        pixel = TileSystem.tile_to_pixel(self.tile, anchor)
-        return TileSystem.pixel_to_geo(pixel, self.level)
+        pixel = tilesystem.tile_to_pixel(self.tile, anchor)
+        return tilesystem.pixel_to_geo(pixel, self.level)
 
     def set_level(self, level: int):
         assert level < self.level
@@ -151,14 +171,14 @@ def from_geo(geo: Tuple[float, float], level: int) -> 'QuadKey':
     If level is outside of bounds, an AssertionError is raised
 
     """
-    pixel = TileSystem.geo_to_pixel(geo, level)
-    tile = TileSystem.pixel_to_tile(pixel)
-    key = TileSystem.tile_to_quadkey(tile, level)
+    pixel = tilesystem.geo_to_pixel(geo, level)
+    tile = tilesystem.pixel_to_tile(pixel)
+    key = tilesystem.tile_to_quadkey(tile, level)
     return QuadKey(key)
 
 
 def from_tile(tile: Tuple[int, int], level: int) -> 'QuadKey':
-    return QuadKey(TileSystem.tile_to_quadkey(tile, level))
+    return QuadKey(tilesystem.tile_to_quadkey(tile, level))
 
 
 def from_str(qk_str: str) -> 'QuadKey':
