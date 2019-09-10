@@ -56,7 +56,7 @@ window.addEventListener('load', () => {
         observedTiles = observedKeys.map(qk2xy)
 
         if (ws) ws.close()
-        ws = new WebSocket(`ws://localhost:8000/ws?tile=${observedKey}`)
+        ws = new WebSocket(`ws://localhost:8080/ws?tile=${observedKey}`)
 
         reinit()
         running = true

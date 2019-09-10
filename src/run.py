@@ -17,7 +17,7 @@ def run():
     elif sys.argv[1] in {'web'}:
         import uvicorn
         from web.server import app
-        uvicorn.run(app)
+        uvicorn.run(app, port=8080)
 
 if __name__ == '__main__':
     run()
