@@ -153,6 +153,9 @@ class QuadKey:
     def __ne__(self, other):
         return not self.__eq__(other)
 
+    def __lt__(self, other):
+        return self.key.__lt__(other)
+
     def __str__(self):
         return self.key
 
