@@ -3,7 +3,7 @@ const GRID_LEVEL = 19
 const OBSERVATION_LEVEL = 24
 const CLIP_GRID = OBSERVATION_LEVEL - GRID_LEVEL
 const MAX_TTL_SEC = 3
-const COLORS = ['green', 'red', 'blue']
+const COLORS = ['#228b22', '#e50000', '#0000e5']
 
 function qk2xy(qk) {
     let tileX = 0
@@ -29,6 +29,12 @@ function qk2xy(qk) {
         }
     }
     return [tileX, tileY]
+}
+
+const hex2rgba = (hex, alpha = 1) => {
+    if (hex == null) return null
+    const [r, g, b] = hex.match(/\w\w/g).map(x => parseInt(x, 16))
+    return `rgba(${r},${g},${b},${alpha})`
 }
 
 window.addEventListener('load', () => {
@@ -109,7 +115,7 @@ window.addEventListener('load', () => {
                 width: size,
                 height: size,
                 fill: null,
-                stroke: '#c8c8c8',
+                stroke: 'rgba(200, 200, 200, 1)',
                 selectable: false
             }))
         })
@@ -118,7 +124,7 @@ window.addEventListener('load', () => {
             if (!e.target.id) return
             if (tooltipNode) canvas.remove(tooltipNode)
 
-            let text = `${e.target.id}\n${e.target.opacity}`
+            let text = `${e.target.id}\n${e.target.confidence}`
             if (e.target.occupant) text += `\n${e.target.occupant}`
             tooltipNode = new fabric.Text(text, {
                 top: e.target.top,
@@ -141,9 +147,9 @@ window.addEventListener('load', () => {
             const color = state ? COLORS[state[0]] : null
             const cellItem = canvas.item(i)
 
-            cellItem.set('fill', color)
+            cellItem.set('fill', hex2rgba(color, state ? state[1].toFixed(2) : 1))
+            if (state) cellItem.set('confidence', state[1].toFixed(2))
 
-            if (state) cellItem.set('opacity', state[1].toFixed(2))
             if (occupant) {
                 cellItem.set('strokeWidth', 4)
                 cellItem.set('occupant', occupant[0])
