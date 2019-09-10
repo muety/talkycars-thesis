@@ -101,7 +101,7 @@ class PEMFusionService(FusionService[PEMTrafficScene]):
                                         for a in self.state_matrices.values()
                                         for i in range(len(a))]  # TODO
 
-        return self._fuse_scene(all_obs, all_states)
+        return self._fuse_scenes(all_obs, all_states)
 
     def tear_down(self):
         self.fuse_pool.close()
@@ -123,37 +123,7 @@ class PEMFusionService(FusionService[PEMTrafficScene]):
 
         return cell_matrix
 
-    def _states2grids(self, states: np.ndarray) -> Dict[str, PEMOccupancyGrid]:
-        grids: Dict[str, PEMOccupancyGrid] = {}
-        cells: Dict[str, List[PEMGridCell]] = {}  # REMOTE_GRID_TILE_LEVEL keys to cells
-
-        mask: np.ndarray = np.isnan(states).sum(axis=1) == 0
-        idx_lookup: np.ndarray = mask.cumsum()
-        states = states[mask]
-
-        max_confs: np.ndarray = np.max(states, axis=1)
-        max_states: np.ndarray = np.argmax(states, axis=1)
-
-        for idx in range(0, states.shape[0]):
-            trueidx = int(np.argmax(idx_lookup > idx))
-            qk = self.reverse_indices[trueidx]
-
-            key = qk[:REMOTE_GRID_TILE_LEVEL]
-            if key not in cells:
-                cells[key] = []
-
-            cells[key].append(PEMGridCell(
-                hash=qk,
-                state=PEMRelation(float(max_confs[idx]), GridCellState(int(max_states[idx]))),
-                occupant=PEMRelation(0., None)
-            ))
-
-        for qk, items in cells.items():
-            grids[qk] = PEMOccupancyGrid(cells=items)
-
-        return grids
-
-    def _fuse_scene(self, scenes: List[PEMTrafficScene], states: List[np.ndarray]) -> Dict[str, PEMTrafficScene]:
+    def _fuse_scenes(self, scenes: List[PEMTrafficScene], states: List[np.ndarray]) -> Dict[str, PEMTrafficScene]:
         fused_scenes: Dict[str, PEMTrafficScene] = dict()
 
         # Only a temporary hack
@@ -161,7 +131,7 @@ class PEMFusionService(FusionService[PEMTrafficScene]):
         if len(states) == 0:
             return fused_scenes
 
-        fused_grids: Dict[str, PEMOccupancyGrid] = self._fuse_grid(
+        fused_grids: Dict[str, PEMOccupancyGrid] = self._fuse_grids(
             list(map(lambda t: t.timestamp, scenes)),
             states
         )
@@ -171,13 +141,39 @@ class PEMFusionService(FusionService[PEMTrafficScene]):
 
         return fused_scenes
 
-    def _fuse_grid(self, timestamps: List[int], states: List[np.ndarray]) -> Dict[str, PEMOccupancyGrid]:
+    def _fuse_grids(self, timestamps: List[int], states: List[np.ndarray]) -> Dict[str, PEMOccupancyGrid]:
         if len(timestamps) != len(states):
             return dict()
 
         states: List[np.ndarray] = [np.array(states[i]) * self._decay(timestamps[i]) for i in range(len(timestamps))]
+        fused_grids: Dict[str, PEMOccupancyGrid] = {}
+        fused_cells: Dict[str, List[PEMGridCell]] = {}  # REMOTE_GRID_TILE_LEVEL keys to cells
+
+        # Step 1: Fuse states
         fused_states: np.ndarray = np.nanmean(states, axis=0)
-        fused_grids: Dict[str, PEMOccupancyGrid] = self._states2grids(fused_states)
+        mask: np.ndarray = np.isnan(fused_states).sum(axis=1) == 0
+        idx_lookup: np.ndarray = mask.cumsum()
+        fused_states_masked: np.ndarray = fused_states[mask]
+
+        max_confs: np.ndarray = np.max(fused_states_masked, axis=1)
+        max_states: np.ndarray = np.argmax(fused_states_masked, axis=1)
+
+        for idx in range(0, fused_states_masked.shape[0]):
+            trueidx: int = int(np.argmax(idx_lookup > idx))
+            qk: str = self.reverse_indices[trueidx]
+
+            key: str = qk[:REMOTE_GRID_TILE_LEVEL]
+            if key not in fused_cells:
+                fused_cells[key] = []
+
+            fused_cells[key].append(PEMGridCell(
+                hash=qk,
+                state=PEMRelation(float(max_confs[idx]), GridCellState(int(max_states[idx]))),
+                occupant=PEMRelation(0., None)
+            ))
+
+        for qk, items in fused_cells.items():
+            fused_grids[qk] = PEMOccupancyGrid(cells=items)
 
         return fused_grids
 
