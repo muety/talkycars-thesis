@@ -1,11 +1,9 @@
-import logging
 import math
 import time
 from abc import ABC, abstractmethod
 from collections import deque
-from itertools import starmap
 from multiprocessing.pool import Pool
-from typing import TypeVar, Generic, Type, Set, List, Dict, Tuple, Union, Deque
+from typing import TypeVar, Generic, Type, Set, List, Dict, Union, Deque
 
 import numpy as np
 
@@ -13,11 +11,9 @@ from common import quadkey
 from common.constants import *
 from common.quadkey import QuadKey
 from common.serialization.schema import GridCellState
-from common.serialization.schema.actor import PEMDynamicActor
 from common.serialization.schema.base import PEMTrafficScene
 from common.serialization.schema.occupancy import PEMGridCell, PEMOccupancyGrid
 from common.serialization.schema.relation import PEMRelation
-from common.util import proc_wrap
 
 T = TypeVar('T')
 
@@ -48,13 +44,19 @@ class FusionService(Generic[T], ABC):
     def tear_down(self):
         pass
 
+
 class PEMFusionService(FusionService[PEMTrafficScene]):
     def __init__(self, sector: Union[QuadKey, str], keep=3):
         self.sector: QuadKey = None
         self.sector_keys: Set[str] = None
+        self.grid_keys: Set[str] = None
 
         self.keep: int = keep
+        self.indices: Dict[str, int] = {}
+        self.reverse_indices: List[str] = []
         self.observations: Dict[int, Deque[PEMTrafficScene]] = {}
+
+        self.state_matrices: Dict[int, Deque[np.ndarray]] = {}
 
         self.fuse_pool: Pool = Pool(6, )
 
@@ -67,11 +69,21 @@ class PEMFusionService(FusionService[PEMTrafficScene]):
 
         self.sector = sector
         self.sector_keys = set(map(lambda qk: qk.key, sector.children(at_level=REMOTE_GRID_TILE_LEVEL)))
+        self.grid_keys = set(map(lambda qk: qk.key, sector.children(at_level=OCCUPANCY_TILE_LEVEL)))
+
+        self.reverse_indices = [''] * len(self.grid_keys)
+
+        for i, qk in enumerate(sorted(self.grid_keys)):
+            self.indices[qk] = i
+            self.reverse_indices[i] = qk
 
     def push(self, sender_id: int, observation: PEMTrafficScene):
         if sender_id not in self.observations:
             self.observations[sender_id] = deque(maxlen=self.keep)
+            self.state_matrices[sender_id] = deque(maxlen=self.keep)
+
         self.observations[sender_id].append(observation)
+        self.state_matrices[sender_id].append(self._grid2states(observation.occupancy_grid))
 
     '''
     Returns a map from tiles at REMOTE_GRID_TILE_LEVEL to fused PEMTrafficScenes
@@ -85,119 +97,89 @@ class PEMFusionService(FusionService[PEMTrafficScene]):
                                           for dq in self.observations.values()
                                           for i in range(len(dq))
                                           if now - dq[i].timestamp < max_age]
-        return self._fuse_scene(all_obs)
+        all_states: List[np.ndarray] = [a[i]
+                                        for a in self.state_matrices.values()
+                                        for i in range(len(a))]  # TODO
+
+        return self._fuse_scene(all_obs, all_states)
 
     def tear_down(self):
         self.fuse_pool.close()
         self.fuse_pool.join()
         self.fuse_pool.terminate()
 
-    def _fuse_scene(self, scenes: List[PEMTrafficScene]) -> Dict[str, PEMTrafficScene]:
+    def _grid2states(self, grid: PEMOccupancyGrid) -> np.ndarray:
+        n_states: int = GridCellState.N
+        cell_matrix: np.ndarray = np.full((len(self.indices), n_states), np.nan)
+
+        for cell in grid.cells:
+            if cell.hash not in self.indices:
+                continue
+
+            for i in range(n_states):
+                s: int = cell.state.object.value
+                c: float = cell.state.confidence
+                cell_matrix[self.indices[cell.hash], i] = c if s == i else (1 - c) / n_states
+
+        return cell_matrix
+
+    def _states2grids(self, states: np.ndarray) -> Dict[str, PEMOccupancyGrid]:
+        grids: Dict[str, PEMOccupancyGrid] = {}
+        cells: Dict[str, List[PEMGridCell]] = {}  # REMOTE_GRID_TILE_LEVEL keys to cells
+
+        mask: np.ndarray = np.isnan(states).sum(axis=1) == 0
+        idx_lookup: np.ndarray = mask.cumsum()
+        states = states[mask]
+
+        max_confs: np.ndarray = np.max(states, axis=1)
+        max_states: np.ndarray = np.argmax(states, axis=1)
+
+        for idx in range(0, states.shape[0]):
+            trueidx = int(np.argmax(idx_lookup > idx))
+            qk = self.reverse_indices[trueidx]
+
+            key = qk[:REMOTE_GRID_TILE_LEVEL]
+            if key not in cells:
+                cells[key] = []
+
+            cells[key].append(PEMGridCell(
+                hash=qk,
+                state=PEMRelation(float(max_confs[idx]), GridCellState(int(max_states[idx]))),
+                occupant=PEMRelation(0., None)
+            ))
+
+        for qk, items in cells.items():
+            grids[qk] = PEMOccupancyGrid(cells=items)
+
+        return grids
+
+    def _fuse_scene(self, scenes: List[PEMTrafficScene], states: List[np.ndarray]) -> Dict[str, PEMTrafficScene]:
         fused_scenes: Dict[str, PEMTrafficScene] = dict()
-        fused_grids: Dict[str, PEMOccupancyGrid] = self._fuse_grid(list(map(lambda t: (t.timestamp, t.occupancy_grid), scenes)))
+
+        # Only a temporary hack
+        states = states[:len(scenes)]
+        if len(states) == 0:
+            return fused_scenes
+
+        fused_grids: Dict[str, PEMOccupancyGrid] = self._fuse_grid(
+            list(map(lambda t: t.timestamp, scenes)),
+            states
+        )
 
         for k, grid in fused_grids.items():
             fused_scenes[k] = PEMTrafficScene(ts=time.time(), occupancy_grid=grid)
 
         return fused_scenes
 
-    def _fuse_grid(self, grids: List[Tuple[int, PEMOccupancyGrid]]) -> Dict[str, PEMOccupancyGrid]:
-        fused_grids: Dict[str, PEMOccupancyGrid] = dict()
-        fused_cells: Dict[str, List[PEMGridCell]] = self._fuse_cells(list(map(lambda t: (t[0], t[1].cells), grids)))
+    def _fuse_grid(self, timestamps: List[int], states: List[np.ndarray]) -> Dict[str, PEMOccupancyGrid]:
+        if len(timestamps) != len(states):
+            return dict()
 
-        for k, cells in fused_cells.items():
-            fused_grids[k] = PEMOccupancyGrid(cells=cells)
+        states: List[np.ndarray] = [np.array(states[i]) * self._decay(timestamps[i]) for i in range(len(timestamps))]
+        fused_states: np.ndarray = np.nanmean(states, axis=0)
+        fused_grids: Dict[str, PEMOccupancyGrid] = self._states2grids(fused_states)
 
         return fused_grids
-
-    def _fuse_cells(self, cells: List[Tuple[int, List[PEMGridCell]]]) -> Dict[str, List[PEMGridCell]]:
-        fused_cells: Dict[str, List[PEMGridCell]] = dict()
-        used_cells: Dict[str, Set[QuadKey]] = dict()
-        cell_map: Dict[str, Deque[Tuple[int, PEMGridCell]]] = dict()
-
-        for cell_obs in cells:
-            for cell in cell_obs[1]:
-                hash = cell.hash[:REMOTE_GRID_TILE_LEVEL]
-                if hash not in self.sector_keys:
-                    continue
-                if hash not in cell_map:
-                    cell_map[hash] = deque(maxlen=4 ** (len(cell.hash) - REMOTE_GRID_TILE_LEVEL))
-                    used_cells[hash] = set()
-                cell_map[hash].append((cell_obs[0], cell))
-                used_cells[hash].add(quadkey.from_str(cell.hash))
-
-        # Performance bottleneck -> need to multi-thread for large number of vehicles and larger grids
-        result: List[Tuple[str, List[PEMGridCell]]] = self.fuse_pool.starmap(self._fuse_tile_cells, list(map(lambda k: (k, cell_map[k], used_cells[k]), cell_map.keys())))
-        for tile, cells in result:
-            fused_cells[tile] = cells
-
-        return fused_cells
-
-    @classmethod
-    def _fuse_tile_cells(cls, tile: str, cells: Deque[Tuple[int, PEMGridCell]], used_keys: Set[QuadKey]) -> Tuple[str, List[PEMGridCell]]:
-        return tile, list(starmap(cls._fuse_tile_cell, list(map(lambda qk: (qk, cells), used_keys))))
-
-    @classmethod
-    def _wrapped_ftc(cls, *args, **kwargs):
-        return proc_wrap(cls._fuse_tile_cells, *args, **kwargs)
-
-    @classmethod
-    def _fuse_tile_cell(cls, cell_hash: QuadKey, cells: Deque[Tuple[int, PEMGridCell]]) -> PEMGridCell:
-        fused_cell: PEMGridCell = PEMGridCell(hash=cell_hash.key)
-
-        state_known_mask: np.ndarray[np.bool] = np.array([], dtype=np.bool)
-        state_confs: np.ndarray[np.float32, np.float32] = np.empty((3, 0), dtype=np.float32)
-        occ_confs: np.ndarray[np.float32, np.float32] = np.empty((0, 0), dtype=np.float32)
-
-        occ_weightsum: float = 0.0
-        state_weightsum: float = 0.0
-
-        states: List[GridCellState] = GridCellState.options()
-        occupants: Dict[int, PEMDynamicActor] = dict()
-
-        for ts, cell in cells:
-            if cell.hash != cell_hash.key:
-                continue
-
-            # 1.: Cell State
-            weight = cls._decay(ts)
-            state_conf_vec = weight * np.array([cell.state.confidence
-                                                if i == cell.state.object.value
-                                                else np.minimum((1 - cell.state.confidence) / GridCellState.N, 1 / GridCellState.N)
-                                                for i in range(GridCellState.N)], dtype=np.float32)
-            state_confs = np.hstack((state_confs, state_conf_vec.reshape(-1, 1)))
-            state_known_mask = np.hstack((state_known_mask, [cell.state.object != GridCellState.occupied()]))
-            state_weightsum += weight
-
-            # 2.: Cell Occupant
-            occ_id = cell.occupant.object.id if cell.occupant.object else -1
-            if occ_id not in occupants:
-                occupants[occ_id] = cell.occupant.object if occ_id > -1 else None
-                occ_confs = np.vstack((occ_confs, np.zeros(occ_confs.shape[1:])))
-            occ_confs = weight * np.hstack((occ_confs, np.vstack((np.zeros((max(occ_confs.shape[0] - 1, 0), 1)), [cell.occupant.confidence]))))
-            occ_weightsum += weight
-
-        # 1.: Cell State
-        state_confs[int(GridCellState.occupied().value), state_known_mask] = 0  # Overwrite unknown state if free or occupied was present in at least one observation
-        state_probs = np.sum(state_confs, axis=1) / state_weightsum
-        try:
-            state = (float(np.max(state_probs)), states[int(np.argmax(state_probs))])
-        except:
-            logging.warning(f'Got state probs of shape {state_probs.shape}.')
-            state = (0, GridCellState.unknown())
-
-        # 2.: Cell Occupant
-        occ_probs = np.sum(occ_confs, axis=1) / occ_weightsum
-        try:
-            occ = (float(np.max(occ_probs)), list(occupants.values())[int(np.argmax(occ_probs))])
-        except:
-            logging.warning(f'Got occ probs of shape {occ_probs.shape}.')
-            occ = (0, None)
-
-        fused_cell.state = PEMRelation[GridCellState](*state)
-        fused_cell.occupant = PEMRelation[PEMDynamicActor](*occ)
-
-        return fused_cell
 
     @staticmethod
     def _decay(timestamp: float) -> float:
