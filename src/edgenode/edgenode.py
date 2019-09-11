@@ -1,5 +1,6 @@
 import argparse
 import logging
+import multiprocessing
 import sys
 import time
 from collections import deque
@@ -88,11 +89,14 @@ class EdgeNode:
         t.start()
 
     def _wait_for_decode(self, promise: AsyncResult):
-        graph: PEMTrafficScene = cast(PEMTrafficScene, promise.get(GRID_TTL_SEC))
-        self.in_queue[graph.measured_by.id] = graph
+        try:
+            graph: PEMTrafficScene = cast(PEMTrafficScene, promise.get(GRID_TTL_SEC))
+            self.in_queue[graph.measured_by.id] = graph
 
-        with self.rate_lock:
-            self.in_rate_count += 1
+            with self.rate_lock:
+                self.in_rate_count += 1
+        except multiprocessing.context.TimeoutError:
+            return
 
     def _publish_graph(self, for_tile: str, graph: PEMTrafficScene):
         try:
