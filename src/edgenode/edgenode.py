@@ -2,9 +2,12 @@ import argparse
 import logging
 import sys
 import time
+from collections import deque
 from multiprocessing.pool import ThreadPool, Pool, AsyncResult
 from threading import RLock, Thread, Lock
-from typing import Type, cast, List, Set, Dict
+from typing import Type, cast, List, Set, Dict, Deque
+
+import numpy as np
 
 from common import quadkey
 from common.bridge import MqttBridge
@@ -27,11 +30,12 @@ class EdgeNode:
         self.covered_tile: QuadKey = covered_tile
         self.children_tiles: List[QuadKey] = covered_tile.children(REMOTE_GRID_TILE_LEVEL)
         self.children_tile_keys: Set[str] = set(map(lambda t: t.key, self.children_tiles))
-
-        self.in_rate_count_thread: Thread = Thread(target=self._eval_rate, daemon=True)
-        self.in_rate_lock: RLock = RLock()
-        self.in_rate_count: int = 0
         self.in_queue: Dict[int, PEMTrafficScene] = {}
+
+        self.rate_count_thread: Thread = Thread(target=self._eval_rate, daemon=True)
+        self.rate_lock: RLock = RLock()
+        self.in_rate_count: int = 0
+        self.fuse_delay_tracker: Deque[float] = deque(maxlen=100)
 
         self.tick_timeout: float = 1 / TICK_RATE
         self.last_tick: float = time.monotonic()
@@ -41,7 +45,7 @@ class EdgeNode:
         self.decode_pool: Pool = Pool(6, )
 
     def run(self):
-        self.in_rate_count_thread.start()
+        self.rate_count_thread.start()
 
         self.mqtt = MqttBridge()
         self.mqtt.subscribe(TOPIC_GRAPH_RAW_IN, self._on_graph)
@@ -58,17 +62,19 @@ class EdgeNode:
             self.last_tick = time.monotonic()
             self.tick()
             self.flush()
+
             diff = time.monotonic() - self.last_tick
+
+            self.fuse_delay_tracker.append(diff)
+
             time.sleep(max(0.0, self.tick_timeout - diff))
 
     def tick(self):
-        t0 = time.monotonic()
         fused_graphs: Dict[str, PEMTrafficScene] = self.fusion_srvc.get(max_age=GRID_TTL_SEC)
         if not fused_graphs:
             return
 
         self.send_pool.starmap_async(self._wrapped_pg, fused_graphs.items())
-        print(time.monotonic() - t0)
 
     def flush(self):
         for sender_id, graph in self.in_queue.items():
@@ -85,7 +91,7 @@ class EdgeNode:
         graph: PEMTrafficScene = cast(PEMTrafficScene, promise.get(GRID_TTL_SEC))
         self.in_queue[graph.measured_by.id] = graph
 
-        with self.in_rate_lock:
+        with self.rate_lock:
             self.in_rate_count += 1
 
     def _publish_graph(self, for_tile: str, graph: PEMTrafficScene):
@@ -104,9 +110,10 @@ class EdgeNode:
 
         while self.mqtt.connected:
             time.sleep(EVAL_RATE_SECS)
-            logging.debug(f'Current message rate: {self.in_rate_count / EVAL_RATE_SECS} msgs / sec')
+            logging.debug(
+                f'Ø Message Rate: {self.in_rate_count / EVAL_RATE_SECS} msgs / sec, Ø Fusion Delay: {np.around(np.mean(self.fuse_delay_tracker), decimals=2)} sec')
 
-            with self.in_rate_lock:
+            with self.rate_lock:
                 self.in_rate_count = 0
 
     @staticmethod

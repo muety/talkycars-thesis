@@ -21,6 +21,7 @@ class PEMTrafficScene(CapnpObject):
     def __init__(self, **entries):
         # NOTE: This is only the default. You might wanna set this explicitly.
         self.timestamp: float = time.time()  # UTC Unix timestamp
+        self.min_timestamp: float = time.time()  # UTC Unix timestamp
         self.measured_by: PEMDynamicActor = None
         self.occupancy_grid: PEMOccupancyGrid = None
 
@@ -32,6 +33,8 @@ class PEMTrafficScene(CapnpObject):
 
         if self.timestamp:
             scene.timestamp = self.timestamp
+        if self.min_timestamp:
+            scene.minTimestamp = self.min_timestamp
         if self.measured_by:
             scene.measuredBy = self.measured_by.to_message()
         if self.occupancy_grid:
@@ -42,10 +45,12 @@ class PEMTrafficScene(CapnpObject):
     @classmethod
     def from_message_dict(cls, object_dict: Dict, target_cls: Type = None) -> 'PEMTrafficScene':
         timestamp = object_dict['timestamp'] if 'timestamp' in object_dict else None
+        min_timestamp = object_dict['minTimestamp'] if 'minTimestamp' in object_dict else None
         ego = PEMDynamicActor.from_message_dict(object_dict['measuredBy']) if 'measuredBy' in object_dict else None
         grid = PEMOccupancyGrid.from_message_dict(object_dict['occupancyGrid']) if 'occupancyGrid' in object_dict else None
         return cls(
             timestamp=timestamp,
+            min_timestamp=min_timestamp,
             measured_by=ego,
             occupancy_grid=grid
         )

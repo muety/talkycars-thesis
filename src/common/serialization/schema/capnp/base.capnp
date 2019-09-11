@@ -5,6 +5,7 @@ using import "occupancy.capnp".OccupancyGrid;
 
 struct TrafficScene {
     timestamp @0 :Float64;
-    measuredBy @1 :DynamicActor;
-    occupancyGrid @2 :OccupancyGrid;
+    minTimestamp @1 :Float64;
+    measuredBy @2 :DynamicActor;
+    occupancyGrid @3 :OccupancyGrid;
 }

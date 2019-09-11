@@ -131,17 +131,19 @@ class PEMFusionService(FusionService[PEMTrafficScene]):
         if len(states) == 0:
             return fused_scenes
 
-        fused_grids: Dict[str, PEMOccupancyGrid] = self._fuse_grids(
-            list(map(lambda t: t.timestamp, scenes)),
-            states
-        )
+        timestamps: List[float] = list(map(lambda t: t.timestamp, scenes))
+        fused_grids: Dict[str, PEMOccupancyGrid] = self._fuse_grids(timestamps, states)
 
         for k, grid in fused_grids.items():
-            fused_scenes[k] = PEMTrafficScene(ts=time.time(), occupancy_grid=grid)
+            fused_scenes[k] = PEMTrafficScene(
+                timestamp=time.time(),
+                min_timestamp=max(timestamps),  # How old is the latest value that was included here?
+                occupancy_grid=grid
+            )
 
         return fused_scenes
 
-    def _fuse_grids(self, timestamps: List[int], states: List[np.ndarray]) -> Dict[str, PEMOccupancyGrid]:
+    def _fuse_grids(self, timestamps: List[float], states: List[np.ndarray]) -> Dict[str, PEMOccupancyGrid]:
         if len(timestamps) != len(states):
             return dict()
 

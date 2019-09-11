@@ -1,5 +1,7 @@
+import argparse
 import logging
 import random
+import sys
 import time
 from threading import Thread, Lock
 from typing import Tuple, List, Union
@@ -21,15 +23,12 @@ logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.DEBUG)
 class MessageGenerator:
     def __init__(
             self,
-            actor_id: int = 1,
             grid_tile_level: int = OCCUPANCY_TILE_LEVEL,
-            remote_tile_level: int = REMOTE_GRID_TILE_LEVEL,
             grid_radius: int = OCCUPANCY_RADIUS_DEFAULT,
             max_rate: float = 5.  # Hz
     ):
-        self.actor_id = actor_id
+        self.actor_id = random.randint(1, 9999)
         self.grid_tile_level = grid_tile_level
-        self.remote_tile_level = remote_tile_level
         self.grid_radius = grid_radius
         self.max_rate: float = max_rate
 
@@ -161,6 +160,16 @@ class MessageGenerator:
             time.sleep(1)
 
 
-if __name__ == '__main__':
-    gen = MessageGenerator(grid_radius=20, max_rate=10)
+def run(args=sys.argv[1:]):
+    argparser = argparse.ArgumentParser(description='TalkyCars Message Generator')
+    argparser.add_argument('--rate', '-r', default=5, type=int, help='Message Rate')
+    argparser.add_argument('--level', '-l', default=OCCUPANCY_TILE_LEVEL, type=int, help='Occupancy Grid Tile Level')
+    argparser.add_argument('--radius', '-R', default=OCCUPANCY_RADIUS_DEFAULT, type=int, help='Occupancy Grid Radius')
+
+    args = argparser.parse_args(args)
+
+    gen = MessageGenerator(grid_radius=args.radius, grid_tile_level=args.level, max_rate=args.rate)
     gen.run()
+
+if __name__ == '__main__':
+    run()
