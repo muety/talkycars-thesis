@@ -2,8 +2,8 @@ import argparse
 import logging
 import sys
 import time
-from multiprocessing.pool import ThreadPool
-from threading import RLock, Thread
+from multiprocessing.pool import ThreadPool, Pool, AsyncResult
+from threading import RLock, Thread, Lock
 from typing import Type, cast, List, Set, Dict
 
 from common import quadkey
@@ -31,11 +31,14 @@ class EdgeNode:
         self.in_rate_count_thread: Thread = Thread(target=self._eval_rate, daemon=True)
         self.in_rate_lock: RLock = RLock()
         self.in_rate_count: int = 0
+        self.in_queue: Dict[int, PEMTrafficScene] = {}
 
         self.tick_timeout: float = 1 / TICK_RATE
         self.last_tick: float = time.monotonic()
+        self.tick_lock: Lock = Lock()
 
-        self.send_pool: ThreadPool = ThreadPool(12)  # GIL Thread Pool
+        self.send_pool: ThreadPool = ThreadPool(12, )  # GIL Thread Pool
+        self.decode_pool: Pool = Pool(6, )
 
     def run(self):
         self.in_rate_count_thread.start()
@@ -47,15 +50,18 @@ class EdgeNode:
         while True:
             if self.killer.kill_now:
                 self.mqtt.disconnect()
+                self.decode_pool.close()
+                self.decode_pool.join()
+                self.decode_pool.terminate()
                 break
 
             self.last_tick = time.monotonic()
             self.tick()
+            self.flush()
             diff = time.monotonic() - self.last_tick
             time.sleep(max(0.0, self.tick_timeout - diff))
 
     def tick(self):
-        # TODO: Maybe try to speed up a little more. Currently takes ~ 0.12 sec for two agents with 10x10 grids
         t0 = time.monotonic()
         fused_graphs: Dict[str, PEMTrafficScene] = self.fusion_srvc.get(max_age=GRID_TTL_SEC)
         if not fused_graphs:
@@ -64,9 +70,20 @@ class EdgeNode:
         self.send_pool.starmap_async(self._wrapped_pg, fused_graphs.items())
         print(time.monotonic() - t0)
 
+    def flush(self):
+        for sender_id, graph in self.in_queue.items():
+            self.fusion_srvc.push(sender_id, graph)
+        self.in_queue.clear()
+
     def _on_graph(self, message: bytes):
-        graph: PEMTrafficScene = cast(PEMTrafficScene, self._decode_capnp_msg(message, target_cls=PEMTrafficScene))
-        self.fusion_srvc.push(graph.measured_by.id, graph)
+        graph_promise: AsyncResult = self.decode_pool.apply_async(proc_wrap,
+                                                                  (self._decode_capnp_msg, message, PEMTrafficScene))
+        t: Thread = Thread(target=proc_wrap, args=(self._wait_for_decode, graph_promise,), daemon=True)
+        t.start()
+
+    def _wait_for_decode(self, promise: AsyncResult):
+        graph: PEMTrafficScene = cast(PEMTrafficScene, promise.get(GRID_TTL_SEC))
+        self.in_queue[graph.measured_by.id] = graph
 
         with self.in_rate_lock:
             self.in_rate_count += 1
@@ -92,7 +109,8 @@ class EdgeNode:
             with self.in_rate_lock:
                 self.in_rate_count = 0
 
-    def _decode_capnp_msg(self, bytes: bytes, target_cls: Type[CapnpObject]) -> CapnpObject:
+    @staticmethod
+    def _decode_capnp_msg(bytes: bytes, target_cls: Type[CapnpObject]) -> CapnpObject:
         try:
             return target_cls.from_bytes(bytes)
         except Exception as e1:

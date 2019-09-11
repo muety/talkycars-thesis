@@ -162,5 +162,5 @@ class MessageGenerator:
 
 
 if __name__ == '__main__':
-    gen = MessageGenerator(grid_radius=5, max_rate=1)
+    gen = MessageGenerator(grid_radius=20, max_rate=10)
     gen.run()
