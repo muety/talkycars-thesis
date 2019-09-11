@@ -102,15 +102,14 @@ class TileSubscriptionService:
         if not self.current_parent:
             return
 
+        # TODO: Publish to multiple bridges in case my observed grid stretches
+        #  among more than one EDGE_DISTRIBUTION_TILE_LEVEL tiles
         bridge = self._try_get_bridge(self.current_parent.key)
 
         if not bridge:
             return
 
-        parent_tiles = set([key[:REMOTE_GRID_TILE_LEVEL] for key in contained_tiles])
-
-        for key in parent_tiles:
-            bridge.publish(f'{TOPIC_PREFIX_GRAPH_RAW_IN}/{key}', encoded_msg)
+        bridge.publish(TOPIC_GRAPH_RAW_IN, encoded_msg)
 
     def active(self) -> bool:
         return len(self.active_bridges) > 0 and all(list(map(lambda b: b.connected, self.active_bridges.values())))

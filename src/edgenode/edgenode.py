@@ -41,7 +41,7 @@ class EdgeNode:
         self.in_rate_count_thread.start()
 
         self.mqtt = MqttBridge()
-        self.mqtt.subscribe(TOPIC_PREFIX_GRAPH_RAW_IN + '/#', self._on_graph)
+        self.mqtt.subscribe(TOPIC_GRAPH_RAW_IN, self._on_graph)
         self.mqtt.listen(block=False)
 
         while True:
