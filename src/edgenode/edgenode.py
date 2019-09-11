@@ -5,7 +5,7 @@ import sys
 import time
 from collections import deque
 from multiprocessing.pool import ThreadPool, Pool, AsyncResult
-from threading import RLock, Thread, Lock
+from threading import RLock, Thread, Lock, BoundedSemaphore
 from typing import Type, cast, List, Set, Dict, Deque
 
 import numpy as np
@@ -44,6 +44,7 @@ class EdgeNode:
 
         self.send_pool: ThreadPool = ThreadPool(12, )  # GIL Thread Pool
         self.decode_pool: Pool = Pool(6, )
+        self.semaphore: BoundedSemaphore = BoundedSemaphore(value=6)
 
     def run(self):
         self.rate_count_thread.start()
@@ -83,6 +84,9 @@ class EdgeNode:
         self.in_queue.clear()
 
     def _on_graph(self, message: bytes):
+        if not self.semaphore.acquire(blocking=False):
+            return
+
         graph_promise: AsyncResult = self.decode_pool.apply_async(proc_wrap,
                                                                   (self._decode_capnp_msg, message, PEMTrafficScene))
         t: Thread = Thread(target=proc_wrap, args=(self._wait_for_decode, graph_promise,), daemon=True)
@@ -91,12 +95,15 @@ class EdgeNode:
     def _wait_for_decode(self, promise: AsyncResult):
         try:
             graph: PEMTrafficScene = cast(PEMTrafficScene, promise.get(GRID_TTL_SEC))
-            self.in_queue[graph.measured_by.id] = graph
+            with self.tick_lock:
+                self.in_queue[graph.measured_by.id] = graph
 
             with self.rate_lock:
                 self.in_rate_count += 1
         except multiprocessing.context.TimeoutError:
-            return
+            pass
+
+        self.semaphore.release()
 
     def _publish_graph(self, for_tile: str, graph: PEMTrafficScene):
         try:
