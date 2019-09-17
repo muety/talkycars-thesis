@@ -77,9 +77,7 @@ class PEMOccupancyGrid(CapnpObject):
         grid = occupancy.OccupancyGrid.new_message()
 
         if self.cells:
-            cells = grid.init('cells', len(self.cells))
-            for i, c in enumerate(self.cells):
-                cells[i] = c.to_message()
+            grid.cells = [c.to_message() for c in self.cells]
 
         return grid
 

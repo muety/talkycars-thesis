@@ -72,11 +72,13 @@ class EdgeNode:
             time.sleep(max(0.0, self.tick_timeout - diff))
 
     def tick(self):
+        t0 = time.monotonic()
         fused_graphs: Dict[str, PEMTrafficScene] = self.fusion_srvc.get(max_age=GRID_TTL_SEC)
         if not fused_graphs:
             return
 
         self.send_pool.starmap_async(self._wrapped_pg, fused_graphs.items())
+        print(time.monotonic() - t0)
 
     def flush(self):
         for sender_id, graph in self.in_queue.items():
