@@ -110,7 +110,7 @@ class PEMFusionService(FusionService[PEMTrafficScene]):
 
     def _grid2states(self, grid: PEMOccupancyGrid) -> np.ndarray:
         n_states: int = GridCellState.N
-        cell_matrix: np.ndarray = np.full((len(self.indices), n_states), np.nan)
+        cell_matrix: np.ndarray = np.full((len(self.grid_keys), n_states), np.nan)
 
         for cell in grid.cells:
             if cell.hash not in self.indices:
