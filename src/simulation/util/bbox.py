@@ -20,9 +20,9 @@ class BBoxUtils(object):
         bb_surface = pygame.Surface((info.current_w, info.current_h))
         bb_surface.set_colorkey((0, 0, 0))
         for k, bbox in enumerate(bounding_boxes):
-            if states[k] is GridCellState.FREE:
+            if states[k] == GridCellState.FREE:
                 color = BB_COLOR_FREE
-            elif states[k] is GridCellState.OCCUPIED:
+            elif states[k] == GridCellState.OCCUPIED:
                 color = BB_COLOR_OCCUPIED
             else:
                 color = BB_COLOR
