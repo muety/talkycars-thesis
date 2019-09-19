@@ -1,4 +1,9 @@
+using Go = import "/go.capnp";
+
 @0x9d133106862be018;
+
+$Go.package("schema");
+$Go.import("talkycars/server/schema");
 
 using import "actor.capnp".DynamicActor;
 using import "occupancy.capnp".OccupancyGrid;

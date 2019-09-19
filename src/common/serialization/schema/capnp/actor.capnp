@@ -1,4 +1,9 @@
+using Go = import "/go.capnp";
+
 @0xdb0016c88e4a89be;
+
+$Go.package("schema");
+$Go.import("talkycars/server/schema");
 
 using import "relation.capnp".Vector3DRelation;
 using import "relation.capnp".TextRelation;

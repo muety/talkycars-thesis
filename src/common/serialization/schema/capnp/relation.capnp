@@ -1,6 +1,11 @@
+using Go = import "/go.capnp";
+
 @0xdaf7aa50cdd411e4;
 
 # TODO: https://github.com/capnproto/pycapnp/issues/188
+
+$Go.package("schema");
+$Go.import("talkycars/server/schema");
 
 using import "vector3d.capnp".Vector3D;
 using import "relative_bbox.capnp".RelativeBBox;
