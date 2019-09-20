@@ -15,7 +15,7 @@
 ## Setup
 * `python3 -m venv .`
 * `pip3 install -r requirements.txt`
-* `go get -u zombiezen.com/go/capnproto2/...`
+* `go get ./...`
 
 ## Run
 ### Preparations
