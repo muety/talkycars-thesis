@@ -10,7 +10,7 @@ capnp.remove_import_hook()
 
 dirname = os.path.dirname(__file__)
 
-dynamic_actor = capnp.load(os.path.join(dirname, './capnp/actor.capnp'))
+dynamic_actor = capnp.load(os.path.join(dirname, './capnp/python/actor.capnp'))
 
 
 class PEMDynamicActor(CapnpObject):

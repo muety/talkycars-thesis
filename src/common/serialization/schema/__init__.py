@@ -11,8 +11,8 @@ capnp.remove_import_hook()
 
 dirname = os.path.dirname(__file__)
 
-vector3d = capnp.load(os.path.join(dirname, './capnp/vector3d.capnp'))
-relative_bbox = capnp.load(os.path.join(dirname, './capnp/relative_bbox.capnp'))
+vector3d = capnp.load(os.path.join(dirname, './capnp/python/vector3d.capnp'))
+relative_bbox = capnp.load(os.path.join(dirname, './capnp/python/relative_bbox.capnp'))
 
 
 class CapnpObject(ABC):

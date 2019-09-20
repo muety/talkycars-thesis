@@ -22,6 +22,7 @@ from common.util import GracefulKiller, proc_wrap
 EVAL_RATE_SECS = 5  # hertz⁻¹
 TICK_RATE = 10  # hertz
 
+
 class EdgeNode:
     def __init__(self, covered_tile: QuadKey):
         self.killer: GracefulKiller = GracefulKiller()
@@ -138,6 +139,7 @@ class EdgeNode:
             logging.debug(e1)
             logging.error(e2)
             raise e2
+
 
 def run(args=sys.argv[1:]):
     argparser = argparse.ArgumentParser(description='TalkyCars Edge Node Server')

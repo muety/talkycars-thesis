@@ -13,8 +13,8 @@ capnp.remove_import_hook()
 
 dirname = os.path.dirname(__file__)
 
-occupancy = capnp.load(os.path.join(dirname, './capnp/occupancy.capnp'))
-base = capnp.load(os.path.join(dirname, './capnp/base.capnp'))
+occupancy = capnp.load(os.path.join(dirname, './capnp/python/occupancy.capnp'))
+base = capnp.load(os.path.join(dirname, './capnp/python/base.capnp'))
 
 
 class PEMTrafficScene(CapnpObject):

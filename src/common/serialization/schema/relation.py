@@ -10,7 +10,7 @@ capnp.remove_import_hook()
 
 dirname = os.path.dirname(__file__)
 
-relation = capnp.load(os.path.join(dirname, './capnp/relation.capnp'))
+relation = capnp.load(os.path.join(dirname, './capnp/python/relation.capnp'))
 
 T = TypeVar('T')
 _RelationType = Union[type(relation.TextRelation),

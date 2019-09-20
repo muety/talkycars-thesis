@@ -13,8 +13,8 @@ capnp.remove_import_hook()
 
 dirname = os.path.dirname(__file__)
 
-occupancy = capnp.load(os.path.join(dirname, './capnp/occupancy.capnp'))
-relation = capnp.load(os.path.join(dirname, './capnp/relation.capnp'))
+occupancy = capnp.load(os.path.join(dirname, './capnp/python/occupancy.capnp'))
+relation = capnp.load(os.path.join(dirname, './capnp/python/relation.capnp'))
 
 
 class PEMGridCell(CapnpObject):

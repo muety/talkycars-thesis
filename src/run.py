@@ -6,7 +6,7 @@ def run():
         return
 
     if sys.argv[1] in {'edgenode', 'edge'}:
-        from edgenode import edgenode
+        from edgenode_v1 import edgenode
         edgenode.run(sys.argv[2:])
     elif sys.argv[1] in {'simulation', 'sim'}:
         from simulation import simulation
