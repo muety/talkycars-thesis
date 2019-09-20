@@ -5,10 +5,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-
-	"zombiezen.com/go/capnproto2"
-
-	"./schema"
+	"time"
 
 	MQTT "github.com/eclipse/paho.mqtt.golang"
 )
@@ -16,33 +13,58 @@ import (
 var sigs chan os.Signal
 var graphIn chan []byte
 
-var fusionService FusionService
+var fusionService GraphFusionService
 
 func listen() {
 	// Listen for /graph_in_raw messages
 	go func() {
 		for payload := range graphIn {
-			graph, err := decodeGraph(payload)
-			if err != nil {
-				continue
-			}
+			fusionService.Push(payload)
+			m := fusionService.Get(time.Duration(30) * time.Second)
 
-			measuredBy, _ := graph.MeasuredBy()
-			fmt.Printf("Got traffic scene measured by %v.", measuredBy.Id())
+			// DEBUG CODE
+			for k, msg := range m {
+				if k == "1202032332303131133" {
+					g, err := DecodeGraph(msg)
+					if err != nil {
+						fmt.Println(err)
+						break
+					}
+
+					grid, err := g.OccupancyGrid()
+					if err != nil {
+						fmt.Println(err)
+						break
+					}
+					cells, err := grid.Cells()
+					if err != nil {
+						fmt.Println(err)
+						break
+					}
+
+					for i := 0; i < cells.Len(); i++ {
+						cell := cells.At(i)
+						hash, err := cell.Hash()
+						if err != nil {
+							fmt.Println(err)
+							break
+						}
+
+						stateRelation, err := cell.State()
+						if err != nil {
+							fmt.Println(err)
+							break
+						}
+
+						conf := stateRelation.Confidence()
+						state := stateRelation.Object()
+						fmt.Println(g.Timestamp(), g.MinTimestamp(), hash, conf, state)
+					}
+				}
+			}
+			// END DEBUG CODE
 		}
 	}()
-}
-
-func decodeGraph(msg []byte) (*schema.TrafficScene, error) {
-	decodedMsg, err := capnp.UnmarshalPacked(msg)
-	if err != nil {
-		return nil, err
-	}
-	graph, err := schema.ReadRootTrafficScene(decodedMsg)
-	if err != nil {
-		return nil, err
-	}
-	return &graph, nil
 }
 
 func init() {
@@ -51,7 +73,7 @@ func init() {
 
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM, syscall.SIGKILL)
 
-	fusionService = TrafficSceneFusionService{Sector: "1021113201201201", Keep: 3, GridTileLevel: OccupancyTileLevel}
+	fusionService = GraphFusionService{Sector: "1202032332303131", Keep: 3, GridTileLevel: OccupancyTileLevel, RemoteTileLevel: RemoteGridTileLevel}
 	fusionService.Init()
 }
 
