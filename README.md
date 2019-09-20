@@ -24,7 +24,7 @@
   * `export PYTHONPATH=$PYTHONPATH:"$('pwd')/src/simulation"`
   * `export PYTHONPATH=$PYTHONPATH:"$('pwd')/carla"`
   * `export PYTHONPATH=$PYTHONPATH:"$('pwd')/carla/dist/carla-0.9.6-py3.5-linux-x86_64.egg"`
-* Compile Cap'n'Proto schemas: `capnp compile -I$GOPATH/src/zombiezen.com/go/capnproto2/std -ogo:server/schema --src-prefix common/serialization/schema/capnp common/serialization/schema/capnp/*.capnp`
+* Compile Cap'n'Proto schemas: `capnp compile -I$GOPATH/src/zombiezen.com/go/capnproto2/std -ogo:server/schema --src-prefix common/serialization/schema/capnp/go common/serialization/schema/capnp/go/*.capnp`
 * Start Carla: `DISPLAY= ./CarlaUE4.sh -carla-server -windowed -ResX=800 -ResY=600 -opengl`
 * Start HiveMQ: `docker run -p 1883:1883 --rm skobow/hivemq-ce`
 
