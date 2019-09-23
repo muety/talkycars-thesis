@@ -10,4 +10,5 @@ const (
 	TopicGraphRawIn          = "/graph_raw_in"
 	TopicPrefixGraphFusedOut = "/graph_fused_out"
 	GraphMaxAge              = time.Duration(10 * time.Second)
+	FusionKeepObs            = 3
 )

@@ -1,6 +1,6 @@
 /*
-	Edge Node is able to handle ~ 40 incoming messages per second from random message_generator
-	before tick rate drops below 10 Hz.
+	Edge Node is able to handle ~ 50 incoming messages per second at ocupandy radius 20
+	from random message_generator before tick rate drops below 10 Hz.
 */
 
 package main
@@ -14,6 +14,7 @@ import (
 	"time"
 
 	MQTT "github.com/eclipse/paho.mqtt.golang"
+	"github.com/n1try/tiles"
 )
 
 var sigs chan os.Signal
@@ -70,12 +71,22 @@ func monitor() {
 }
 
 func init() {
+	var tile tiles.Quadkey
+
+	// Read command-line args
+	args := os.Args[1:]
+	if len(args) == 2 && args[0] == "--tile" {
+		tile = tiles.Quadkey(args[1]) // 1202032332303131
+	} else {
+		panic("You need to pass \"--tile\" parameter.")
+	}
+
 	sigs = make(chan os.Signal, 1)
 	graphInQueue = make(chan []byte)
 
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM, syscall.SIGKILL)
 
-	fusionService = GraphFusionService{Sector: "1202032332303131", Keep: 3, GridTileLevel: OccupancyTileLevel, RemoteTileLevel: RemoteGridTileLevel} // TODO: Read from command-line params
+	fusionService = GraphFusionService{Sector: tile, Keep: FusionKeepObs, GridTileLevel: OccupancyTileLevel, RemoteTileLevel: RemoteGridTileLevel}
 	fusionService.Init()
 }
 
