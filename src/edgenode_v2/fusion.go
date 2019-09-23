@@ -62,7 +62,7 @@ func (s *GraphFusionService) Get(maxAge time.Duration) map[tiles.Quadkey][]byte 
 	for _, observations := range s.observations {
 		for _, o := range observations {
 			ts := floatToTime(o.Timestamp())
-			if time.Now().Sub(ts) < maxAge {
+			if time.Since(ts) < maxAge {
 				allObs = append(allObs, o)
 			}
 		}
@@ -148,6 +148,12 @@ func (s *GraphFusionService) fuseScenes(scenes []schema.TrafficScene) map[tiles.
 		fusedScenes[parent].SetMinTimestamp(minTimestamp)
 	}
 
+	for parent := range messages {
+		if _, ok := fusedCells[parent]; !ok {
+			delete(messages, parent)
+		}
+	}
+
 	return messages
 }
 
@@ -166,6 +172,7 @@ func (s *GraphFusionService) fuseCells(cells []schema.GridCell, timestamps []tim
 		hash := tiles.Quadkey(key)
 
 		// 1. Fuse State Vector
+		// TODO: Fuse occupants
 
 		if _, ok := cellStateVectors[hash]; !ok {
 			cellStateVectors[hash] = []float32{0, 0, 0}
@@ -189,11 +196,17 @@ func (s *GraphFusionService) fuseCells(cells []schema.GridCell, timestamps []tim
 		}
 	}
 
-	for _, qk := range s.gridKeys {
+	cellCount := int32(len(cellStateCount))
+
+	for qk := range cellStateCount {
 		parent := tiles.Quadkey(qk[:s.RemoteTileLevel])
 
+		if _, ok := outGrids[parent]; !ok {
+			continue
+		}
+
 		if _, ok := fusedCells[parent]; !ok {
-			cellList, _ := outGrids[parent].NewCells(int32(math.Pow(4, float64(s.GridTileLevel-s.RemoteTileLevel))))
+			cellList, _ := outGrids[parent].NewCells(cellCount)
 			fusedCells[parent] = cellList
 			fusedCellCount[parent] = 0
 		}
@@ -260,7 +273,7 @@ func floatToTime(ts float64) time.Time {
 }
 
 func decay(val float32, t time.Time) float32 {
-	tdiff := time.Now().Sub(t).Milliseconds() / 100
+	tdiff := time.Since(t).Milliseconds() / 100
 	factor := math.Exp(float64(tdiff) * -1.0 * FusionDecayLambda)
 	return val * float32(factor)
 }
