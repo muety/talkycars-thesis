@@ -1,3 +1,8 @@
+/*
+	Edge Node is able to handle ~ 40 incoming messages per second from random message_generator
+	before tick rate drops below 10 Hz.
+*/
+
 package main
 
 import (
@@ -66,7 +71,7 @@ func monitor() {
 
 func init() {
 	sigs = make(chan os.Signal, 1)
-	graphInQueue = make(chan []byte, 10)
+	graphInQueue = make(chan []byte)
 
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM, syscall.SIGKILL)
 
