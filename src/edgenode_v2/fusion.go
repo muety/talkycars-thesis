@@ -61,7 +61,7 @@ func (s *GraphFusionService) Get(maxAge time.Duration) map[tiles.Quadkey][]byte 
 	allObs := make([]schema.TrafficScene, 0, len(s.observations)*s.Keep)
 	for _, observations := range s.observations {
 		for _, o := range observations {
-			ts := time.Unix(int64(o.Timestamp()), int64(math.Remainder(o.Timestamp(), 1)*math.Pow(10, 9)))
+			ts := floatToTime(o.Timestamp())
 			if time.Now().Sub(ts) < maxAge {
 				allObs = append(allObs, o)
 			}
@@ -95,7 +95,8 @@ func DecodeGraph(msg []byte) (*schema.TrafficScene, error) {
 
 func (s *GraphFusionService) fuseScenes(scenes []schema.TrafficScene) map[tiles.Quadkey]*capnp.Message {
 	cells := make([]schema.GridCell, 0)
-	minTimestamp := float64(time.Now().UnixNano()) / math.Pow(10, 9)
+	timestamps := make([]time.Time, 0)
+	minTimestamp := timeToFloat(time.Now())
 
 	messages := make(map[tiles.Quadkey]*capnp.Message)
 	fusedScenes := make(map[tiles.Quadkey]schema.TrafficScene)
@@ -132,6 +133,7 @@ func (s *GraphFusionService) fuseScenes(scenes []schema.TrafficScene) map[tiles.
 
 		for i := 0; i < gridCells.Len(); i++ {
 			cells = append(cells, gridCells.At(i))
+			timestamps = append(timestamps, floatToTime(scene.Timestamp()))
 		}
 
 		if scene.Timestamp() < minTimestamp {
@@ -139,24 +141,24 @@ func (s *GraphFusionService) fuseScenes(scenes []schema.TrafficScene) map[tiles.
 		}
 	}
 
-	fusedCells := s.fuseCells(cells, fusedGrids)
+	fusedCells := s.fuseCells(cells, timestamps, fusedGrids)
 	for parent, cells := range fusedCells {
 		fusedGrids[parent].SetCells(cells)
-		fusedScenes[parent].SetTimestamp(float64(time.Now().UnixNano()) / math.Pow(10, 9))
+		fusedScenes[parent].SetTimestamp(timeToFloat(time.Now()))
 		fusedScenes[parent].SetMinTimestamp(minTimestamp)
 	}
 
 	return messages
 }
 
-func (s *GraphFusionService) fuseCells(cells []schema.GridCell, outGrids map[tiles.Quadkey]schema.OccupancyGrid) map[tiles.Quadkey]schema.GridCell_List {
+func (s *GraphFusionService) fuseCells(cells []schema.GridCell, timestamps []time.Time, outGrids map[tiles.Quadkey]schema.OccupancyGrid) map[tiles.Quadkey]schema.GridCell_List {
 	fusedCells := make(map[tiles.Quadkey]schema.GridCell_List)
 	fusedCellCount := make(map[tiles.Quadkey]int)
 
 	cellStateCount := make(map[tiles.Quadkey]int)
 	cellStateVectors := make(map[tiles.Quadkey][]float32)
 
-	for _, c := range cells {
+	for j, c := range cells {
 		key, err := c.Hash()
 		if err != nil {
 			continue
@@ -175,6 +177,8 @@ func (s *GraphFusionService) fuseCells(cells []schema.GridCell, outGrids map[til
 		}
 
 		conf, state := stateRelation.Confidence(), stateRelation.Object()
+		conf = decay(conf, timestamps[j])
+
 		for i := 0; i < 3; i++ {
 			if i == int(state) {
 				cellStateVectors[hash][i] += conf
@@ -185,7 +189,6 @@ func (s *GraphFusionService) fuseCells(cells []schema.GridCell, outGrids map[til
 		}
 	}
 
-	// TODO: Add time decay
 	for _, qk := range s.gridKeys {
 		parent := tiles.Quadkey(qk[:s.RemoteTileLevel])
 
@@ -246,4 +249,18 @@ func getMaxState(stateVector []float32) (float32, schema.GridCellState) {
 
 func meanCellState(stateSumVector []float32, count int) []float32 {
 	return []float32{stateSumVector[0] / float32(count), stateSumVector[1] / float32(count), stateSumVector[2] / float32(count)}
+}
+
+func timeToFloat(t time.Time) float64 {
+	return float64(t.UnixNano()) / math.Pow(10, 9)
+}
+
+func floatToTime(ts float64) time.Time {
+	return time.Unix(int64(ts), int64(math.Remainder(ts, 1)*math.Pow(10, 9)))
+}
+
+func decay(val float32, t time.Time) float32 {
+	tdiff := time.Now().Sub(t).Milliseconds() / 100
+	factor := math.Exp(float64(tdiff) * -1.0 * FusionDecayLambda)
+	return val * float32(factor)
 }

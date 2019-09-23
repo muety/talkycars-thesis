@@ -9,6 +9,7 @@
 
 ## Requirements
 * Python 3.7
+* Go 1.13
 * [Carla](https://github.com/carla-simulator/carla) 0.9.6
 * [Cap'n'Proto](https://capnproto.org/install.html) 0.7.0
 
