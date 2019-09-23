@@ -32,11 +32,11 @@ def graph2json(graph: PEMTrafficScene) -> Dict[str, Any]:
     }
 
     for c in graph.occupancy_grid.cells:
-        if not c.state.confidence or math.isnan(c.state.confidence):
+        if not c.state or not c.state.confidence or math.isnan(c.state.confidence):
             continue
         data['states'][c.hash] = [int(c.state.object.value), round(c.state.confidence, 2)]
 
-        if not c.occupant.object:
+        if not c.occupant or not c.occupant.object:
             continue
         data['occupants'][c.hash] = [c.occupant.object.id, round(c.occupant.confidence, 2)]
 

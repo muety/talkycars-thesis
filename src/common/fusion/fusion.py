@@ -171,7 +171,7 @@ class PEMFusionService(FusionService[PEMTrafficScene]):
             fused_cells[key].append(PEMGridCell(
                 hash=qk,
                 state=PEMRelation(float(max_confs[idx]), GridCellState(int(max_states[idx]))),
-                occupant=PEMRelation(0., None)
+                occupant=PEMRelation(0., None)  # TODO
             ))
 
         for qk, items in fused_cells.items():

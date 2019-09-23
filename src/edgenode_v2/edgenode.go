@@ -12,68 +12,33 @@ import (
 
 var sigs chan os.Signal
 var graphIn chan []byte
+var client MQTT.Client
 
 var fusionService GraphFusionService
 
 func listen() {
 	// Listen for /graph_in_raw messages
-	go func() {
-		for payload := range graphIn {
+	for payload := range graphIn {
+		go func(payload []byte) {
 			fusionService.Push(payload)
+			// TODO: Fixed tick rate
+			// TODO: Track in- and out rate
 			m := fusionService.Get(time.Duration(30) * time.Second)
 
-			// DEBUG CODE
 			for k, msg := range m {
-				if k == "1202032332303131133" {
-					g, err := DecodeGraph(msg)
-					if err != nil {
-						fmt.Println(err)
-						break
-					}
-
-					grid, err := g.OccupancyGrid()
-					if err != nil {
-						fmt.Println(err)
-						break
-					}
-					cells, err := grid.Cells()
-					if err != nil {
-						fmt.Println(err)
-						break
-					}
-
-					for i := 0; i < cells.Len(); i++ {
-						cell := cells.At(i)
-						hash, err := cell.Hash()
-						if err != nil {
-							fmt.Println(err)
-							break
-						}
-
-						stateRelation, err := cell.State()
-						if err != nil {
-							fmt.Println(err)
-							break
-						}
-
-						conf := stateRelation.Confidence()
-						state := stateRelation.Object()
-						fmt.Println(g.Timestamp(), g.MinTimestamp(), hash, conf, state)
-					}
-				}
+				client.Publish(TopicPrefixGraphFusedOut+"/"+string(k), 0, false, msg)
 			}
-			// END DEBUG CODE
-		}
-	}()
+		}(payload)
+	}
 }
 
 func init() {
 	sigs = make(chan os.Signal, 1)
-	graphIn = make(chan []byte)
+	graphIn = make(chan []byte, 10)
 
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM, syscall.SIGKILL)
 
-	fusionService = GraphFusionService{Sector: "1202032332303131", Keep: 3, GridTileLevel: OccupancyTileLevel, RemoteTileLevel: RemoteGridTileLevel}
+	fusionService = GraphFusionService{Sector: "1202032332303131", Keep: 3, GridTileLevel: OccupancyTileLevel, RemoteTileLevel: RemoteGridTileLevel} // TODO: Read from command-line params
 	fusionService.Init()
 }
 
@@ -81,7 +46,7 @@ func main() {
 	opts := MQTT.NewClientOptions()
 	opts.AddBroker("tcp://localhost:1883")
 
-	client := MQTT.NewClient(opts)
+	client = MQTT.NewClient(opts)
 	if token := client.Connect(); token.Wait() && token.Error() != nil {
 		panic(token.Error())
 	}
@@ -94,7 +59,7 @@ func main() {
 		panic(token.Error())
 	}
 
-	listen()
+	go listen()
 
 	<-sigs
 }

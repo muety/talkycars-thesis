@@ -153,7 +153,7 @@ func (s *GraphFusionService) fuseCells(cells []schema.GridCell, outGrids map[til
 	fusedCells := make(map[tiles.Quadkey]schema.GridCell_List)
 	fusedCellCount := make(map[tiles.Quadkey]int)
 
-	cellStateCount := 0
+	cellStateCount := make(map[tiles.Quadkey]int)
 	cellStateVectors := make(map[tiles.Quadkey][]float32)
 
 	for _, c := range cells {
@@ -177,14 +177,15 @@ func (s *GraphFusionService) fuseCells(cells []schema.GridCell, outGrids map[til
 		conf, state := stateRelation.Confidence(), stateRelation.Object()
 		for i := 0; i < 3; i++ {
 			if i == int(state) {
-				cellStateVectors[hash][i] = conf
+				cellStateVectors[hash][i] += conf
+				cellStateCount[hash]++
 			} else {
-				cellStateVectors[hash][i] = (1.0 - conf) / 2.0
+				cellStateVectors[hash][i] += (1.0 - conf) / 2.0
 			}
-			cellStateCount++
 		}
 	}
 
+	// TODO: Add time decay
 	for _, qk := range s.gridKeys {
 		parent := tiles.Quadkey(qk[:s.RemoteTileLevel])
 
@@ -204,8 +205,13 @@ func (s *GraphFusionService) fuseCells(cells []schema.GridCell, outGrids map[til
 			continue
 		}
 
+		cellOccupantRelation, err := cell.NewOccupant()
+		if err != nil {
+			continue
+		}
+
 		if stateVector, ok := cellStateVectors[qk]; ok {
-			meanStateVector := meanCellState(stateVector, cellStateCount)
+			meanStateVector := meanCellState(stateVector, cellStateCount[qk])
 			maxConf, maxState := getMaxState(meanStateVector)
 			cellStateRelation.SetConfidence(maxConf)
 			cellStateRelation.SetObject(maxState)
@@ -216,6 +222,7 @@ func (s *GraphFusionService) fuseCells(cells []schema.GridCell, outGrids map[til
 
 		cell.SetHash(string(qk))
 		cell.SetState(cellStateRelation)
+		cell.SetOccupant(cellOccupantRelation)
 
 		fusedCells[parent].Set(fusedCellCount[parent], cell)
 		fusedCellCount[parent]++
