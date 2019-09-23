@@ -1,3 +1,5 @@
+import logging
+import os
 import sys
 
 
@@ -8,6 +10,22 @@ def run():
     if sys.argv[1] in {'edgenode', 'edge'}:
         from edgenode_v1 import edgenode
         edgenode.run(sys.argv[2:])
+    elif sys.argv[1] in {'edgenode-v2', 'edge2'}:
+        import subprocess
+
+        current_dir = os.path.dirname(os.path.realpath(__file__))
+        target_dir = os.path.join(current_dir, 'edgenode_v2')
+
+        gopaths = [p for p in [os.getenv('GOROOT', default='/usr/bin/go'), '/opt/go/bin/go'] if os.path.isfile(p)]
+        if len(gopaths) == 0:
+            logging.error('Go executable not found.')
+            return
+
+        logging.info('Building executable ...')
+        subprocess.run([gopaths[0], 'build'], cwd=target_dir)
+
+        logging.info('Starting sub-process ...')
+        subprocess.run(['./edgenode_v2', *sys.argv[2:]], cwd=target_dir)
     elif sys.argv[1] in {'simulation', 'sim'}:
         from simulation import simulation
         simulation.run(sys.argv[2:])
