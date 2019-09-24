@@ -3,7 +3,6 @@
 from __future__ import print_function
 
 import argparse
-import logging
 import sys
 
 import pygame
@@ -30,7 +29,7 @@ class World(object):
         self.init()
         self.init_scene(scene_name)
 
-        logging.info('enabling synchronous mode.')
+        logging.info('Enabling synchronous mode.')
         settings = self.world.get_settings()
         settings.synchronous_mode = True
         settings.fixed_delta_seconds = .05
@@ -39,12 +38,8 @@ class World(object):
     def init(self):
         pass
 
-    def init_world(self, scene_name: str) -> carla.World:
-        if scene_name == 'scene1':
-            return self.sim.load_world('Town07')
-        return None
-
     def init_scene(self, scene_name: str):
+        logging.info(f'Attempting to load scene: {scene_name}.')
         scene: AbstractScene = SceneFactory.get(scene_name, self.sim)
         scene.create_and_spawn()
         self.world, self.egos, self.npcs = scene.world, scene.egos, scene.npcs

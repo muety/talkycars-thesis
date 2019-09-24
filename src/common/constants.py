@@ -21,7 +21,7 @@ LIDAR_Z_OFFSET = 2.8
 
 GNSS_Z_OFFSET = 2.8
 
-RES_X, RES_Y = 840, 480
+RES_X, RES_Y = 1024, 768
 
 TOPIC_GRAPH_RAW_IN = '/graph_raw_in'
 TOPIC_PREFIX_GRAPH_FUSED_OUT = '/graph_fused_out'

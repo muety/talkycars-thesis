@@ -1,5 +1,4 @@
 import argparse
-import logging
 import math
 import sys
 from threading import Lock
@@ -11,7 +10,7 @@ from sensors import GnssSensor, LidarSensor, CameraRGBSensor
 from sensors.actors import ActorsSensor
 from sensors.position import PositionSensor
 from strategy import *
-from strategy.empty import EmptyStrategy
+from strategy.empty import EmptyEgoStrategy
 from util import BBoxUtils, SimulationUtils
 
 import carla
@@ -26,7 +25,7 @@ from common.util import GracefulKiller
 class Ego:
     def __init__(self,
                  client: carla.Client,
-                 strategy: Strategy = None,
+                 strategy: EgoStrategy = None,
                  name: str = 'hero',
                  render: bool = False,
                  debug: bool = False,
@@ -45,7 +44,7 @@ class Ego:
         self.player: carla.Vehicle = None  # for compatibility
         self.grid: Grid = None
         self.hud: HUD = None
-        self.strategy: Strategy = strategy
+        self.strategy: EgoStrategy = strategy
         self.debug: bool = debug
         self.record: bool = record
         self.n_ticked: int = 0
@@ -66,7 +65,7 @@ class Ego:
 
         # Initialize strategy
         if not self.strategy:
-            self.strategy = ManualStrategy() if render else EmptyStrategy()
+            self.strategy = ManualEgoStrategy() if render else EmptyEgoStrategy()
 
         self.strategy.init(self)
 
@@ -75,7 +74,7 @@ class Ego:
             self.world.on_tick(self.hud.on_world_tick)
 
         # Initialize player vehicle
-        self.vehicle = self.strategy.spawn()
+        self.vehicle = self.strategy.player
         self.player = self.vehicle
 
         # Initialize Talky Client
@@ -206,11 +205,11 @@ def run(args=sys.argv[1:]):
         client = carla.Client(args.host, args.port)
         client.set_timeout(2.0)
 
-        strat: Strategy = None
+        strat: EgoStrategy = None
         if args.strategy == 'manual':
-            strat = ManualStrategy(args.cfg)
+            strat = ManualEgoStrategy(args.cfg)
         elif args.strategy == 'observer1':
-            strat = Observer1Strategy()
+            strat = Observer1EgoStrategy()
 
         ego = Ego(client,
                   name=args.rolename,

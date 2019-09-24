@@ -1,7 +1,9 @@
 from abc import ABC, abstractmethod
 
+import carla
 
-class Strategy(ABC):
+
+class EgoStrategy(ABC):
     def __init__(self):
         self.ego = None
 
@@ -12,10 +14,12 @@ class Strategy(ABC):
     def step(self, **kwargs) -> bool:
         pass
 
+    @property
     @abstractmethod
-    def spawn(self):
+    def player(self) -> carla.Vehicle:
         pass
 
 from .empty import *
 from .manual import *
 from .observer_1 import *
+from .random_path import *

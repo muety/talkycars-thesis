@@ -1,20 +1,26 @@
 import random
 
 import carla
-from . import Strategy
+from . import EgoStrategy
 
 
-class EmptyStrategy(Strategy):
+class EmptyEgoStrategy(EgoStrategy):
     def __init__(self):
-        self.ego = None
+        super().__init__()
+        self._player = None
 
     def init(self, ego):
         self.ego = ego
+        self._player = self._create_player()
 
     def step(self, **kwargs) -> bool:
         pass
 
-    def spawn(self):
+    @property
+    def player(self) -> carla.Vehicle:
+        return self._player
+
+    def _create_player(self) -> carla.Vehicle:
         blueprint = self.ego.world.get_blueprint_library().filter('vehicle.mini.cooperst')[0]
         blueprint.set_attribute('role_name', self.ego.name)
         if blueprint.has_attribute('color'):

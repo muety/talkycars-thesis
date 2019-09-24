@@ -11,7 +11,7 @@ class SceneFactory():
     @staticmethod
     def get(scene_name: str, sim: carla.Client):
         # Throws ModuleNotFound error if given name does not correspond to an actual module
-        scene = importlib.import_module('.scene1', 'simulation.scenes')
+        scene = importlib.import_module(f'.{scene_name}', 'simulation.scenes')
         return scene.Scene(sim)
 
 
