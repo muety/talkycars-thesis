@@ -27,7 +27,14 @@ class RandomPathEgoStrategy(EgoStrategy):
         super().init(ego)
 
         self.point_start = self.wpp.get()
-        self.point_end = self.wpp.get()
+        # self.point_end = self.wpp.get()
+        self.point_end = carla.Transform(
+            location=carla.Location(
+                self.point_start.location.x + 50,
+                self.point_start.location.y,
+                self.point_start.location.z,
+            )
+        )
 
         self._player = self._create_player()
         self.agent = BasicAgent(self.player, target_speed=30)
@@ -45,7 +52,7 @@ class RandomPathEgoStrategy(EgoStrategy):
 
         self._step_count += 1
 
-        if self._step_count % 10 == 0 and self._probably_done():
+        if self._step_count % 10 == 0 and self.agent.done():
             logging.info(f'{self.ego.name} has reached its destination.')
             return True
 
@@ -63,6 +70,3 @@ class RandomPathEgoStrategy(EgoStrategy):
             blueprint.set_attribute('color', colors[self.id % (len(colors) - 1)])
 
         return self.ego.world.spawn_actor(blueprint, self.point_start)
-
-    def _probably_done(self):
-        return self.player.get_location().distance(self.point_end.location) < DISTANCE_THRESHOLD_METERS

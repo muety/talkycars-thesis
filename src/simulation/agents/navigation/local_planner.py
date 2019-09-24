@@ -241,6 +241,9 @@ class LocalPlanner(object):
 
         return control
 
+    def done(self):
+        vehicle_transform = self._vehicle.get_transform()
+        return len(self._waypoints_queue) == 0 and all([distance_vehicle(wp, vehicle_transform) < self._min_distance for wp in self._waypoints_queue])
 
 def _retrieve_options(list_waypoints, current_waypoint):
     """

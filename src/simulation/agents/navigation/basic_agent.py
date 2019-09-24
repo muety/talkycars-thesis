@@ -123,3 +123,6 @@ class BasicAgent(Agent):
             control = self._local_planner.run_step(debug=debug)
 
         return control
+
+    def done(self):
+        return self._local_planner.done()
