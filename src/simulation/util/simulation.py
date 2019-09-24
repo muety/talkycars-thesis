@@ -8,11 +8,12 @@ import carla
 class SimulationUtils:
 
     @staticmethod
-    def spawn_pedestrians(world: carla.World, carla_client: carla.Client, n=10) -> List[carla.Walker]:
+    def spawn_pedestrians(carla_client: carla.Client, n=10) -> List[carla.Walker]:
         # -------------
         # Spawn Walkers
         # -------------
 
+        world: carla.World = carla_client.get_world()
         walker_blueprints = world.get_blueprint_library().filter('walker.pedestrian.000[1-7]*')
         walkers_list = []
         all_id = []

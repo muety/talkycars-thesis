@@ -23,8 +23,6 @@ GNSS_Z_OFFSET = 2.8
 
 RES_X, RES_Y = 840, 480
 
-N_PEDESTRIANS = 50
-
 TOPIC_GRAPH_RAW_IN = '/graph_raw_in'
 TOPIC_PREFIX_GRAPH_FUSED_OUT = '/graph_fused_out'
 

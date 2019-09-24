@@ -8,11 +8,11 @@ import sys
 
 import pygame
 from ego import Ego
+from scenes import SceneFactory, AbstractScene
 from strategy import *
 from util.simulation import SimulationUtils
 
 import carla
-from common.constants import *
 from common.util import GracefulKiller, proc_wrap
 
 
@@ -45,49 +45,10 @@ class World(object):
         return None
 
     def init_scene(self, scene_name: str):
-        if scene_name == 'scene1':
-            # Create main player
-            main_hero = Ego(self.sim,
-                            strategy=ManualStrategy(config=0),
-                            name='main_hero',
-                            render=True,
-                            debug=False,
-                            record=False)
-            self.egos.append(main_hero)
-            self.world.wait_for_tick()
-
-            # second_hero = Ego(self.sim,
-            #                   strategy=ManualStrategy(config=1),
-            #                   name='second_hero',
-            #                   render=False,
-            #                   debug=False,
-            #                   record=False)
-            # self.egos.append(second_hero)
-            # self.world.wait_for_tick()
-
-            # Create observer player
-            # observer_hero = Ego(self.sim,
-            #                     strategy=Observer1Strategy(),
-            #                     name='observer1',
-            #                     render=False,
-            #                     debug=False,
-            #                     grid_radius=10,
-            #                     lidar_angle=9)
-            # self.egos.append(observer_hero)
-            # self.world.wait_for_tick()
-
-            # Create randomly roaming peds
-            self.npcs += SimulationUtils.spawn_pedestrians(self.world, self.sim, N_PEDESTRIANS)
-
-            # Create static vehicle
-            bp1 = self.world.get_blueprint_library().filter('vehicle.volkswagen.t2')[0]
-            spawn1 = carla.Transform(carla.Location(x=-198.2, y=-50.9, z=1.5), carla.Rotation(yaw=-90))
-            cmd1 = carla.command.SpawnActor(bp1, spawn1)
-
-            responses = self.sim.apply_batch_sync([cmd1])
-            spawned_ids = list(map(lambda r: r.actor_id, filter(lambda r: not r.has_error(), responses)))
-            spawned_actors = list(self.world.get_actors(spawned_ids))
-            self.npcs += spawned_actors
+        scene: AbstractScene = SceneFactory.get(scene_name, self.sim)
+        scene.create_and_spawn()
+        self.egos = scene.get_egos()
+        self.npcs = scene.get_npcs()
 
     def tick(self, clock) -> bool:
         clock.tick_busy_loop(60)

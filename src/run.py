@@ -33,7 +33,7 @@ def run():
         from simulation import ego
         ego.run(sys.argv[2:])
     elif sys.argv[1] in {'generator'}:
-        from evaluation import message_generator
+        from evaluation.performance import message_generator
         message_generator.run(sys.argv[2:])
     elif sys.argv[1] in {'web'}:
         import uvicorn
