@@ -20,10 +20,17 @@ class AbstractScene(ABC):
     def create_and_spawn(self):
         pass
 
+    @property
     @abstractmethod
-    def get_egos(self) -> List[Ego]:
+    def egos(self) -> List[Ego]:
         pass
 
+    @property
     @abstractmethod
-    def get_npcs(self) -> List[carla.Actor]:
+    def npcs(self) -> List[carla.Actor]:
+        pass
+
+    @property
+    @abstractmethod
+    def world(self) -> carla.World:
         pass

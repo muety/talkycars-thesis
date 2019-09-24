@@ -19,13 +19,13 @@ from common.util import GracefulKiller, proc_wrap
 class World(object):
     def __init__(self, client: carla.Client, scene_name: str):
         # Attributes
-        self.sim = client
-        self.debug = True
+        self.sim: carla.Client = client
+        self.debug: bool = True
         self.egos: List[Ego] = []
         self.npcs: List[carla.Agent] = []
 
-        self.world = self.init_world(scene_name)
-        self.map = self.world.get_map()
+        self.world: carla.World = None
+        self.map: carla.Map = None
 
         self.init()
         self.init_scene(scene_name)
@@ -47,8 +47,7 @@ class World(object):
     def init_scene(self, scene_name: str):
         scene: AbstractScene = SceneFactory.get(scene_name, self.sim)
         scene.create_and_spawn()
-        self.egos = scene.get_egos()
-        self.npcs = scene.get_npcs()
+        self.world, self.egos, self.npcs = scene.world, scene.egos, scene.npcs
 
     def tick(self, clock) -> bool:
         clock.tick_busy_loop(60)

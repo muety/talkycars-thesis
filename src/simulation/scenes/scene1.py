@@ -8,16 +8,20 @@ from util import SimulationUtils
 import carla
 
 N_PEDESTRIANS = 50
+MAP_NAME = 'Town07'
 
 
 class Scene(AbstractScene):
     def __init__(self, sim: carla.Client):
-        self.egos: List[Ego] = []
-        self.npcs: List[carla.Actor] = []
+        self._egos: List[Ego] = []
+        self._npcs: List[carla.Actor] = []
+        self._world: carla.World = None
         self._sim: carla.Client = sim
-        self._world: carla.World = sim.get_world()
 
     def create_and_spawn(self):
+        # Load world
+        self._world = self._sim.load_world(MAP_NAME)
+
         # Create egos
         main_hero = Ego(self._sim,
                         strategy=ManualStrategy(config=0),
@@ -29,7 +33,7 @@ class Scene(AbstractScene):
         self.egos.append(main_hero)
 
         # Create walkers
-        self.npcs += SimulationUtils.spawn_pedestrians(self._sim, N_PEDESTRIANS)
+        self._npcs += SimulationUtils.spawn_pedestrians(self._sim, N_PEDESTRIANS)
 
         # Create static vehicles
         bp1 = self._world.get_blueprint_library().filter('vehicle.volkswagen.t2')[0]
@@ -39,10 +43,16 @@ class Scene(AbstractScene):
         responses = self._sim.apply_batch_sync([cmd1])
         spawned_ids = list(map(lambda r: r.actor_id, filter(lambda r: not r.has_error(), responses)))
         spawned_actors = list(self._world.get_actors(spawned_ids))
-        self.npcs += spawned_actors
+        self._npcs += spawned_actors
 
-    def get_egos(self) -> List[Ego]:
-        return self.egos
+    @property
+    def egos(self) -> List[Ego]:
+        return self._egos
 
-    def get_npcs(self) -> List[carla.Actor]:
-        return self.npcs
+    @property
+    def npcs(self) -> List[carla.Actor]:
+        return self._npcs
+
+    @property
+    def world(self) -> carla.World:
+        return self._world
