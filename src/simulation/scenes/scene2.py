@@ -1,9 +1,11 @@
-from typing import List
+import logging
+from typing import List, cast
 
 from ego import Ego
 from scenes import AbstractScene
 from strategy import RandomPathEgoStrategy
 from util import SimulationUtils
+from util.waypoint import WaypointProvider
 
 import carla
 
@@ -22,10 +24,13 @@ class Scene(AbstractScene):
         # Load world
         self._world = self._sim.load_world(MAP_NAME)
 
+        spawn_points: List[carla.Transform] = self._world.get_map().get_spawn_points()
+        waypoint_provider: WaypointProvider = WaypointProvider(spawn_points)
+
         # Create egos
         main_hero = Ego(self._sim,
-                        strategy=RandomPathEgoStrategy(),
-                        name='main_hero',
+                        strategy=RandomPathEgoStrategy(0, waypoint_provider),
+                        name='random_hero',
                         render=True,
                         debug=False,
                         record=False)
@@ -36,6 +41,11 @@ class Scene(AbstractScene):
         self._npcs += SimulationUtils.spawn_pedestrians(self._sim, N_PEDESTRIANS)
 
         # Create static vehicles
+
+        # Print info
+        for a in [main_hero]:
+            strat: RandomPathEgoStrategy = cast(RandomPathEgoStrategy, a.strategy)
+            logging.info(f'{a.name} will be driving from {strat.point_start.location} to {strat.point_end.location}.')
 
     @property
     def egos(self) -> List[Ego]:

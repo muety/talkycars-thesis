@@ -1,8 +1,8 @@
 import logging
 import random
-from typing import List
 
 from agents.navigation.basic_agent import BasicAgent
+from util.waypoint import WaypointProvider
 
 import carla
 from . import EgoStrategy
@@ -11,24 +11,23 @@ DISTANCE_THRESHOLD_METERS = 15.
 
 
 class RandomPathEgoStrategy(EgoStrategy):
-    def __init__(self):
+    def __init__(self, id: int, waypoint_provider: WaypointProvider):
         super().__init__()
 
+        self.id: int = id
         self.point_start: carla.Transform = None
         self.point_end: carla.Transform = None
-
         self.agent: BasicAgent = None
-        self._player: carla.Vehicle = None
+        self.wpp: WaypointProvider = waypoint_provider
 
-        self.step_count: int = 0
+        self._player: carla.Vehicle = None
+        self._step_count: int = 0
 
     def init(self, ego):
         super().init(ego)
 
-        # TODO: make sure start and end are different and avoid collisions with other egos
-        spawn_points: List[carla.Transforma] = self.ego.map.get_spawn_points()
-        self.point_start = random.choice(spawn_points)
-        self.point_end = random.choice(spawn_points)
+        self.point_start = self.wpp.get()
+        self.point_end = self.wpp.get()
 
         self._player = self._create_player()
         self.agent = BasicAgent(self.player, target_speed=30)
@@ -44,9 +43,9 @@ class RandomPathEgoStrategy(EgoStrategy):
 
         control: carla.VehicleControl = self.agent.run_step(debug=False)
 
-        self.step_count += 1
+        self._step_count += 1
 
-        if self.step_count % 10 == 0 and self._probably_done():
+        if self._step_count % 10 == 0 and self._probably_done():
             logging.info(f'{self.ego.name} has reached its destination.')
             return True
 
@@ -57,11 +56,11 @@ class RandomPathEgoStrategy(EgoStrategy):
         return self._player
 
     def _create_player(self) -> carla.Vehicle:
-        blueprint = random.choice(self.ego.world.get_blueprint_library().filter('vehicle.*'))
-        blueprint.set_attribute('role_name', self.ego.name)
+        blueprint = random.choice(self.ego.world.get_blueprint_library().filter('vehicle.tesla.model3'))
+        blueprint.set_attribute('role_name', f'{self.ego.name}_{self.id}')
         if blueprint.has_attribute('color'):
-            color = random.choice(blueprint.get_attribute('color').recommended_values)
-            blueprint.set_attribute('color', color)
+            colors = blueprint.get_attribute('color').recommended_values
+            blueprint.set_attribute('color', colors[self.id % (len(colors) - 1)])
 
         return self.ego.world.spawn_actor(blueprint, self.point_start)
 
