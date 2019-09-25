@@ -57,7 +57,7 @@ class RandomPathEgoStrategy(EgoStrategy):
 
     def _create_player(self) -> carla.Vehicle:
         blueprint = random.choice(self.ego.world.get_blueprint_library().filter('vehicle.tesla.model3'))
-        blueprint.set_attribute('role_name', f'{self.ego.name}_{self.id}')
+        blueprint.set_attribute('role_name', self.ego.name)
         if blueprint.has_attribute('color'):
             colors = blueprint.get_attribute('color').recommended_values
             blueprint.set_attribute('color', colors[self.id % (len(colors) - 1)])

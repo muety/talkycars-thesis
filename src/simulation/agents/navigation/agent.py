@@ -59,6 +59,9 @@ class Agent(object):
 
         return control
 
+    def run_and_apply(self, debug=False):
+        return self._vehicle.apply_control(self.run_step(debug))
+
     def _is_light_red(self, lights_list):
         """
         Method to check if there is a red light affecting us. This version of

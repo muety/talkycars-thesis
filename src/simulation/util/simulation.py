@@ -17,7 +17,7 @@ class SimulationUtils:
                 Every even list element is a carla.Walker, every odd element is the corresponding controller.
     """
     @staticmethod
-    def try_spawn_pedestrians(carla_client: carla.Client, n=10) -> carla.ActorList:
+    def try_spawn_pedestrians(carla_client: carla.Client, n=10) -> List[carla.Actor]:
         # -------------
         # Spawn Walkers
         # -------------
@@ -39,7 +39,7 @@ class SimulationUtils:
         batch = []
         for spawn_point in spawn_points:
             walker_bp = random.choice(walker_blueprints)
-            # set as not invencible
+            # set as not invincible
             if walker_bp.has_attribute('is_invincible'):
                 walker_bp.set_attribute('is_invincible', 'false')
             batch.append(carla.command.SpawnActor(walker_bp, spawn_point))
@@ -69,16 +69,20 @@ class SimulationUtils:
         # wait for a tick to ensure client receives the last transform of the walkers we have just created
         world.wait_for_tick()
 
-        # 5. initialize each controller and set target to walk to (list is [controler, actor, controller, actor ...])
+        # 5. initialize each controller and set target to walk to (list is [controller, actor, controller, actor ...])
         for i in range(0, len(all_id), 2):
             # start walker
             all_actors[i].start()
-            # set walk to random point
-            all_actors[i].go_to_location(world.get_random_location_from_navigation())
-            # random max speed
-            all_actors[i].set_max_speed(1 + random.random())  # max speed between 1 and 2 (default is 1.4 m/s)
+            try:
+                # set walk to random point
+                all_actors[i].go_to_location(world.get_random_location_from_navigation())
+                # random max speed
+                all_actors[i].set_max_speed(1 + random.random())  # max speed between 1 and 2 (default is 1.4 m/s)
+            except Exception as e:
+                all_actors[i].stop()
+                all_actors = all_actors[:i] + all_actors[i + 2:]
 
-        return all_actors
+        return [a for a in all_actors]
 
     @staticmethod
     def spawn_npcs(carla_client: carla.Client, wpp: WaypointProvider = None, n=10) -> List[BasicAgent]:

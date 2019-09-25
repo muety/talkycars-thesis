@@ -2,12 +2,14 @@ import importlib
 from abc import ABC, abstractmethod
 from typing import List
 
+import pygame
+from agents.navigation.agent import Agent
 from ego import Ego
 
 import carla
 
 
-class SceneFactory():
+class SceneFactory:
     @staticmethod
     def get(scene_name: str, sim: carla.Client):
         # Throws ModuleNotFound error if given name does not correspond to an actual module
@@ -16,6 +18,10 @@ class SceneFactory():
 
 
 class AbstractScene(ABC):
+    @abstractmethod
+    def tick(self, clock: pygame.time.Clock) -> bool:
+        pass
+
     @abstractmethod
     def create_and_spawn(self):
         pass
@@ -28,6 +34,11 @@ class AbstractScene(ABC):
     @property
     @abstractmethod
     def npcs(self) -> List[carla.Actor]:
+        pass
+
+    @property
+    @abstractmethod
+    def agents(self) -> List[Agent]:
         pass
 
     @property

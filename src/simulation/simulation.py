@@ -20,8 +20,11 @@ class World(object):
         # Attributes
         self.sim: carla.Client = client
         self.debug: bool = True
+
+        self.scene: AbstractScene = None
         self.egos: List[Ego] = []
         self.npcs: List[carla.Agent] = []
+        self.agents: List[Agent] = []
 
         self.world: carla.World = None
         self.map: carla.Map = None
@@ -40,22 +43,21 @@ class World(object):
 
     def init_scene(self, scene_name: str):
         logging.info(f'Attempting to load scene: {scene_name}.')
-        scene: AbstractScene = SceneFactory.get(scene_name, self.sim)
-        scene.create_and_spawn()
-        self.world, self.egos, self.npcs = scene.world, scene.egos, scene.npcs
+        self.scene = SceneFactory.get(scene_name, self.sim)
+        self.scene.create_and_spawn()
+        self.world, self.egos, self.npcs, self.agents = self.scene.world, self.scene.egos, self.scene.npcs, self.scene.agents
 
     def tick(self, clock) -> bool:
         clock.tick_busy_loop(60)
-        self.world.tick()
-
-        for ego in self.egos:
-            if proc_wrap(ego.tick, clock):
-                return True
+        proc_wrap(self.world.tick)
+        proc_wrap(self.scene.tick, clock)
 
     def destroy(self):
         for e in self.egos:
             e.destroy()
+
         SimulationUtils.multi_destroy(self.sim, self.npcs)
+        SimulationUtils.multi_destroy(self.sim, [a.vehicle for a in self.agents])
 
 def game_loop(args):
     killer = GracefulKiller()

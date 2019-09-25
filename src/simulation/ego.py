@@ -39,6 +39,7 @@ class Ego:
         self.client: TalkyClient = None
         self.world: carla.World = client.get_world()
         self.map: carla.Map = self.world.get_map()
+        self.alive: bool = True
         self.name: str = name
         self.vehicle: carla.Vehicle = None
         self.player: carla.Vehicle = None  # for compatibility
@@ -126,6 +127,9 @@ class Ego:
                 self.world.wait_for_tick()
 
     def tick(self, clock: pygame.time.Clock) -> bool:
+        if not self.alive:
+            return True
+
         snap = self.world.get_snapshot()
         self.sensors['actors'].tick(snap.timestamp.platform_timestamp)
         self.sensors['position'].tick(snap.timestamp.platform_timestamp)
@@ -133,6 +137,7 @@ class Ego:
         self.on_kth_tick(self.n_ticked + 1, snap)
 
         if self.strategy.step(clock=clock):
+            self.alive = False
             return True
 
         if self.hud:

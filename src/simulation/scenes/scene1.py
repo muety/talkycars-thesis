@@ -1,5 +1,7 @@
 from typing import List
 
+import pygame
+from agents.navigation.agent import Agent
 from ego import Ego
 from scenes import AbstractScene
 from strategy import ManualEgoStrategy
@@ -45,6 +47,13 @@ class Scene(AbstractScene):
         spawned_actors = list(self._world.get_actors(spawned_ids))
         self._npcs += spawned_actors
 
+    def tick(self, clock: pygame.time.Clock) -> bool:
+        for ego in self.egos:
+            if ego.tick(clock):
+                return True
+
+        return False
+
     @property
     def egos(self) -> List[Ego]:
         return self._egos
@@ -56,3 +65,7 @@ class Scene(AbstractScene):
     @property
     def world(self) -> carla.World:
         return self._world
+
+    @property
+    def agents(self) -> List[Agent]:
+        return []
