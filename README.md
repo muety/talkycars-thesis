@@ -97,3 +97,9 @@
 * `vehicle.chevrolet.impala`
 * `vehicle.mini.cooperst`
 * `vehicle.jeep.wrangler_rubicon`
+
+## Compile Notes
+* `export CPLUS_INCLUDE_PATH="$CPLUS_INCLUDE_PATH:/home/ferdinand/.pyenv/versions/3.7.4/include/python3.7m"`
+* `export UE4_ROOT=/media/ferdinand/builddisk/UnrealEngine`
+* Unreal: `./Engine/Build/BatchFiles/Mac/Build.sh ShaderCompileWorker Linux Development -verbose`
+* Carla: `make package -j 8` 

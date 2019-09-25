@@ -6,9 +6,14 @@ import carla
 
 
 class SimulationUtils:
-
+    """
+    Attempts to spawn n pedestrian on random locations. If a spawn fails due to a collision, no further spawn attempts will be made.
+    Accordingly the actual amount of spawned pedestrians might be less than n.
+    CAUTION:    Returns all spawned actors, which is two actual actors for each pedestrian, namely a carla.Walker and a carla.WalkerAIController.
+                Every even list element is a carla.Walker, every odd element is the corresponding controller.
+    """
     @staticmethod
-    def spawn_pedestrians(carla_client: carla.Client, n=10) -> List[carla.Walker]:
+    def try_spawn_pedestrians(carla_client: carla.Client, n=10) -> List[carla.Walker]:
         # -------------
         # Spawn Walkers
         # -------------
@@ -72,6 +77,6 @@ class SimulationUtils:
         return all_actors
 
     @staticmethod
-    def multi_destroy(world: carla.World, carla_client: carla.Client, actors: Iterable[carla.Actor]):
+    def multi_destroy(carla_client: carla.Client, actors: Iterable[carla.Actor]):
         batch = list(map(lambda a: carla.command.DestroyActor(a), actors))
         carla_client.apply_batch_sync(batch)

@@ -38,7 +38,7 @@ class Scene(AbstractScene):
         self.egos.append(main_hero)
 
         # Create walkers
-        self._npcs += SimulationUtils.spawn_pedestrians(self._sim, N_PEDESTRIANS)
+        self._npcs += SimulationUtils.try_spawn_pedestrians(self._sim, N_PEDESTRIANS)
 
         # Create static vehicles
 

@@ -55,7 +55,7 @@ class World(object):
     def destroy(self):
         for e in self.egos:
             e.destroy()
-        SimulationUtils.multi_destroy(self.world, self.sim, self.npcs)
+        SimulationUtils.multi_destroy(self.sim, self.npcs)
 
 def game_loop(args):
     killer = GracefulKiller()

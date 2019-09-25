@@ -163,7 +163,7 @@ class Ego:
     def destroy(self):
         sensors = list(map(lambda s: s.sensor, filter(lambda s: hasattr(s, 'sensor'), self.sensors.values())))
 
-        SimulationUtils.multi_destroy(self.world, self.sim, sensors + [self.vehicle])
+        SimulationUtils.multi_destroy(self.sim, sensors + [self.vehicle])
 
         if self.client:
             self.client.tear_down()
