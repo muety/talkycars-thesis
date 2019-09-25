@@ -218,19 +218,18 @@ class LocalPlanner(object):
                     break
 
         # current vehicle waypoint
-        self._current_waypoint = self._map.get_waypoint(self._vehicle.get_location())
+        vehicle_transform = self._vehicle.get_transform()
+        self._current_waypoint = self._map.get_waypoint(vehicle_transform.location)
         # target waypoint
         self.target_waypoint, self._target_road_option = self._waypoint_buffer[0]
         # move using PID controllers
         control = self._vehicle_controller.run_step(self._target_speed, self.target_waypoint)
 
         # purge the queue of obsolete waypoints
-        vehicle_transform = self._vehicle.get_transform()
         max_index = -1
 
         for i, (waypoint, _) in enumerate(self._waypoint_buffer):
-            if distance_vehicle(
-                    waypoint, vehicle_transform) < self._min_distance:
+            if waypoint.transform.location.distance(vehicle_transform.location) < self._min_distance:
                 max_index = i
         if max_index >= 0:
             for i in range(max_index + 1):

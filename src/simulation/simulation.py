@@ -52,6 +52,9 @@ class World(object):
         proc_wrap(self.world.tick)
         proc_wrap(self.scene.tick, clock)
 
+        if self.debug and pygame.time.get_ticks() % 100 == 0:
+            logging.debug(f'FPS: {clock.get_fps()}')
+
     def destroy(self):
         for e in self.egos:
             e.destroy()
