@@ -1,14 +1,14 @@
 import logging
 import time
 
-from util import SimulationUtils
+from util import SimulationUtils, WaypointProvider
 
 import carla
 
 logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.DEBUG)
 
 
-# Check randomness of pedestrian spawn points
+# NPC tests
 
 def main():
     try:
@@ -16,17 +16,21 @@ def main():
         client.set_timeout(2.0)
         world = client.get_world()
 
-        peds = SimulationUtils.try_spawn_pedestrians(client, 10)
+        wpp = WaypointProvider(world.get_map().get_spawn_points(), seed=20)
+        agents = SimulationUtils.spawn_npcs(client, wpp, n=10)
 
         time.sleep(1)
 
-        for p in [peds[i] for i in range(0, len(peds), 2)]:
-            logging.debug(f'{p.id} – {p.get_location()}')
+        for a in agents:
+            logging.debug(f'{a.vehicle.id} – {a.vehicle.get_location()}')
 
         for i in range(500):
             world.wait_for_tick()
 
-        SimulationUtils.multi_destroy(client, peds)
+            for a in agents:
+                a.run_and_apply()
+
+        SimulationUtils.multi_destroy(client, [a.vehicle for a in agents])
         world.wait_for_tick()
 
     except Exception as e:

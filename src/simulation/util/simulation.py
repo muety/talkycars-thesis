@@ -2,7 +2,11 @@ import logging
 import random
 from typing import List, Iterable
 
+from agents.navigation.basic_agent import BasicAgent
+from util.waypoint import WaypointProvider
+
 import carla
+from common.constants import *
 
 
 class SimulationUtils:
@@ -13,7 +17,7 @@ class SimulationUtils:
                 Every even list element is a carla.Walker, every odd element is the corresponding controller.
     """
     @staticmethod
-    def try_spawn_pedestrians(carla_client: carla.Client, n=10) -> List[carla.Walker]:
+    def try_spawn_pedestrians(carla_client: carla.Client, n=10) -> carla.ActorList:
         # -------------
         # Spawn Walkers
         # -------------
@@ -60,7 +64,7 @@ class SimulationUtils:
         for i in range(len(walkers_list)):
             all_id.append(walkers_list[i]["con"])
             all_id.append(walkers_list[i]["id"])
-        all_actors = world.get_actors(all_id)
+        all_actors: carla.ActorList = world.get_actors(all_id)
 
         # wait for a tick to ensure client receives the last transform of the walkers we have just created
         world.wait_for_tick()
@@ -75,6 +79,51 @@ class SimulationUtils:
             all_actors[i].set_max_speed(1 + random.random())  # max speed between 1 and 2 (default is 1.4 m/s)
 
         return all_actors
+
+    @staticmethod
+    def spawn_npcs(carla_client: carla.Client, wpp: WaypointProvider = None, n=10) -> List[BasicAgent]:
+        world: carla.World = carla_client.get_world()
+        vehicle_blueprints = world.get_blueprint_library().filter('vehicle.*')
+
+        if not wpp:
+            wpp = WaypointProvider(world.get_map().get_spawn_points())
+
+        start_points: List[carla.Location] = []
+        end_points: List[carla.Location] = []
+
+        agent_ids: List[int] = []
+        agents: List[BasicAgent] = []
+
+        batch: List[carla.command.SpawnActor] = []
+        for i in range(n):
+            blueprint = random.choice(vehicle_blueprints)
+            blueprint.set_attribute('role_name', f'npc_{i}')
+            if blueprint.has_attribute('color'):
+                color = random.choice(blueprint.get_attribute('color').recommended_values)
+                blueprint.set_attribute('color', color)
+
+            start_points.append(wpp.get())
+            end_points.append(wpp.get())
+
+            batch.append(carla.command.SpawnActor(blueprint, start_points[-1]))
+
+        results = carla_client.apply_batch_sync(batch, True)
+        for i in range(len(results)):
+            if results[i].error:
+                logging.error(results[i].error)
+            else:
+                agent_ids.append(results[i].actor_id)
+
+        world.wait_for_tick()
+
+        agent_actors: carla.ActorList = world.get_actors(agent_ids)
+
+        for i, actor in enumerate(agent_actors):
+            agent: BasicAgent = BasicAgent(actor, target_speed=NPC_TARGET_SPEED)
+            agent.set_destination((end_points[i].location.x, end_points[i].location.y, end_points[i].location.z))
+            agents.append(agent)
+
+        return agents
 
     @staticmethod
     def multi_destroy(carla_client: carla.Client, actors: Iterable[carla.Actor]):

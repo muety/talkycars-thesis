@@ -27,14 +27,7 @@ class RandomPathEgoStrategy(EgoStrategy):
         super().init(ego)
 
         self.point_start = self.wpp.get()
-        # self.point_end = self.wpp.get()
-        self.point_end = carla.Transform(
-            location=carla.Location(
-                self.point_start.location.x + 50,
-                self.point_start.location.y,
-                self.point_start.location.z,
-            )
-        )
+        self.point_end = self.wpp.get()
 
         self._player = self._create_player()
         self.agent = BasicAgent(self.player, target_speed=30)

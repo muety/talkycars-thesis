@@ -205,3 +205,7 @@ class Agent(object):
         control.hand_brake = False
 
         return control
+
+    @property
+    def vehicle(self):
+        return self._vehicle

@@ -124,5 +124,9 @@ class BasicAgent(Agent):
 
         return control
 
+    def run_and_apply(self, debug=False):
+        control = self.run_step(debug)
+        return self.vehicle.apply_control(control)
+
     def done(self):
         return self._local_planner.done()
