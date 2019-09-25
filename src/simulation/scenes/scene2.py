@@ -1,5 +1,6 @@
 import logging
-from typing import List, cast
+from multiprocessing.pool import ThreadPool
+from typing import List, cast, Callable
 
 import pygame
 from agents.navigation.agent import Agent
@@ -15,10 +16,10 @@ from common import quadkey
 from common.constants import *
 from common.quadkey import QuadKey
 
-N_EGOS = 2
-N_VEHICLES = 20
+N_EGOS = 1
+N_VEHICLES = 1
 N_PEDESTRIANS = 50
-MAP_NAME = 'Town01'
+MAP_NAME = 'Town07'
 
 
 class Scene(AbstractScene):
@@ -29,6 +30,7 @@ class Scene(AbstractScene):
         self._world: carla.World = None
         self._map: carla.Map = None
         self._sim: carla.Client = sim
+        self._pool: ThreadPool = None
 
     def create_and_spawn(self):
         # Load world
@@ -66,13 +68,16 @@ class Scene(AbstractScene):
             qk_end: QuadKey = quadkey.from_geo((geo_end.latitude, geo_end.longitude), REMOTE_GRID_TILE_LEVEL)
             logging.info(f'{a.name} will be driving from {strat.point_start.location} ({qk_start.key}) to {strat.point_end.location} ({qk_end.key}).')
 
+        self._pool = ThreadPool(max(len(self._egos), len(self.agents)))
+
     def tick(self, clock: pygame.time.Clock) -> bool:
         n_dead_egos: int = 0
 
         for ego in self.egos:
             n_dead_egos += ego.tick(clock)
-        for agent in self.agents:
-            agent.run_and_apply()
+
+        self._pool.map(self.wrap_step_ego(clock), self._egos)
+        self._pool.map(self.step_agent, self.agents)
 
         if n_dead_egos == len(self.egos):
             return True
@@ -94,3 +99,14 @@ class Scene(AbstractScene):
     @property
     def agents(self) -> List[Agent]:
         return self._agents
+
+    @staticmethod
+    def step_agent(agent: Agent):
+        agent.run_and_apply()
+
+    @staticmethod
+    def wrap_step_ego(clock: pygame.time.Clock) -> Callable:
+        def step_ego(ego: Ego) -> bool:
+            return ego.tick(clock)
+
+        return step_ego
