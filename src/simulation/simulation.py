@@ -12,6 +12,7 @@ from strategy import *
 from util.simulation import SimulationUtils
 
 import carla
+from common.constants import FRAMERATE
 from common.util import GracefulKiller, proc_wrap
 
 
@@ -20,6 +21,7 @@ class World(object):
         # Attributes
         self.sim: carla.Client = client
         self.debug: bool = True
+        self.n_ticks: int = 0
 
         self.scene: AbstractScene = None
         self.egos: List[Ego] = []
@@ -33,10 +35,11 @@ class World(object):
         self.init_scene(scene_name)
 
         logging.info('Enabling synchronous mode.')
-        settings = self.world.get_settings()
-        settings.synchronous_mode = True
-        settings.fixed_delta_seconds = .05
-        self.world.apply_settings(settings)
+        self.world.apply_settings(carla.WorldSettings(
+            no_rendering_mode=False,
+            synchronous_mode=True,
+            fixed_delta_seconds=1 / FRAMERATE
+        ))
 
     def init(self):
         pass
@@ -48,12 +51,14 @@ class World(object):
         self.world, self.egos, self.npcs, self.agents = self.scene.world, self.scene.egos, self.scene.npcs, self.scene.agents
 
     def tick(self, clock) -> bool:
-        clock.tick_busy_loop(60)
+        clock.tick(FRAMERATE)
         proc_wrap(self.world.tick)
         proc_wrap(self.scene.tick, clock)
 
-        if self.debug and pygame.time.get_ticks() % 100 == 0:
+        if self.debug and self.n_ticks % (FRAMERATE * 3) == 0:  # every 3 seconds
             logging.debug(f'FPS: {clock.get_fps()}')
+
+        self.n_ticks += 1
 
     def destroy(self):
         for e in self.egos:

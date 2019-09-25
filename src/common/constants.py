@@ -1,3 +1,5 @@
+FRAMERATE = 10
+
 OBS_LIDAR_POINTS = 'lidar_points'
 OBS_CAMERA_RGB_IMAGE = 'camera_image'
 OBS_POSITION = 'player_pos'
