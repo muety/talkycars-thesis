@@ -21,6 +21,7 @@ from common.occupancy import Grid
 from common.quadkey import QuadKey
 from common.util import GracefulKiller
 
+ADD_ARGS_PREFIX = '--strat-'
 
 class Ego:
     def __init__(self,
@@ -67,7 +68,6 @@ class Ego:
         # Initialize strategy
         if not self.strategy:
             self.strategy = ManualEgoStrategy() if render else EmptyEgoStrategy()
-
         self.strategy.init(self)
 
         # Initialize callbacks
@@ -191,19 +191,16 @@ class Ego:
 def run(args=sys.argv[1:]):
     # CAUTION: Client is not synchronized with server's tick rate in standalone mode !
 
-    argparser = argparse.ArgumentParser(description='TalkyCars Ego Agent')
+    argparser = argparse.ArgumentParser(description='TalkyCars Ego Agent', epilog=f'Arguments specific to the selected strategy can be passed using the "{ADD_ARGS_PREFIX}" prefix (E.g. "{ADD_ARGS_PREFIX}config 1").')
     argparser.add_argument('--strategy', default='manual', type=str, help='Strategy to run for this agent')
-    argparser.add_argument('--strategy-config', dest='cfg', default=0, type=int, help='Strategy config to use for this agent')
     argparser.add_argument('--host', default='127.0.0.1', help='IP of the host server (default: 127.0.0.1)')
     argparser.add_argument('-p', '--port', default=2000, type=int, help='TCP port to listen to (default: 2000)')
     argparser.add_argument('--rolename', default='hero', help='actor role name (default: "hero")')
     argparser.add_argument('--debug', default='true', help='whether or not to show debug information (default: true)')
     argparser.add_argument('--render', default='true', help='whether or not to render the actor\'s camera view (default: true)')
-
-    args = argparser.parse_args(args)
+    args, additional_args = argparser.parse_known_args(args)
 
     logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.DEBUG)
-
     logging.info('listening to server %s:%s', args.host, args.port)
 
     try:
@@ -211,10 +208,30 @@ def run(args=sys.argv[1:]):
         client.set_timeout(2.0)
 
         strat: EgoStrategy = None
+
+        # Case 1: Manual Strategy (with additional options)
         if args.strategy == 'manual':
-            strat = ManualEgoStrategy(args.cfg)
-        elif args.strategy == 'observer1':
-            strat = Observer1EgoStrategy()
+            arg_config: int = 0
+            for i, a in enumerate(additional_args):
+                if a == f'{ADD_ARGS_PREFIX}config' and len(additional_args) > i:
+                    arg_config = int(additional_args[i + 1])
+                    break
+            strat = ManualEgoStrategy(arg_config)
+
+        # Case 2: Observer Strategy
+        elif args.strategy == 'observer':
+            strat = ObserverEgoStrategy()
+
+        # Case 3: Random Path Strategy (with additional options)
+        elif args.strategy == 'random_path':
+            arg_id: int = 0
+            arg_seed: int = 0
+            for i, a in enumerate(additional_args):
+                if a == f'{ADD_ARGS_PREFIX}id' and len(additional_args) > i:
+                    arg_id = int(additional_args[i + 1])
+                elif a == f'{ADD_ARGS_PREFIX}seed' and len(additional_args) > i:
+                    arg_seed = int(additional_args[i + 1])
+            strat = RandomPathEgoStrategy(id=arg_id, seed=arg_seed)
 
         ego = Ego(client,
                   name=args.rolename,

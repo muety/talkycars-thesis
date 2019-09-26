@@ -1,5 +1,6 @@
 import logging
 import random
+from typing import List
 
 from agents.navigation.basic_agent import BasicAgent
 from util.waypoint import WaypointProvider
@@ -11,7 +12,7 @@ DISTANCE_THRESHOLD_METERS = 15.
 
 
 class RandomPathEgoStrategy(EgoStrategy):
-    def __init__(self, id: int, waypoint_provider: WaypointProvider):
+    def __init__(self, id: int, waypoint_provider: WaypointProvider = None, **kwargs):
         super().__init__()
 
         self.id: int = id
@@ -20,11 +21,16 @@ class RandomPathEgoStrategy(EgoStrategy):
         self.agent: BasicAgent = None
         self.wpp: WaypointProvider = waypoint_provider
 
+        self.kwargs = kwargs
+
         self._player: carla.Vehicle = None
         self._step_count: int = 0
 
     def init(self, ego):
         super().init(ego)
+
+        if not self.wpp:
+            self._init_missing_waypoint_provider(ego)
 
         self.point_start = self.wpp.get()
         self.point_end = self.wpp.get()
@@ -63,3 +69,28 @@ class RandomPathEgoStrategy(EgoStrategy):
             blueprint.set_attribute('color', colors[self.id % (len(colors) - 1)])
 
         return self.ego.world.spawn_actor(blueprint, self.point_start)
+
+    def _init_missing_waypoint_provider(self, ego: 'ego.Ego'):
+        spawn_points: List[carla.Transform] = ego.map.get_spawn_points()
+        vehicles: List[carla.Vehicle] = ego.world.get_actors().filter('vehicle.*')
+        vehicle_locations: List[carla.Location] = [v.get_transform() for v in vehicles]
+
+        def is_occupied(t: carla.Transform) -> bool:
+            for p in vehicle_locations:
+                if p.location.distance(t.location) <= 10:
+                    return True
+            return False
+
+        free_spawn_points: List[carla.Transform] = []
+        for p1 in spawn_points:
+            if is_occupied(p1):
+                break
+            free_spawn_points.append(p1)
+
+        seed: int = 0
+        for k, v in self.kwargs.items():
+            if k == 'seed':
+                seed = v
+                break
+
+        self.wpp = WaypointProvider(free_spawn_points, seed=seed)

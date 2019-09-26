@@ -4,7 +4,7 @@ import carla
 from . import EgoStrategy
 
 
-class Observer1EgoStrategy(EgoStrategy):
+class ObserverEgoStrategy(EgoStrategy):
     def __init__(self):
         self.me: carla.Vehicle = None
         self.agent: Agent = None

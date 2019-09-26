@@ -4,7 +4,7 @@ from typing import List
 import carla
 
 
-class WaypointProvider():
+class WaypointProvider:
     def __init__(self, waypoints: List[carla.Transform] = [], min_spacing: float = 4., seed: int = 10):
         self.waypoints: List[carla.Transform] = waypoints
         self.picked: List[carla.Transform] = []
