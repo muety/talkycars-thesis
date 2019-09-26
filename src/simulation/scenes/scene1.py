@@ -45,7 +45,7 @@ class Scene(AbstractScene):
         spawn1 = carla.Transform(carla.Location(x=-198.2, y=-50.9, z=1.5), carla.Rotation(yaw=-90))
         cmd1 = carla.command.SpawnActor(bp1, spawn1)
 
-        responses = self._sim.apply_batch_sync([cmd1])
+        responses = self._sim.apply_batch_sync([cmd1], True)
         spawned_ids = list(map(lambda r: r.actor_id, filter(lambda r: not r.has_error(), responses)))
         spawned_actors = list(self._world.get_actors(spawned_ids))
         self._npcs += spawned_actors
