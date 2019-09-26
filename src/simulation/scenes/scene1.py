@@ -20,6 +20,9 @@ class Scene(AbstractScene):
         self._world: carla.World = None
         self._sim: carla.Client = sim
 
+    def init(self):
+        pass
+
     def create_and_spawn(self):
         # Load world
         self._world = self._sim.load_world(MAP_NAME)

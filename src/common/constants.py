@@ -1,4 +1,4 @@
-FRAMERATE = 10
+FRAMERATE = 30
 
 OBS_LIDAR_POINTS = 'lidar_points'
 OBS_CAMERA_RGB_IMAGE = 'camera_image'
@@ -39,3 +39,9 @@ RECORDING_RATE = 10  # Hz
 RECORDING_FILE_TPL = 'data/recordings/<id>_%Y-%m-%d_%H-%M-%S.csv'
 
 NPC_TARGET_SPEED = 20  # km/h
+
+SCENE2_ROLE_NAME_PREFIX = 'random_hero'
+SCENE2_N_EGOS = 1
+SCENE2_N_VEHICLES = 1
+SCENE2_N_PEDESTRIANS = 50
+SCENE2_MAP_NAME = 'Town07'

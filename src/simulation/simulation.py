@@ -35,11 +35,6 @@ class World(object):
         self.init_scene(scene_name)
 
         logging.info('Enabling synchronous mode.')
-        self.world.apply_settings(carla.WorldSettings(
-            no_rendering_mode=False,
-            synchronous_mode=True,
-            fixed_delta_seconds=1 / FRAMERATE
-        ))
 
     def init(self):
         pass
@@ -47,8 +42,10 @@ class World(object):
     def init_scene(self, scene_name: str):
         logging.info(f'Attempting to load scene: {scene_name}.')
         self.scene = SceneFactory.get(scene_name, self.sim)
+        self.scene.init()
         self.scene.create_and_spawn()
         self.world, self.egos, self.npcs, self.agents = self.scene.world, self.scene.egos, self.scene.npcs, self.scene.agents
+        self.world.apply_settings(SimulationUtils.get_world_settings())
 
     def tick(self, clock) -> bool:
         clock.tick(FRAMERATE)

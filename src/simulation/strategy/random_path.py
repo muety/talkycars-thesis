@@ -3,22 +3,26 @@ import random
 from typing import List
 
 from agents.navigation.basic_agent import BasicAgent
+from util import SimulationUtils
 from util.waypoint import WaypointProvider
 
 import carla
+from common.constants import *
 from . import EgoStrategy
 
 DISTANCE_THRESHOLD_METERS = 15.
 
 
 class RandomPathEgoStrategy(EgoStrategy):
-    def __init__(self, id: int, waypoint_provider: WaypointProvider = None, **kwargs):
+    def __init__(self, id: int, waypoint_provider: WaypointProvider = None, wait_for_egos: int = 0, **kwargs):
         super().__init__()
 
         self.id: int = id
+        self.ready: bool = False
         self.point_start: carla.Transform = None
         self.point_end: carla.Transform = None
         self.agent: BasicAgent = None
+        self.wait_for: int = wait_for_egos
         self.wpp: WaypointProvider = waypoint_provider
 
         self.kwargs = kwargs
@@ -44,11 +48,12 @@ class RandomPathEgoStrategy(EgoStrategy):
         ))
 
     def step(self, clock=None) -> bool:
-        if self.ego is None:
+        if self.ego is None or not self.ready and SimulationUtils.count_present_vehicles(SCENE2_ROLE_NAME_PREFIX, self.ego.world) < self.wait_for:
             return False
 
-        control: carla.VehicleControl = self.agent.run_step(debug=False)
+        self.ready = True
 
+        control: carla.VehicleControl = self.agent.run_step(debug=False)
         self._step_count += 1
 
         if self._step_count % 10 == 0 and self.agent.done():
@@ -87,10 +92,5 @@ class RandomPathEgoStrategy(EgoStrategy):
                 break
             free_spawn_points.append(p1)
 
-        seed: int = 0
-        for k, v in self.kwargs.items():
-            if k == 'seed':
-                seed = v
-                break
-
+        seed: int = self.kwargs['seed'] if 'seed' in self.kwargs else 0
         self.wpp = WaypointProvider(free_spawn_points, seed=seed)

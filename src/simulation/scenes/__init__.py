@@ -11,7 +11,7 @@ import carla
 
 class SceneFactory:
     @staticmethod
-    def get(scene_name: str, sim: carla.Client):
+    def get(scene_name: str, sim: carla.Client) -> 'AbstractScene':
         # Throws ModuleNotFound error if given name does not correspond to an actual module
         scene = importlib.import_module(f'.{scene_name}', 'simulation.scenes')
         return scene.Scene(sim)
@@ -20,6 +20,10 @@ class SceneFactory:
 class AbstractScene(ABC):
     @abstractmethod
     def tick(self, clock: pygame.time.Clock) -> bool:
+        pass
+
+    @abstractmethod
+    def init(self):
         pass
 
     @abstractmethod

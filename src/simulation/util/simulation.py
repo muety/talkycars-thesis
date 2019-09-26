@@ -133,3 +133,23 @@ class SimulationUtils:
     def multi_destroy(carla_client: carla.Client, actors: Iterable[carla.Actor]):
         batch = list(map(lambda a: carla.command.DestroyActor(a), actors))
         carla_client.apply_batch_sync(batch)
+
+    @staticmethod
+    def get_world_settings() -> carla.WorldSettings:
+        return carla.WorldSettings(
+            no_rendering_mode=False,
+            synchronous_mode=True,
+            fixed_delta_seconds=1 / FRAMERATE
+        )
+
+    @classmethod
+    def count_present_vehicles(cls, role_name_prefix: str, world: carla.World) -> int:
+        all_actors: carla.ActorList = world.get_actors().filter('vehicle.*')
+        n_egos_present = len([a for a in all_actors if cls.has_prefixed_attribute(a, 'role_name', role_name_prefix)])
+        return n_egos_present
+
+    @staticmethod
+    def has_prefixed_attribute(a: carla.Actor, attr: str, prefix: str) -> bool:
+        if attr not in a.attributes or not type(a.attributes[attr]) == str:
+            return False
+        return a.attributes[attr].startswith(prefix)
