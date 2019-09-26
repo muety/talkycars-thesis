@@ -1,5 +1,4 @@
 import logging
-from multiprocessing.pool import ThreadPool
 from typing import List
 
 import pygame
@@ -25,7 +24,7 @@ class Scene(AbstractScene):
         self._world: carla.World = None
         self._map: carla.Map = None
         self._sim: carla.Client = sim
-        self._pool: ThreadPool = None
+        self._waypoint_provider = None
 
     def create_and_spawn(self):
         # Load world
@@ -33,7 +32,7 @@ class Scene(AbstractScene):
         self._map = self._world.get_map()
 
         spawn_points: List[carla.Transform] = self._world.get_map().get_spawn_points()
-        waypoint_provider: WaypointProvider = WaypointProvider(spawn_points)
+        self._waypoint_provider: WaypointProvider = WaypointProvider(spawn_points)
 
         # Create walkers
         logging.info(f'Attempting to spawn {N_PEDESTRIANS} pedestrians.')
@@ -41,14 +40,13 @@ class Scene(AbstractScene):
 
         # Create static vehicles
         logging.info(f'Attempting to spawn {N_VEHICLES} NPC vehicles.')
-        self._agents = SimulationUtils.spawn_npcs(self._sim, waypoint_provider, N_VEHICLES)
-
-        self._pool = ThreadPool(max(len(self._egos), len(self.agents)))
+        self._agents = SimulationUtils.spawn_npcs(self._sim, self._waypoint_provider, N_VEHICLES)
 
     def tick(self, clock: pygame.time.Clock) -> bool:
         # TODO: Wait for all egos to be spawned before starting
 
-        self._pool.map(self.step_agent, self.agents)
+        for a in self.agents:
+            a.run_and_apply()
 
         # TODO: return True on condition
 
@@ -69,7 +67,3 @@ class Scene(AbstractScene):
     @property
     def agents(self) -> List[Agent]:
         return self._agents
-
-    @staticmethod
-    def step_agent(agent: Agent):
-        agent.run_and_apply()
