@@ -33,8 +33,8 @@
 * Run a **simulation**: `src && python3 run.py sim --scene scene1`
 * Run the **edge node** / server / RSU: `cd src && python3 run.py edge --debug --tile 1202032332303131`
   * **Alternatively:** Run **v2** (Go implementation) of the edge node: `cd src && python3 run.py edge2 --tile 1202032332303131`
-* Run a standalone **ego** vehicle: `src && python3 run.py ego --rolename dummy --render false --debug true`
-* Run the **web** dashboard: `src && python3 run.py web`
+* Run a standalone **ego** vehicle: `cd src && python3 run.py ego --rolename dummy --render false --debug true`
+* Run the **web** dashboard: `cd src && python3 run.py web`
 
 ## QuadTiles
 | Tile Level | Ground Resolution @ Equator (m) |
