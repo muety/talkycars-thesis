@@ -10,7 +10,7 @@ OBS_GNSS_PREFIX = 'pos_gnss_'
 ALIAS_EGO = 'ego'
 
 INCREMENTAL_GRIDS = False  # because buggy
-GRID_TTL_SEC = 3
+GRID_TTL_SEC = 5
 
 OCCUPANCY_RADIUS_DEFAULT = 5  # (5 and 15 or 10 and 9)
 OCCUPANCY_TILE_LEVEL = 24
@@ -38,4 +38,4 @@ REMOTE_PSEUDO_ID = -1
 RECORDING_RATE = 10  # Hz
 RECORDING_FILE_TPL = 'data/recordings/<id>_%Y-%m-%d_%H-%M-%S.csv'
 
-NPC_TARGET_SPEED = 30  # km/h
+NPC_TARGET_SPEED = 20  # km/h

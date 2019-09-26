@@ -66,7 +66,6 @@ func (s *GraphFusionService) Get(maxAge time.Duration) map[tiles.Quadkey][]byte 
 				allObs = append(allObs, o)
 			}
 		}
-		allObs = append(allObs, observations...)
 	}
 
 	encodedMsgs := make(map[tiles.Quadkey][]byte)
