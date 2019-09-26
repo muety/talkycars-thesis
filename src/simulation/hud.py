@@ -4,6 +4,8 @@ import math
 import pygame
 
 import carla
+from common import quadkey
+from common.constants import *
 
 
 def get_actor_display_name(actor, truncate=250):
@@ -44,6 +46,7 @@ class HUD(object):
         heading += 'E' if 179.5 > t.rotation.yaw > 0.5 else ''
         heading += 'W' if -0.5 > t.rotation.yaw > -179.5 else ''
         vehicles = ego.world.get_actors().filter('vehicle.*')
+        qk = quadkey.from_geo((ego.sensors['gnss'].lat, ego.sensors['gnss'].lon), OCCUPANCY_TILE_LEVEL)
         self._info_text = [
             'Server:  % 16.0f FPS' % self.server_fps,
             'Client:  % 16.0f FPS' % clock.get_fps(),
@@ -53,9 +56,10 @@ class HUD(object):
             'Simulation time: % 12s' % datetime.timedelta(seconds=int(self.simulation_time)),
             '',
             'Speed:   % 15.0f km/h' % (3.6 * math.sqrt(v.x ** 2 + v.y ** 2 + v.z ** 2)),
-            u'Heading:% 16.0f\N{DEGREE SIGN} % 2s' % (t.rotation.yaw, heading),
-            'Location:% 20s' % ('(% 5.1f, % 5.1f)' % (t.location.x, t.location.y)),
-            'GNSS:% 24s' % ('(% 2.6f, % 3.6f)' % (ego.sensors['gnss'].lat, ego.sensors['gnss'].lon)),
+            'Heading:  % 16.0f\N{DEGREE SIGN} % 2s' % (t.rotation.yaw, heading),
+            'Location:  % 20s' % ('(% 5.1f, % 5.1f)' % (t.location.x, t.location.y)),
+            'Tile:  % 24s' % qk.key,
+            'GNSS:  % 20s' % ('(%2.6f, % 3.6f)' % (ego.sensors['gnss'].lat, ego.sensors['gnss'].lon)),
             'Height:  % 18.0f m' % t.location.z,
             '']
         if isinstance(c, carla.VehicleControl):
@@ -86,7 +90,7 @@ class HUD(object):
 
     def render(self, display):
         if self._show_info:
-            info_surface = pygame.Surface((220, self.dim[1]))
+            info_surface = pygame.Surface((230, self.dim[1]))
             info_surface.set_alpha(100)
             display.blit(info_surface, (0, 0))
             v_offset = 4
