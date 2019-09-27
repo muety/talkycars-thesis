@@ -10,7 +10,7 @@ class ManualEgoStrategy(EgoStrategy):
     def __init__(self, config: int = 0):
         self.configs: List[Tuple[str, carla.Transform, bool]] = [
             # vehicle, spawn point, fixed
-            ('vehicle.tesla.model3', carla.Transform(carla.Location(x=-135.2, y=-36.1, z=1.5), carla.Rotation(yaw=180)), False),
+            ('vehicle.tesla.model3', carla.Transform(carla.Location(x=-155.2, y=-36.1, z=1.5), carla.Rotation(yaw=180)), False),
             ('vehicle.mercedes-benz.coupe', carla.Transform(carla.Location(x=-170.2, y=-36.1, z=1.5), carla.Rotation(yaw=180)), True),
         ]
 

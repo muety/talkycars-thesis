@@ -11,7 +11,7 @@ from sensors.actors import ActorsSensor
 from sensors.position import PositionSensor
 from strategy import *
 from strategy.empty import EmptyEgoStrategy
-from util import BBoxUtils, SimulationUtils
+from util import bbox, simulation
 
 import carla
 from client import ClientDialect, TalkyClient
@@ -168,7 +168,7 @@ class Ego:
     def destroy(self):
         sensors = list(map(lambda s: s.sensor, filter(lambda s: hasattr(s, 'sensor'), self.sensors.values())))
 
-        SimulationUtils.multi_destroy(self.sim, sensors + [self.vehicle])
+        simulation.multi_destroy(self.sim, sensors + [self.vehicle])
 
         if self.client:
             self.client.tear_down()
@@ -181,11 +181,11 @@ class Ego:
         states = []
         for cell in self.grid.cells:
             bb = cell.to_vertices()
-            bb_cam = BBoxUtils.to_camera(bb.T, self.sensors['camera_rgb'].sensor, self.sensors['camera_rgb'].sensor)
+            bb_cam = bbox.to_camera(bb.T, self.sensors['camera_rgb'].sensor, self.sensors['camera_rgb'].sensor)
             if not all(bb_cam[:, 2] > 0): continue
             bboxes.append(bb_cam)
             states.append(cell.state.value)
-        BBoxUtils.draw_bounding_boxes(self.display, bboxes, states)
+        bbox.draw_bounding_boxes(self.display, bboxes, states)
 
 
 def run(args=sys.argv[1:]):

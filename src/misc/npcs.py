@@ -1,7 +1,7 @@
 import logging
 import time
 
-from util import SimulationUtils, WaypointProvider
+from util import WaypointProvider, simulation
 
 import carla
 
@@ -17,7 +17,7 @@ def main():
         world = client.get_world()
 
         wpp = WaypointProvider(world.get_map().get_spawn_points(), seed=20)
-        agents = SimulationUtils.spawn_npcs(client, wpp, n=10)
+        agents = simulation.spawn_npcs(client, wpp, n=10)
 
         time.sleep(1)
 
@@ -30,7 +30,7 @@ def main():
             for a in agents:
                 a.run_and_apply()
 
-        SimulationUtils.multi_destroy(client, [a.vehicle for a in agents])
+        simulation.multi_destroy(client, [a.vehicle for a in agents])
         world.wait_for_tick()
 
     except Exception as e:

@@ -5,7 +5,7 @@ from agents.navigation.agent import Agent
 from ego import Ego
 from scenes import AbstractScene
 from strategy import ManualEgoStrategy
-from util import SimulationUtils
+from util import simulation
 
 import carla
 
@@ -38,7 +38,7 @@ class Scene(AbstractScene):
         self.egos.append(main_hero)
 
         # Create walkers
-        self._npcs += SimulationUtils.try_spawn_pedestrians(self._sim, N_PEDESTRIANS)
+        self._npcs += simulation.try_spawn_pedestrians(self._sim, N_PEDESTRIANS)
 
         # Create static vehicles
         bp1 = self._world.get_blueprint_library().filter('vehicle.volkswagen.t2')[0]

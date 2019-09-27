@@ -2,11 +2,11 @@ import logging
 import random
 
 from agents.navigation.basic_agent import BasicAgent
-from util import SimulationUtils
-from util.waypoint import WaypointProvider
+from util import simulation
 
 import carla
 from common.constants import *
+from common.util.waypoint import WaypointProvider
 from . import EgoStrategy
 
 DISTANCE_THRESHOLD_METERS = 15.
@@ -47,7 +47,7 @@ class RandomPathEgoStrategy(EgoStrategy):
         ))
 
     def step(self, clock=None) -> bool:
-        if self.ego is None or not self.ready and SimulationUtils.count_present_vehicles(SCENE2_ROLE_NAME_PREFIX, self.ego.world) < self.wait_for:
+        if self.ego is None or not self.ready and simulation.count_present_vehicles(SCENE2_ROLE_NAME_PREFIX, self.ego.world) < self.wait_for:
             return False
 
         self.ready = True

@@ -9,7 +9,7 @@ import pygame
 from ego import Ego
 from scenes import SceneFactory, AbstractScene
 from strategy import *
-from util.simulation import SimulationUtils
+from util import simulation
 
 import carla
 from common.constants import FRAMERATE
@@ -45,7 +45,7 @@ class World(object):
         self.scene.init()
         self.scene.create_and_spawn()
         self.world, self.egos, self.npcs, self.agents = self.scene.world, self.scene.egos, self.scene.npcs, self.scene.agents
-        self.world.apply_settings(SimulationUtils.get_world_settings())
+        self.world.apply_settings(simulation.get_world_settings())
 
     def tick(self, clock) -> bool:
         clock.tick(FRAMERATE)
@@ -61,8 +61,8 @@ class World(object):
         for e in self.egos:
             e.destroy()
 
-        SimulationUtils.multi_destroy(self.sim, self.npcs)
-        SimulationUtils.multi_destroy(self.sim, [a.vehicle for a in self.agents])
+        simulation.multi_destroy(self.sim, self.npcs)
+        simulation.multi_destroy(self.sim, [a.vehicle for a in self.agents])
 
 def game_loop(args):
     killer = GracefulKiller()

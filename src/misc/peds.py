@@ -1,7 +1,7 @@
 import logging
 import time
 
-from util import SimulationUtils
+from util import simulation
 
 import carla
 
@@ -16,7 +16,7 @@ def main():
         client.set_timeout(2.0)
         world = client.get_world()
 
-        peds = SimulationUtils.try_spawn_pedestrians(client, 10)
+        peds = simulation.try_spawn_pedestrians(client, 10)
 
         time.sleep(1)
 
@@ -26,7 +26,7 @@ def main():
         for i in range(500):
             world.wait_for_tick()
 
-        SimulationUtils.multi_destroy(client, peds)
+        simulation.multi_destroy(client, peds)
         world.wait_for_tick()
 
     except Exception as e:

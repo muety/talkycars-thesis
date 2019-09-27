@@ -7,12 +7,12 @@ from agents.navigation.agent import Agent
 from agents.navigation.basic_agent import BasicAgent
 from ego import Ego
 from scenes import AbstractScene
-from util import SimulationUtils
-from util.waypoint import WaypointProvider
+from util import simulation
 
 import carla
 from common.constants import *
 from common.constants import SCENE2_N_EGOS, SCENE2_N_VEHICLES, SCENE2_N_PEDESTRIANS, SCENE2_MAP_NAME
+from common.util.waypoint import WaypointProvider
 
 
 class Scene(AbstractScene):
@@ -42,21 +42,21 @@ class Scene(AbstractScene):
     def create_and_spawn(self):
         self.init()
 
-        n_present: int = SimulationUtils.count_present_vehicles(SCENE2_ROLE_NAME_PREFIX, self._world)
+        n_present: int = simulation.count_present_vehicles(SCENE2_ROLE_NAME_PREFIX, self._world)
         while n_present < SCENE2_N_EGOS:
             logging.info(f'Waiting for {SCENE2_N_EGOS - n_present} / {SCENE2_N_EGOS} to join the simulation.')
             time.sleep(1)
-            n_present = SimulationUtils.count_present_vehicles(SCENE2_ROLE_NAME_PREFIX, self._world)
+            n_present = simulation.count_present_vehicles(SCENE2_ROLE_NAME_PREFIX, self._world)
 
         self._waypoint_provider.update(self._world)
 
         # Create walkers
         logging.info(f'Attempting to spawn {SCENE2_N_PEDESTRIANS} pedestrians.')
-        self._peds = SimulationUtils.try_spawn_pedestrians(self._sim, SCENE2_N_PEDESTRIANS)
+        self._peds = simulation.try_spawn_pedestrians(self._sim, SCENE2_N_PEDESTRIANS)
 
         # Create static vehicles
         logging.info(f'Attempting to spawn {SCENE2_N_VEHICLES} NPC vehicles.')
-        self._agents = SimulationUtils.spawn_npcs(self._sim, self._waypoint_provider, SCENE2_N_VEHICLES)
+        self._agents = simulation.spawn_npcs(self._sim, self._waypoint_provider, SCENE2_N_VEHICLES)
 
     def tick(self, clock: pygame.time.Clock) -> bool:
         # TODO: Wait for all egos to be spawned before starting

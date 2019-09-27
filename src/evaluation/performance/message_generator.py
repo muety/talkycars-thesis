@@ -15,7 +15,7 @@ from common.serialization.schema.actor import PEMDynamicActor
 from common.serialization.schema.base import PEMTrafficScene
 from common.serialization.schema.occupancy import PEMOccupancyGrid, PEMGridCell
 from common.serialization.schema.relation import PEMRelation
-from common.util import GeoUtils
+from common.util import geo
 
 logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.DEBUG)
 
@@ -78,8 +78,8 @@ class MessageGenerator:
 
     def init_ego(self):
         bbox_corners = (
-            GeoUtils.gnss_add_meters(self.start_location, (2.2, 1.1, 0.8), delta_factor=-1),
-            GeoUtils.gnss_add_meters(self.start_location, (2.2, 1.1, 0.8), delta_factor=1)
+            geo.gnss_add_meters(self.start_location, (2.2, 1.1, 0.8), delta_factor=-1),
+            geo.gnss_add_meters(self.start_location, (2.2, 1.1, 0.8), delta_factor=1)
         )
         bbox = RelativeBBox(lower=Vector3D(bbox_corners[0]), higher=Vector3D(bbox_corners[1]))
 
@@ -98,12 +98,12 @@ class MessageGenerator:
 
         for i in range(2):
             extent = random.uniform(1.5, 3.5), random.uniform(1, 2), random.uniform(.5, 1.5)
-            pos: Tuple[float, float, float] = GeoUtils.gnss_add_meters(self.start_location, (
+            pos: Tuple[float, float, float] = geo.gnss_add_meters(self.start_location, (
             random.uniform(-10, 10), random.uniform(-10, 10), 0))
 
             bbox_corners = (
-                GeoUtils.gnss_add_meters(pos, extent, delta_factor=-1),
-                GeoUtils.gnss_add_meters(pos, extent, delta_factor=1)
+                geo.gnss_add_meters(pos, extent, delta_factor=-1),
+                geo.gnss_add_meters(pos, extent, delta_factor=1)
             )
             bbox = RelativeBBox(lower=Vector3D(bbox_corners[0]), higher=Vector3D(bbox_corners[1]))
 

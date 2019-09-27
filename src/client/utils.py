@@ -7,15 +7,15 @@ from common.quadkey import QuadKey
 from common.serialization.schema import RelativeBBox, Vector3D, ActorType
 from common.serialization.schema.actor import PEMDynamicActor
 from common.serialization.schema.relation import PEMRelation
-from common.util import GeoUtils
+from common.util import geo
 
 
 class ClientUtils:
     @staticmethod
     def map_pem_actor(actor: DynamicActor) -> PEMDynamicActor:
         bbox_corners = (
-            GeoUtils.gnss_add_meters(actor.gnss.value.components(), actor.props.extent.value.components(), delta_factor=-1),
-            GeoUtils.gnss_add_meters(actor.gnss.value.components(), actor.props.extent.value.components())
+            geo.gnss_add_meters(actor.gnss.value.components(), actor.props.extent.value.components(), delta_factor=-1),
+            geo.gnss_add_meters(actor.gnss.value.components(), actor.props.extent.value.components())
         )
         bbox = RelativeBBox(lower=Vector3D(bbox_corners[0]), higher=Vector3D(bbox_corners[1]))
 
