@@ -33,8 +33,12 @@ class WaypointProvider:
         return wp
 
     # Initializes this instance's waypoints as all unoccupied waypoints in a map
-    def update(self, world: carla.World):
+    def update(self, world: carla.World, free_only: bool = False):
         spawn_points: List[carla.Transform] = world.get_map().get_spawn_points()
+        if not free_only:
+            self.waypoints = spawn_points
+            return
+
         vehicles: List[carla.Vehicle] = world.get_actors().filter('vehicle.*')
         vehicle_locations: List[carla.Location] = [v.get_transform() for v in vehicles]
 

@@ -123,7 +123,7 @@ def spawn_npcs(carla_client: carla.Client, wpp: WaypointProvider = None, n=10) -
 
     for i, actor in enumerate(agent_actors):
         agent: BasicAgent = BasicAgent(actor, target_speed=NPC_TARGET_SPEED)
-        agent.set_destination((end_points[i].location.x, end_points[i].location.y, end_points[i].location.z))
+        agent.set_location_destination(end_points[i].location)
         agents.append(agent)
 
     return agents

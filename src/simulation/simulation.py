@@ -50,7 +50,8 @@ class World(object):
     def tick(self, clock) -> bool:
         clock.tick(FRAMERATE)
         proc_wrap(self.world.tick)
-        proc_wrap(self.scene.tick, clock)
+        if proc_wrap(self.scene.tick, clock):
+            return True
 
         if self.debug and self.n_ticks % (FRAMERATE * 3) == 0:  # every 3 seconds
             logging.debug(f'FPS: {clock.get_fps()}')

@@ -48,7 +48,7 @@ class Scene(AbstractScene):
             time.sleep(1)
             n_present = simulation.count_present_vehicles(SCENE2_ROLE_NAME_PREFIX, self._world)
 
-        self._waypoint_provider.update(self._world)
+        self._waypoint_provider.update(self._world, free_only=True)
 
         # Create walkers
         logging.info(f'Attempting to spawn {SCENE2_N_PEDESTRIANS} pedestrians.')
@@ -59,12 +59,12 @@ class Scene(AbstractScene):
         self._agents = simulation.spawn_npcs(self._sim, self._waypoint_provider, SCENE2_N_VEHICLES)
 
     def tick(self, clock: pygame.time.Clock) -> bool:
-        # TODO: Wait for all egos to be spawned before starting
-
-        for a in self.agents:
+        for a in self._agents:
             a.run_and_apply()
-
-        # TODO: return True on condition
+            if a.done():
+                logging.info(f'Replanning NPC agent {a.vehicle.id}.')
+                self._waypoint_provider.update(self._world)
+                a.set_location_destination(self._waypoint_provider.get().location)
 
         return False
 

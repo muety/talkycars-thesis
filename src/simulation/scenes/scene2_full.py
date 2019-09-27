@@ -48,7 +48,7 @@ class Scene(scene2_partial.Scene):
         for ego in self.egos:
             n_dead_egos += ego.tick(clock)
 
-        if n_dead_egos == len(self.egos):
+        if n_dead_egos == len(self.egos) and len(self.egos) > 0:
             return True
 
         return super().tick(clock)

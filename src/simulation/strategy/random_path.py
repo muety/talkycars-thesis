@@ -39,12 +39,8 @@ class RandomPathEgoStrategy(EgoStrategy):
         self.point_end = self.wpp.get()
 
         self._player = self._create_player()
-        self.agent = BasicAgent(self.player, target_speed=30)
-        self.agent.set_destination((
-            self.point_end.location.x,
-            self.point_end.location.y,
-            self.point_end.location.z,
-        ))
+        self.agent = BasicAgent(self.player, target_speed=EGO_TARGET_SPEED)
+        self.agent.set_location_destination(self.point_end.location)
 
     def step(self, clock=None) -> bool:
         if self.ego is None or not self.ready and simulation.count_present_vehicles(SCENE2_ROLE_NAME_PREFIX, self.ego.world) < self.wait_for:
@@ -77,4 +73,4 @@ class RandomPathEgoStrategy(EgoStrategy):
     def _init_missing_waypoint_provider(self, ego: 'ego.Ego'):
         seed: int = self.kwargs['seed'] if 'seed' in self.kwargs else 0
         self.wpp = WaypointProvider([], seed=seed)
-        self.wpp.update(ego.world)
+        self.wpp.update(ego.world, free_only=True)

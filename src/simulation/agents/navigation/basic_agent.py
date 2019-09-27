@@ -62,6 +62,9 @@ class BasicAgent(Agent):
 
         self._local_planner.set_global_plan(route_trace)
 
+    def set_location_destination(self, location):
+        return self.set_destination((location.x, location.y, location.z))
+
     def _trace_route(self, start_waypoint, end_waypoint):
         """
         This method sets up a global router and returns the optimal route
