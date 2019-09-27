@@ -48,6 +48,8 @@ class Scene(AbstractScene):
             time.sleep(1)
             n_present = SimulationUtils.count_present_vehicles(SCENE2_ROLE_NAME_PREFIX, self._world)
 
+        self._waypoint_provider.update(self._world)
+
         # Create walkers
         logging.info(f'Attempting to spawn {SCENE2_N_PEDESTRIANS} pedestrians.')
         self._peds = SimulationUtils.try_spawn_pedestrians(self._sim, SCENE2_N_PEDESTRIANS)

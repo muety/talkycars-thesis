@@ -1,6 +1,5 @@
 import logging
 import random
-from typing import List
 
 from agents.navigation.basic_agent import BasicAgent
 from util import SimulationUtils
@@ -76,21 +75,6 @@ class RandomPathEgoStrategy(EgoStrategy):
         return self.ego.world.spawn_actor(blueprint, self.point_start)
 
     def _init_missing_waypoint_provider(self, ego: 'ego.Ego'):
-        spawn_points: List[carla.Transform] = ego.map.get_spawn_points()
-        vehicles: List[carla.Vehicle] = ego.world.get_actors().filter('vehicle.*')
-        vehicle_locations: List[carla.Location] = [v.get_transform() for v in vehicles]
-
-        def is_occupied(t: carla.Transform) -> bool:
-            for p in vehicle_locations:
-                if p.location.distance(t.location) <= 10:
-                    return True
-            return False
-
-        free_spawn_points: List[carla.Transform] = []
-        for p1 in spawn_points:
-            if is_occupied(p1):
-                break
-            free_spawn_points.append(p1)
-
         seed: int = self.kwargs['seed'] if 'seed' in self.kwargs else 0
-        self.wpp = WaypointProvider(free_spawn_points, seed=seed)
+        self.wpp = WaypointProvider([], seed=seed)
+        self.wpp.update(ego.world)

@@ -32,6 +32,26 @@ class WaypointProvider:
 
         return wp
 
+    # Initializes this instance's waypoints as all unoccupied waypoints in a map
+    def update(self, world: carla.World):
+        spawn_points: List[carla.Transform] = world.get_map().get_spawn_points()
+        vehicles: List[carla.Vehicle] = world.get_actors().filter('vehicle.*')
+        vehicle_locations: List[carla.Location] = [v.get_transform() for v in vehicles]
+
+        def is_occupied(t: carla.Transform) -> bool:
+            for p in vehicle_locations:
+                if p.location.distance(t.location) <= 10:
+                    return True
+            return False
+
+        free_spawn_points: List[carla.Transform] = []
+        for p1 in spawn_points:
+            if is_occupied(p1):
+                break
+            free_spawn_points.append(p1)
+
+        self.waypoints = free_spawn_points
+
     def valid(self, wp: carla.Transform) -> bool:
         for w in self.picked:
             if w.location.distance(wp.location) <= self.min_spacing:
