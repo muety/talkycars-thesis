@@ -15,16 +15,16 @@ class WaypointProvider:
     def set_waypoints(self, waypoints: List[carla.Transform]):
         self.waypoints: List[carla.Transform] = waypoints
 
-    def get(self) -> carla.Waypoint:
+    def get(self) -> carla.Transform:
         if len(self.waypoints) == 0:
             return None
 
         wp: carla.Transform = random.choice(self.waypoints)
 
-        while len(self.waypoints) > 1 and not self.valid(wp):
+        while len(self.waypoints) - len(self.picked) > 1 and not self.valid(wp):
             wp = random.choice(self.waypoints)
 
-        if not self.valid(wp):
+        if wp is None or not self.valid(wp):
             return None
 
         self.waypoints.remove(wp)

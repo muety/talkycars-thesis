@@ -90,8 +90,8 @@ class Agent(object):
                  - traffic_light is the object itself or None if there is no
                    red traffic light affecting us
         """
-        ego_vehicle_location = self._vehicle.get_location()
-        ego_vehicle_waypoint = self._map.get_waypoint(ego_vehicle_location)
+        ego_vehicle_transform = self._vehicle.get_transform()
+        ego_vehicle_waypoint = self._map.get_waypoint(ego_vehicle_transform.location)
 
         for traffic_light in lights_list:
             object_waypoint = self._map.get_waypoint(traffic_light.get_location())
@@ -99,9 +99,8 @@ class Agent(object):
                     object_waypoint.lane_id != ego_vehicle_waypoint.lane_id:
                 continue
 
-            loc = traffic_light.get_location()
-            if is_within_distance_ahead(loc, ego_vehicle_location,
-                                        self._vehicle.get_transform().rotation.yaw,
+            trf = traffic_light.get_transform()
+            if is_within_distance_ahead(trf, ego_vehicle_transform,
                                         self._proximity_threshold):
                 if traffic_light.state == carla.TrafficLightState.Red:
                     return (True, traffic_light)
@@ -174,8 +173,8 @@ class Agent(object):
                  - vehicle is the blocker object itself
         """
 
-        ego_vehicle_location = self._vehicle.get_location()
-        ego_vehicle_waypoint = self._map.get_waypoint(ego_vehicle_location)
+        ego_vehicle_transform = self._vehicle.get_transform()
+        ego_vehicle_waypoint = self._map.get_waypoint(ego_vehicle_transform.location)
 
         for target_vehicle in vehicle_list:
             # do not account for the ego vehicle
@@ -183,14 +182,14 @@ class Agent(object):
                 continue
 
             # if the object is not in our lane it's not an obstacle
-            target_vehicle_waypoint = self._map.get_waypoint(target_vehicle.get_location())
+            target_vehicle_waypoint = self._map.get_waypoint(target_vehicle.get_location(), lane_type=carla.LaneType.Any)
             if target_vehicle_waypoint.road_id != ego_vehicle_waypoint.road_id or \
-                    target_vehicle_waypoint.lane_id != ego_vehicle_waypoint.lane_id:
+                    target_vehicle_waypoint.lane_id != ego_vehicle_waypoint.lane_id or \
+                    target_vehicle_waypoint.lane_type != carla.LaneType.Driving:
                 continue
 
-            loc = target_vehicle.get_location()
-            if is_within_distance_ahead(loc, ego_vehicle_location,
-                                        self._vehicle.get_transform().rotation.yaw,
+            trf = target_vehicle.get_transform()
+            if is_within_distance_ahead(trf, ego_vehicle_transform,
                                         self._proximity_threshold):
                 return (True, target_vehicle)
 

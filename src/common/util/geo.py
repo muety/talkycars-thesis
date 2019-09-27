@@ -11,3 +11,11 @@ def gnss_add_meters(coords: _Vec3, delta: _Vec3, perm: Tuple[int, int, int] = (0
         coords[1] + ((delta[perm[1]] * delta_factor) / EARTH_RADIUS) * (180 / math.pi) / math.cos(coords[0] * (math.pi / 180)),
         coords[2] + (delta[perm[2]] * delta_factor),
     )
+
+
+def rotate_z(coords: _Vec3, degrees: float) -> _Vec3:
+    return (
+        coords[0] * math.cos(degrees) - coords[1] * math.sin(degrees),
+        coords[0] * math.sin(degrees) + coords[1] * math.cos(degrees),
+        coords[2]
+    )

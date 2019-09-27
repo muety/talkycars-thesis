@@ -31,7 +31,7 @@ def try_spawn_pedestrians(carla_client: carla.Client, n=10) -> List[carla.Actor]
     for i in range(n):
         spawn_point = carla.Transform()
         loc = world.get_random_location_from_navigation()
-        if (loc != None):
+        if loc is not None:
             spawn_point.location = loc
             spawn_points.append(spawn_point)
     # 2. we spawn the walker object
@@ -91,8 +91,8 @@ def spawn_npcs(carla_client: carla.Client, wpp: WaypointProvider = None, n=10) -
     if not wpp:
         wpp = WaypointProvider(world.get_map().get_spawn_points())
 
-    start_points: List[carla.Location] = []
-    end_points: List[carla.Location] = []
+    start_points: List[carla.Transform] = []
+    end_points: List[carla.Transform] = []
 
     agent_ids: List[int] = []
     agents: List[BasicAgent] = []
@@ -100,7 +100,7 @@ def spawn_npcs(carla_client: carla.Client, wpp: WaypointProvider = None, n=10) -
     batch: List[carla.command.SpawnActor] = []
     for i in range(n):
         blueprint = random.choice(vehicle_blueprints)
-        blueprint.set_attribute('role_name', f'npc_{i}')
+        blueprint.set_attribute('role_name', f'{SCENE2_NPC_PREFIX}_{i}')
         if blueprint.has_attribute('color'):
             color = random.choice(blueprint.get_attribute('color').recommended_values)
             blueprint.set_attribute('color', color)
@@ -123,10 +123,47 @@ def spawn_npcs(carla_client: carla.Client, wpp: WaypointProvider = None, n=10) -
 
     for i, actor in enumerate(agent_actors):
         agent: BasicAgent = BasicAgent(actor, target_speed=NPC_TARGET_SPEED)
-        agent.set_location_destination(end_points[i].location)
-        agents.append(agent)
+        try:
+            agent.set_location_destination(end_points[i].location)
+            agents.append(agent)
+        except AttributeError:
+            logging.error(f'Failed to spawn NPC actor with id {actor.id}.')
 
     return agents
+
+
+def spawn_static_vehicles(carla_client: carla.Client, wpp: WaypointProvider = None, n=10) -> List[carla.Actor]:
+    world: carla.World = carla_client.get_world()
+    map: carla.Map = world.get_map()
+
+    if not wpp:
+        wpp = WaypointProvider(world.get_map().get_spawn_points())
+
+    vehicle_blueprints = world.get_blueprint_library().filter('vehicle.*')
+    actor_ids: List[int] = []
+
+    batch: List[carla.command.SpawnActor] = []
+
+    sidewalk_points: List[carla.Location] = [world.get_random_location_from_navigation() for _ in range(n)]
+    street_points: List[carla.Transform] = [map.get_waypoint(l).transform for l in sidewalk_points]
+    spawn_points: List[carla.Transform] = [carla.Transform(location=sidewalk_points[i], rotation=street_points[i].rotation) for i in range(n)]
+
+    for i in range(len(spawn_points)):
+        bp: carla.Blueprint = random.choice(vehicle_blueprints)
+        bp.set_attribute('role_name', f'{SCENE2_NPC_PREFIX}_{i * 100}')
+        batch.append(carla.command.SpawnActor(bp, spawn_points[i]))
+
+    results = carla_client.apply_batch_sync(batch, True)
+
+    for i in range(len(results)):
+        if results[i].error:
+            logging.error(results[i].error)
+        else:
+            actor_ids.append(results[i].actor_id)
+
+    all_actors: carla.ActorList = world.get_actors(actor_ids)
+
+    return [a for a in all_actors]
 
 
 def multi_destroy(carla_client: carla.Client, actors: Iterable[carla.Actor]):

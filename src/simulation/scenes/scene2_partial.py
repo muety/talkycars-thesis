@@ -21,6 +21,7 @@ class Scene(AbstractScene):
         self._egos: List[Ego] = []
         self._agents: List[BasicAgent] = []
         self._peds: List[carla.Actor] = None
+        self._static: List[carla.Actor] = None
         self._world: carla.World = None
         self._map: carla.Map = None
         self._sim: carla.Client = sim
@@ -55,6 +56,10 @@ class Scene(AbstractScene):
         self._peds = simulation.try_spawn_pedestrians(self._sim, SCENE2_N_PEDESTRIANS)
 
         # Create static vehicles
+        logging.info(f'Attempting to spawn {SCENE2_N_STATIC} static vehicles.')
+        self._static = simulation.spawn_static_vehicles(self._sim, self._waypoint_provider, SCENE2_N_STATIC)
+
+        # Create static vehicles
         logging.info(f'Attempting to spawn {SCENE2_N_VEHICLES} NPC vehicles.')
         self._agents = simulation.spawn_npcs(self._sim, self._waypoint_provider, SCENE2_N_VEHICLES)
 
@@ -74,7 +79,7 @@ class Scene(AbstractScene):
 
     @property
     def npcs(self) -> List[carla.Actor]:
-        return self._peds
+        return self._peds + self._static
 
     @property
     def world(self) -> carla.World:
