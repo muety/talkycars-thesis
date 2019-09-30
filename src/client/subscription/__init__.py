@@ -152,4 +152,4 @@ class TileSubscriptionService:
 
     @staticmethod
     def _resolve_mqtt_geodns(for_tile: QuadKey) -> Tuple[str, int]:
-        return 'localhost', 1883
+        return MQTT_BASE_HOSTNAME, 1883

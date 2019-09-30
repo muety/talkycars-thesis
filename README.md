@@ -14,7 +14,7 @@
 * [Cap'n'Proto](https://capnproto.org/install.html) 0.7.0
 
 ## Setup
-* `python3 -m venv .`
+* `python3 -m venv ./venv`
 * `pip3 install -r requirements.txt`
 * `go get ./...`
 
