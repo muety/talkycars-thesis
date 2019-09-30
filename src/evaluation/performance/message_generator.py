@@ -167,6 +167,7 @@ def run(args=sys.argv[1:]):
     argparser.add_argument('--radius', '-R', default=OCCUPANCY_RADIUS_DEFAULT, type=int, help='Occupancy Grid Radius')
 
     args, _ = argparser.parse_known_args(args)
+    print(f'Rate: {args.rate}, Level: {args.level}, Radius: {args.radius}')
 
     gen = MessageGenerator(grid_radius=args.radius, grid_tile_level=args.level, max_rate=args.rate)
     gen.run()
