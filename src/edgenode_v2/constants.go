@@ -11,4 +11,5 @@ const (
 	TopicPrefixGraphFusedOut = "/graph_fused_out"
 	GraphMaxAge              = time.Duration(5 * time.Second)
 	FusionKeepObs            = 3
+	NStates                  = 3
 )

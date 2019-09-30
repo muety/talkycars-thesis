@@ -174,7 +174,7 @@ func (s *GraphFusionService) fuseCells(cells []schema.GridCell, timestamps []tim
 		// TODO: Fuse occupants
 
 		if _, ok := cellStateVectors[hash]; !ok {
-			cellStateVectors[hash] = []float32{0, 0, 0}
+			cellStateVectors[hash] = []float32{0, 0, 0} // Better: Use NStates
 		}
 
 		stateRelation, err := c.State()
@@ -183,14 +183,13 @@ func (s *GraphFusionService) fuseCells(cells []schema.GridCell, timestamps []tim
 		}
 
 		conf, state := stateRelation.Confidence(), stateRelation.Object()
-		conf = decay(conf, timestamps[j])
 
-		for i := 0; i < 3; i++ {
+		for i := 0; i < NStates; i++ {
 			if i == int(state) {
-				cellStateVectors[hash][i] += conf
+				cellStateVectors[hash][i] += decay(conf, timestamps[j])
 				cellStateCount[hash]++
 			} else {
-				cellStateVectors[hash][i] += (1.0 - conf) / 2.0
+				cellStateVectors[hash][i] += decay(float32(math.Min(float64((1.0-conf)/NStates), 1.0/NStates))-0.001, timestamps[j])
 			}
 		}
 	}

@@ -22,10 +22,16 @@ def run():
             return
 
         logging.info('Building executable ...')
-        subprocess.run([gopaths[0], 'build'], cwd=target_dir)
+        exit_code = subprocess.run([gopaths[0], 'build'], cwd=target_dir).returncode
+        if exit_code != 0:
+            logging.error(f'Command exited with code {exit_code}.')
+            return
 
         logging.info('Starting sub-process ...')
-        subprocess.run(['./edgenode_v2', *sys.argv[2:]], cwd=target_dir)
+        exit_code = subprocess.run(['./edgenode_v2', *sys.argv[2:]], cwd=target_dir)
+        if exit_code != 0:
+            logging.error(f'Command exited with code {exit_code}.')
+            return
     elif sys.argv[1] in {'simulation', 'sim'}:
         from simulation import simulation
         simulation.run(sys.argv[2:])
