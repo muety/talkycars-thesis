@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"math"
 	"time"
 
@@ -132,7 +133,7 @@ func (s *GraphFusionService) fuseScenes(scenes []schema.TrafficScene) map[tiles.
 
 		for i := 0; i < gridCells.Len(); i++ {
 			cells = append(cells, gridCells.At(i))
-			timestamps = append(timestamps, floatToTime(scene.Timestamp()))
+			timestamps = append(timestamps, floatToTime(scene.Timestamp())) // TODO: Check!
 		}
 
 		if scene.Timestamp() < minTimestamp {
@@ -160,8 +161,9 @@ func (s *GraphFusionService) fuseCells(cells []schema.GridCell, timestamps []tim
 	fusedCells := make(map[tiles.Quadkey]schema.GridCell_List)
 	fusedCellCount := make(map[tiles.Quadkey]int)
 
-	cellStateCount := make(map[tiles.Quadkey]int)
-	cellStateVectors := make(map[tiles.Quadkey][]float32)
+	cellCount := make(map[tiles.Quadkey]int32)            // RemoteTileLevel -> int
+	cellStateObsCount := make(map[tiles.Quadkey]int32)    // OccupancyTileLevel -> int
+	cellStateVectors := make(map[tiles.Quadkey][]float32) // OccupanvyTileLevel -> []float
 
 	for j, c := range cells {
 		key, err := c.Hash()
@@ -175,6 +177,7 @@ func (s *GraphFusionService) fuseCells(cells []schema.GridCell, timestamps []tim
 
 		if _, ok := cellStateVectors[hash]; !ok {
 			cellStateVectors[hash] = []float32{0, 0, 0} // Better: Use NStates
+			cellCount[hash[:RemoteGridTileLevel]]++
 		}
 
 		stateRelation, err := c.State()
@@ -187,24 +190,24 @@ func (s *GraphFusionService) fuseCells(cells []schema.GridCell, timestamps []tim
 		for i := 0; i < NStates; i++ {
 			if i == int(state) {
 				cellStateVectors[hash][i] += decay(conf, timestamps[j])
-				cellStateCount[hash]++
+				cellStateObsCount[hash]++
 			} else {
 				cellStateVectors[hash][i] += decay(float32(math.Min(float64((1.0-conf)/NStates), 1.0/NStates))-0.001, timestamps[j])
 			}
 		}
 	}
 
-	cellCount := int32(len(cellStateCount))
-
-	for qk := range cellStateCount {
+	for qk := range cellStateObsCount {
 		parent := tiles.Quadkey(qk[:s.RemoteTileLevel])
+		count := cellCount[parent]
 
 		if _, ok := outGrids[parent]; !ok {
+			fmt.Println("Missing parent out grid.")
 			continue
 		}
 
 		if _, ok := fusedCells[parent]; !ok {
-			cellList, _ := outGrids[parent].NewCells(cellCount)
+			cellList, _ := outGrids[parent].NewCells(count)
 			fusedCells[parent] = cellList
 			fusedCellCount[parent] = 0
 		}
@@ -225,7 +228,7 @@ func (s *GraphFusionService) fuseCells(cells []schema.GridCell, timestamps []tim
 		}
 
 		if stateVector, ok := cellStateVectors[qk]; ok {
-			meanStateVector := meanCellState(stateVector, cellStateCount[qk])
+			meanStateVector := meanCellState(stateVector, cellStateObsCount[qk])
 			maxConf, maxState := getMaxState(meanStateVector)
 			cellStateRelation.SetConfidence(maxConf)
 			cellStateRelation.SetObject(maxState)
@@ -258,7 +261,7 @@ func getMaxState(stateVector []float32) (float32, schema.GridCellState) {
 	return maxConf, state
 }
 
-func meanCellState(stateSumVector []float32, count int) []float32 {
+func meanCellState(stateSumVector []float32, count int32) []float32 {
 	return []float32{stateSumVector[0] / float32(count), stateSumVector[1] / float32(count), stateSumVector[2] / float32(count)}
 }
 

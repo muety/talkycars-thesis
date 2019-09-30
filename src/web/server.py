@@ -20,9 +20,11 @@ graph_queue: Deque[Dict[str, Any]] = deque(maxlen=1)
 
 
 def on_graph(message: bytes):
-    graph: PEMTrafficScene = PEMTrafficScene.from_bytes(message)
-    graph_queue.append(graph2json(graph))
-
+    try:
+        graph: PEMTrafficScene = PEMTrafficScene.from_bytes(message)
+        graph_queue.append(graph2json(graph))
+    except:
+        print('Failed to parse graph.')
 
 def graph2json(graph: PEMTrafficScene) -> Dict[str, Any]:
     data: Dict[str, Any] = {
