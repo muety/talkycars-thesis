@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"math"
 	"time"
 
@@ -202,7 +201,6 @@ func (s *GraphFusionService) fuseCells(cells []schema.GridCell, timestamps []tim
 		count := cellCount[parent]
 
 		if _, ok := outGrids[parent]; !ok {
-			fmt.Println("Missing parent out grid.")
 			continue
 		}
 

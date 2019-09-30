@@ -10,6 +10,7 @@ import (
 	"math"
 	"os"
 	"os/signal"
+	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -17,22 +18,20 @@ import (
 	"github.com/n1try/tiles"
 )
 
-var sigs chan os.Signal
-var client MQTT.Client
-var inRateCount int
-var outRateCount int
-var graphInQueue chan []byte
-var lastTick time.Time
-
-var fusionService GraphFusionService
+var (
+	sigs                      chan os.Signal
+	graphInQueue              chan []byte
+	client                    MQTT.Client
+	fusionService             GraphFusionService
+	inRateCount, outRateCount uint32
+	lastTick                  time.Time
+)
 
 func listen() {
 	// Listen for /graph_in_raw messages
 	for payload := range graphInQueue {
-		go func(payload []byte) {
-			inRateCount++
-			fusionService.Push(payload)
-		}(payload)
+		atomic.AddUint32(&inRateCount, 1)
+		fusionService.Push(payload)
 	}
 }
 
@@ -40,34 +39,31 @@ func tick() {
 	lastTick = time.Now()
 
 	m := fusionService.Get(GraphMaxAge)
+
 	for k, msg := range m {
 		client.Publish(TopicPrefixGraphFusedOut+"/"+string(k), 0, false, msg)
 	}
 
 	if len(m) > 0 {
-		outRateCount++
+		atomic.AddUint32(&outRateCount, 1)
 	}
 }
 
 func loop(tickRate float64) {
-	go func(tickRate float64) {
-		for {
-			sleep := math.Max(0, float64(time.Second)/tickRate-float64(time.Since(lastTick)))
-			time.Sleep(time.Duration(sleep))
-			tick()
-		}
-	}(tickRate)
+	for {
+		sleep := math.Max(0, float64(time.Second)/tickRate-float64(time.Since(lastTick)))
+		time.Sleep(time.Duration(sleep))
+		tick()
+	}
 }
 
 func monitor() {
-	go func(interval time.Duration) {
-		for {
-			time.Sleep(interval)
-			fmt.Printf("In Rate: %v / sec, Out Rate: %v / sec\n", inRateCount, outRateCount)
-			inRateCount = 0
-			outRateCount = 0
-		}
-	}(time.Second)
+	for {
+		time.Sleep(time.Second)
+		fmt.Printf("In Rate: %v / sec, Out Rate: %v / sec\n", atomic.LoadUint32(&inRateCount), atomic.LoadUint32(&outRateCount))
+		atomic.StoreUint32(&inRateCount, 0)
+		atomic.StoreUint32(&outRateCount, 0)
+	}
 }
 
 func init() {
