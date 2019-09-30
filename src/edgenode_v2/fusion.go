@@ -120,6 +120,8 @@ func (s *GraphFusionService) fuseScenes(scenes []schema.TrafficScene) map[tiles.
 	}
 
 	for _, scene := range scenes {
+		ts := floatToTime(scene.Timestamp())
+
 		grid, err := scene.OccupancyGrid()
 		if err != nil {
 			continue
@@ -132,7 +134,7 @@ func (s *GraphFusionService) fuseScenes(scenes []schema.TrafficScene) map[tiles.
 
 		for i := 0; i < gridCells.Len(); i++ {
 			cells = append(cells, gridCells.At(i))
-			timestamps = append(timestamps, floatToTime(scene.Timestamp())) // TODO: Check!
+			timestamps = append(timestamps, ts) // TODO: Check!
 		}
 
 		if scene.Timestamp() < minTimestamp {
