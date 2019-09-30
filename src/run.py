@@ -1,3 +1,4 @@
+import argparse
 import logging
 import os
 import sys
@@ -41,6 +42,22 @@ def run():
     elif sys.argv[1] in {'generator'}:
         from evaluation.performance import message_generator
         message_generator.run(sys.argv[2:])
+    elif sys.argv[1] in {'generators'}:
+        from evaluation.performance import message_generator
+        from multiprocessing import Process
+
+        argparser = argparse.ArgumentParser()
+        argparser.add_argument('-n', default=1, type=int, help='Number of concurrent generators to spawn')
+        args, _ = argparser.parse_known_args(sys.argv[2:])
+
+        processes = []
+        for i in range(int(args.n)):
+            p = Process(target=message_generator.run, daemon=True, kwargs={'args': sys.argv[2:]})
+            p.start()
+            processes.append(p)
+
+        for p in processes:
+            p.join()
     elif sys.argv[1] in {'web'}:
         import uvicorn
         from web.server import app

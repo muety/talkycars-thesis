@@ -9,6 +9,7 @@
 
 ## Requirements
 * Python 3.7
+  * You might want to use [pyenv](https://github.com/pyenv/pyenv) for version management
 * Go 1.13
 * [Carla](https://github.com/carla-simulator/carla) 0.9.6
 * [Cap'n'Proto](https://capnproto.org/install.html) 0.7.0
@@ -17,6 +18,7 @@
 * `python3 -m venv ./venv`
 * `pip3 install -r requirements.txt`
 * `go get ./...`
+* `go get -u -t zombiezen.com/go/capnproto2/...`
 
 ## Run
 ### Preparations
@@ -25,15 +27,18 @@
   * `export PYTHONPATH=$PYTHONPATH:"$('pwd')/src/simulation"`
   * `export PYTHONPATH=$PYTHONPATH:"$('pwd')/carla"`
   * `export PYTHONPATH=$PYTHONPATH:"$('pwd')/carla/dist/carla-0.9.6-py3.7-linux-x86_64.egg"`
-* Compile Cap'n'Proto schemas: `capnp compile -I$GOPATH/src/zombiezen.com/go/capnproto2/std -ogo:server/schema --src-prefix common/serialization/schema/capnp/go common/serialization/schema/capnp/go/*.capnp`
+* Compile Cap'n'Proto schemas: `capnp compile -I$GOPATH/src/zombiezen.com/go/capnproto2/std -ogo:src/edgenode_v2/schema --src-prefix src/common/serialization/schema/capnp/go src/common/serialization/schema/capnp/go/*.capnp`
+* Compile Cython extensions: `cd src/common/quadkey/tilesystem && python3 setup.py build_ext --inplace && cd ../../raycast && python3 setup.py build_ext --inplace && cd ../../..`
 * Start Carla: `DISPLAY= ./CarlaUE4.sh -carla-server -windowed -ResX=800 -ResY=600 -opengl`
 * Start HiveMQ: `docker run -p 1883:1883 --rm skobow/hivemq-ce`
+  * If the broker is started on a different machine as any of the other modules, you need to specify `MQTT_BASE_HOSTNAME=<BROKER_IP>` as an environment variable on the machine running the respective module (e.g. `simulation` or `ego`)
 
 ### Run Modules (examples)
 * Run a **simulation**: `src && python3 run.py sim --scene scene1`
 * Run the **edge node** / server / RSU: `cd src && python3 run.py edge --debug --tile 1202032332303131`
   * **Alternatively:** Run **v2** (Go implementation) of the edge node: `cd src && python3 run.py edge2 --tile 1202032332303131`
 * Run a standalone **ego** vehicle: `cd src && python3 run.py ego --rolename dummy --render false --debug true`
+  * When running on a different machine as the simulator, add the `--host <HOST_IP>` argument.
 * Run the **web** dashboard: `cd src && python3 run.py web`
 
 ## QuadTiles
