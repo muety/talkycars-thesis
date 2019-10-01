@@ -1,5 +1,5 @@
 from itertools import starmap
-from typing import List, Set, Callable
+from typing import List, Set, Callable, Union
 
 from common.constants import *
 from common.model import UncertainProperty
@@ -17,14 +17,28 @@ class FusionUtils:
 
     @classmethod
     def scenes_to_single_grid(cls, scenes: List[PEMTrafficScene], convert: Callable, offset: float, height: float = OCCUPANCY_BBOX_HEIGHT) -> Grid:
-        cells: Set[GridCell] = set(starmap(cls._convert_cell, map(lambda c: (c, convert, offset, height), flatmap(lambda s: s.occupancy_grid.cells, scenes))))
+        cells: Set[GridCell] = set(
+            filter(
+                lambda c: c is not None,
+                starmap(
+                    cls._convert_cell,
+                    map(
+                        lambda c: (c, convert, offset, height),
+                        flatmap(lambda s: s.occupancy_grid.cells, scenes)
+                    )
+                )
+            )
+        )
         return Grid(cells=cells)
 
     @staticmethod
-    def _convert_cell(c: PEMGridCell, convert: Callable, offset: float, height: float = OCCUPANCY_BBOX_HEIGHT) -> GridCell:
-        return GridCell(
-            quad_key=QuadKey(c.hash),
-            state=UncertainProperty(c.state.confidence, c.state.object.value),
-            convert=convert,
-            offset=offset,
-            height=height)
+    def _convert_cell(c: PEMGridCell, convert: Callable, offset: float, height: float = OCCUPANCY_BBOX_HEIGHT) -> Union[GridCell, None]:
+        try:
+            return GridCell(
+                quad_key=QuadKey(c.hash),
+                state=UncertainProperty(c.state.confidence, c.state.object.value),
+                convert=convert,
+                offset=offset,
+                height=height)
+        except Exception:
+            return None

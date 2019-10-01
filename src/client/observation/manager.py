@@ -18,7 +18,7 @@ class ObservationManager:
         self.subscribers: Dict[str, List[Callable]] = {}
         self.locks: Dict[str, Lock] = {}
         self.aliases: Dict[str, str] = {}
-        self.pool: Pool = Pool(processes=1)
+        self.pool: Pool = Pool(processes=4)
 
     '''
     Optional method to explicitly initialize an observation queue for a specific key upfront.
@@ -73,9 +73,8 @@ class ObservationManager:
             self.observations[key].append(observation)
             self.last_update[key] = observation.timestamp
 
-            if key in self.subscribers:
-                for f in self.subscribers[key]:
-                    async_results.append(self.pool.apply_async(proc_wrap, (f, observation,)))
+            for f in self.subscribers[key]:
+                async_results.append(self.pool.apply_async(proc_wrap, (f, observation,)))
 
             for r in async_results:
                 r.wait()
