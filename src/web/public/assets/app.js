@@ -94,6 +94,8 @@ window.addEventListener('load', () => {
         ws.close()
         canvas.clear()
         clearInterval(timerLoop)
+
+        latestUpdate = null
         tsIndicator.innerText = '–'
 
         running = false
