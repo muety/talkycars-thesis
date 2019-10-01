@@ -1,5 +1,4 @@
 import logging
-import os
 import time
 from collections import deque
 from datetime import datetime
@@ -17,7 +16,7 @@ from common.constants import *
 from common.fusion import FusionService, FusionServiceFactory
 from common.fusion.util import FusionUtils
 from common.model import DynamicActor
-from common.observation import CameraRGBObservation, ActorsObservation
+from common.observation import CameraRGBObservation, ActorsObservation, EmptyObservation
 from common.observation import OccupancyGridObservation, LidarObservation, PositionObservation, \
     GnssObservation
 from common.occupancy import Grid
@@ -70,6 +69,7 @@ class TalkyClient:
         self.om.register_key(OBS_CAMERA_RGB_IMAGE, CameraRGBObservation)
         self.om.register_key(OBS_GRID_LOCAL, OccupancyGridObservation)
         self.om.register_key(OBS_GRID_COMBINED, OccupancyGridObservation)
+        self.om.register_key(OBS_GRAPH_LOCAL, EmptyObservation)
         self.om.register_key(OBS_ACTOR_EGO, ActorsObservation)
         self.om.register_key(OBS_ACTORS_RAW, ActorsObservation)
         self.om.register_key(OBS_GNSS_PREFIX + self.ego_id, GnssObservation)
@@ -83,6 +83,7 @@ class TalkyClient:
         self.outbound.subscribe(OBS_GNSS_PREFIX + ALIAS_EGO, self._on_gnss)
         self.outbound.subscribe(OBS_LIDAR_POINTS, self._on_lidar)
         self.outbound.subscribe(OBS_GRID_LOCAL, self._on_grid)
+        self.outbound.subscribe(OBS_GRAPH_LOCAL, self._on_local_graph)
 
         self.tsdiffhistory1: Deque[float] = deque(maxlen=100)
         self.tsdiffhistory2: Deque[float] = deque(maxlen=100)
@@ -198,18 +199,20 @@ class TalkyClient:
 
         contained_tiles = frozenset(map(lambda c: c.quad_key.key, grid.cells))
         self.tss.publish_graph(encoded_msg, contained_tiles)
+        self.inbound.publish(OBS_GRAPH_LOCAL, EmptyObservation(time.time()))
 
         self.fs.push(int(self.ego_id), graph)
 
+        self.tsdiffhistory2.append(time.monotonic() - _ts)
+        logging.debug(f'GRID: {np.mean(self.tsdiffhistory2)}')
+
+    def _on_local_graph(self, *args, **kwargs):
         # Performance: This call takes most of the time
         f = self.fs.get(max_age=GRID_TTL_SEC)
         fused_scenes: List[PEMTrafficScene] = list(f.values())  # Performance: ~ 0.08 sec
         fused_grid: Grid = FusionUtils.scenes_to_single_grid(fused_scenes, convert_coords, self.gm.get_cell_base_z())  # Performance: ~ 0.07 sec
 
         self.inbound.publish(OBS_GRID_COMBINED, OccupancyGridObservation(time.time(), fused_grid))  # TODO: time ?
-
-        self.tsdiffhistory2.append(time.monotonic() - _ts)
-        logging.debug(f'GRID: {np.mean(self.tsdiffhistory2)}')
 
     def _on_remote_grid(self, msg: bytes):
         # TODO: Maybe do asynchronously?

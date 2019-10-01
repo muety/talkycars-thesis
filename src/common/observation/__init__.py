@@ -22,6 +22,14 @@ class Observation(UncertainProperty[Any]):
         super(Observation, self).__init__(confidence=confidence, value=None)
 
 
+class EmptyObservation(Observation):
+    def __init__(self, timestamp):
+        super().__init__(timestamp)
+
+    def __str__(self):
+        return f'[{self.timestamp}] Empty Observation'
+
+
 class EgoObservation(Observation):
     pass
 

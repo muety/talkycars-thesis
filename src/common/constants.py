@@ -7,6 +7,7 @@ OBS_CAMERA_RGB_IMAGE = 'camera_image'
 OBS_POSITION = 'player_pos'
 OBS_ACTOR_EGO, OBS_ACTORS_RAW = 'ego_actor', 'all_dynamic_actors'
 OBS_GRID_LOCAL, OBS_GRID_COMBINED = 'local_occupancy_grid', 'occupancy_grid'
+OBS_GRAPH_LOCAL = 'local_graph'
 OBS_GNSS_PREFIX = 'pos_gnss_'
 
 ALIAS_EGO = 'ego'
