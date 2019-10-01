@@ -1,6 +1,7 @@
 import argparse
 import math
 import sys
+from multiprocessing.pool import ThreadPool
 from threading import Lock
 from typing import Dict
 
@@ -19,7 +20,7 @@ from common.constants import *
 from common.observation import OccupancyGridObservation
 from common.occupancy import Grid
 from common.quadkey import QuadKey
-from common.util import GracefulKiller
+from common.util import GracefulKiller, proc_wrap
 
 ADD_ARGS_PREFIX = '--strat-'
 
@@ -51,6 +52,7 @@ class Ego:
         self.record: bool = record
         self.n_ticked: int = 0
         self.display = None
+        self.sensor_tick_pool: ThreadPool = ThreadPool(processes=6)
         self.sensors: Dict[str, carla.Sensor] = {
             'gnss': None,
             'lidar': None,
@@ -131,8 +133,8 @@ class Ego:
             return True
 
         snap = self.world.get_snapshot()
-        self.sensors['actors'].tick(snap.timestamp.platform_timestamp)
-        self.sensors['position'].tick(snap.timestamp.platform_timestamp)
+        self.sensor_tick_pool.apply_async(proc_wrap, (self.sensors['actors'].tick, snap.timestamp.platform_timestamp))
+        self.sensor_tick_pool.apply_async(proc_wrap, (self.sensors['position'].tick, snap.timestamp.platform_timestamp))
 
         self.on_kth_tick(self.n_ticked + 1, snap)
 

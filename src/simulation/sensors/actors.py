@@ -16,24 +16,37 @@ class ActorsEvent(carla.SensorData):
 class ActorsSensor(Sensor):
     def __init__(self, parent_actor, client: TalkyClient):
         self._parent = parent_actor
-        self._map = parent_actor.get_world().get_map()
+        self._world = parent_actor.get_world()
+        self._map = self._world.get_map()
+        self._ego_actor: carla.Actor = None
+        self._non_ego_actors: List[carla.Actor] = []
+        self._tick_count: int = 0
+
         super().__init__(client)
 
     def tick(self, timestamp):
         self._on_event(ActorsEvent(timestamp))
+        self._tick_count += 1
 
     def _on_event(self, event):
-        ego_id: int = self._parent.id
-        actors: carla.ActorList = self._parent.get_world().get_actors()
-        vehicle_actors: List[carla.Actor] = list(actors.filter('vehicle.*')) if actors else []
-        walker_actors: List[carla.Actor] = list(actors.filter('walker.*')) if actors else []
+        if self._tick_count % 10 == 0:
+            self._update_actors()
 
-        all_actors = list(map(self._map_to_actor, vehicle_actors + walker_actors))
-        ego_actors: List[DynamicActor] = list(filter(lambda a: a.id == ego_id, all_actors))
-        other_actors: List[DynamicActor] = list(map(self._noisify_actor, filter(lambda a: a.id != ego_id, all_actors)))
+        ego_actors: List[DynamicActor] = [self._map_to_actor(self._ego_actor)]
+        other_actors: List[DynamicActor] = list(map(self._noisify_actor, map(self._map_to_actor, self._non_ego_actors)))
 
         self.client.inbound.publish(OBS_ACTOR_EGO, ActorsObservation(event.ts, actors=ego_actors))
         self.client.inbound.publish(OBS_ACTORS_RAW, ActorsObservation(event.ts, actors=other_actors))
+
+    def _update_actors(self):
+        actors: carla.ActorList = self._world.get_actors()
+        vehicle_actors: List[carla.Actor] = list(actors.filter('vehicle.*')) if actors else []
+        walker_actors: List[carla.Actor] = list(actors.filter('walker.*')) if actors else []
+
+        self._non_ego_actors = walker_actors + list(filter(lambda a: a.id != self._parent.id, vehicle_actors))
+
+        if not self._ego_actor:
+            self._ego_actor = list(filter(lambda a: a.id == self._parent.id, vehicle_actors))[0]
 
     def _map_to_actor(self, carla_actor: carla.Actor) -> DynamicActor:
         location: carla.Location = carla_actor.get_location()
