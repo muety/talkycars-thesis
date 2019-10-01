@@ -11,7 +11,6 @@ from common.model import UncertainProperty, DynamicActor
 from common.observation import GnssObservation, LidarObservation
 from common.occupancy import Grid, GridCell, GridCellState
 from common.raycast import raycast
-from common.util import proc_wrap
 
 N_PROC = 18  # Experimentally found to be best
 
@@ -76,7 +75,7 @@ class OccupancyGridManager:
             np.array(self.ego.location.value.components(), dtype=np.float32)
         ) for i in range(n)]
 
-        result: List[np.ndarray] = self.pool.starmap(self._wrapped_mcwl, batches)  # ndarray[GridCellState]
+        result: List[np.ndarray] = self.pool.starmap(self._match_cells_with_lidar, batches)  # ndarray[GridCellState]
 
         for i, r in enumerate(result):
             for j, s in enumerate(r):
@@ -127,10 +126,6 @@ class OccupancyGridManager:
         states[free_mask & np.invert(occupied_mask)] = GridCellState.FREE
 
         return states
-
-    @classmethod
-    def _wrapped_mcwl(cls, *args, **kwargs):
-        return proc_wrap(cls._match_cells_with_lidar, *args, **kwargs)
 
     def _recompute(self):
         key = self.quadkey_current

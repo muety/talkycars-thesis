@@ -78,7 +78,7 @@ class EdgeNode:
         if not fused_graphs:
             return
 
-        self.send_pool.starmap_async(self._wrapped_pg, fused_graphs.items())
+        self.send_pool.starmap_async(self._publish_graph, fused_graphs.items())
         print(time.monotonic() - t0)
 
     def flush(self):
@@ -114,9 +114,6 @@ class EdgeNode:
             self.mqtt.publish(f'{TOPIC_PREFIX_GRAPH_FUSED_OUT}/{for_tile}', encoded_graph)
         except Exception as e:
             logging.warning(e)
-
-    def _wrapped_pg(self, *args, **kwargs):
-        return proc_wrap(self._publish_graph, *args, **kwargs)
 
     def _eval_rate(self):
         while not self.mqtt or not self.mqtt.connected:

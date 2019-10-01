@@ -13,7 +13,7 @@ from util import simulation
 
 import carla
 from common.constants import FRAMERATE
-from common.util import GracefulKiller, proc_wrap
+from common.util import GracefulKiller
 
 
 class World(object):
@@ -49,8 +49,8 @@ class World(object):
 
     def tick(self, clock) -> bool:
         clock.tick(FRAMERATE)
-        proc_wrap(self.world.tick)
-        if proc_wrap(self.scene.tick, clock):
+        self.world.tick()
+        if self.scene.tick(clock):
             return True
 
         if self.debug and self.n_ticks % (FRAMERATE * 3) == 0:  # every 3 seconds
