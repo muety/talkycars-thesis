@@ -2,7 +2,6 @@ import math
 import time
 from abc import ABC, abstractmethod
 from collections import deque
-from multiprocessing.pool import Pool
 from typing import TypeVar, Generic, Type, Set, List, Dict, Union, Deque
 
 import numpy as np
@@ -58,8 +57,6 @@ class PEMFusionService(FusionService[PEMTrafficScene]):
 
         self.state_matrices: Dict[int, Deque[np.ndarray]] = {}
 
-        self.fuse_pool: Pool = Pool(6, )
-
         self.set_sector(sector)
 
     def set_sector(self, sector: Union[QuadKey, str]):
@@ -104,9 +101,7 @@ class PEMFusionService(FusionService[PEMTrafficScene]):
         return self._fuse_scenes(all_obs, all_states)
 
     def tear_down(self):
-        self.fuse_pool.close()
-        self.fuse_pool.join()
-        self.fuse_pool.terminate()
+        pass
 
     def _grid2states(self, grid: PEMOccupancyGrid) -> np.ndarray:
         n_states: int = GridCellState.N
@@ -154,14 +149,14 @@ class PEMFusionService(FusionService[PEMTrafficScene]):
         # Step 1: Fuse states
         fused_states: np.ndarray = np.nanmean(states, axis=0)
         mask: np.ndarray = np.isnan(fused_states).sum(axis=1) == 0
-        idx_lookup: np.ndarray = mask.cumsum()
         fused_states_masked: np.ndarray = fused_states[mask]
+        idx_lookup: np.ndarray = np.searchsorted(mask.cumsum(), range(fused_states_masked.shape[0]))
 
         max_confs: np.ndarray = np.max(fused_states_masked, axis=1)
         max_states: np.ndarray = np.argmax(fused_states_masked, axis=1)
 
         for idx in range(0, fused_states_masked.shape[0]):
-            trueidx: int = int(np.argmax(idx_lookup > idx))
+            trueidx: int = int(idx_lookup[idx])
             qk: str = self.reverse_indices[trueidx]
 
             key: str = qk[:REMOTE_GRID_TILE_LEVEL]
