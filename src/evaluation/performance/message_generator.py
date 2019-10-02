@@ -1,3 +1,7 @@
+'''
+CAUTION: Since messages are pre-generated, the timestamp will be out-dated pretty soon. Don't forget to set MAX_AGE to a very high tolerance in the edge node.
+'''
+
 import argparse
 import logging
 import random
@@ -5,6 +9,8 @@ import sys
 import time
 from threading import Thread, Lock
 from typing import Tuple, List, Union
+
+from tqdm import trange
 
 from client import TileSubscriptionService
 from common import quadkey
@@ -25,17 +31,20 @@ class MessageGenerator:
             self,
             grid_tile_level: int = OCCUPANCY_TILE_LEVEL,
             grid_radius: int = OCCUPANCY_RADIUS_DEFAULT,
-            max_rate: float = 5.  # Hz
+            max_rate: float = 5.,  # Hz
+            n_sample_scenes: int = 128,
     ):
         self.actor_id = random.randint(1, 9999)
         self.grid_tile_level = grid_tile_level
         self.grid_radius = grid_radius
         self.max_rate: float = max_rate
+        self.n_sample_scenes: int = n_sample_scenes
 
         self.start_location: Tuple[float, float, float] = (49.000324, 7.997861, 2.8)
         self.types: List[ActorType] = [ActorType.vehicle(), ActorType.pedestrian(), ActorType.unknown()]
         self.states: List[GridCellState] = GridCellState.options()
 
+        self.gen_msgs: List[bytes] = None
         self.gen_ego: PEMDynamicActor = None
         self.gen_others: List[PEMDynamicActor] = None
         self.gen_quads: List[QuadKey] = None
@@ -55,16 +64,15 @@ class MessageGenerator:
         self.init_ego()
         self.init_others()
         self.init_quad_keys()
+        self.init_msgs()
         self.tss.update_position(quadkey.from_geo(self.start_location[:2], self.grid_tile_level))
         self.rate_count_thread.start()
 
         time.sleep(1)
-
         self.start_time = time.time()
 
         while True:
-            scene: PEMTrafficScene = self.gen_scene()
-            msg: bytes = scene.to_bytes()
+            msg: bytes = random.choice(self.gen_msgs)
             self.tss.publish_graph(msg, frozenset(self.gen_keys))
 
             with self.lock:
@@ -75,6 +83,10 @@ class MessageGenerator:
                 time.sleep(1 / self.max_rate - (time.monotonic() - self.last_tick))
 
             self.last_tick = time.monotonic()
+
+    def init_msgs(self):
+        logging.info(f'Generating and serializing {self.n_sample_scenes} scenes.')
+        self.gen_msgs = [self.gen_scene().to_bytes() for _ in trange(self.n_sample_scenes)]
 
     def init_ego(self):
         bbox_corners = (
@@ -99,7 +111,7 @@ class MessageGenerator:
         for i in range(2):
             extent = random.uniform(1.5, 3.5), random.uniform(1, 2), random.uniform(.5, 1.5)
             pos: Tuple[float, float, float] = geo.gnss_add_meters(self.start_location, (
-            random.uniform(-10, 10), random.uniform(-10, 10), 0))
+                random.uniform(-10, 10), random.uniform(-10, 10), 0))
 
             bbox_corners = (
                 geo.gnss_add_meters(pos, extent, delta_factor=-1),
@@ -171,6 +183,7 @@ def run(args=sys.argv[1:]):
 
     gen = MessageGenerator(grid_radius=args.radius, grid_tile_level=args.level, max_rate=args.rate)
     gen.run()
+
 
 if __name__ == '__main__':
     run()
