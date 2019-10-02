@@ -25,11 +25,15 @@ var (
 	fusionService             GraphFusionService
 	inRateCount, outRateCount uint32
 	lastTick                  time.Time
+	kill                      bool
 )
 
 func listen() {
 	// Listen for /graph_in_raw messages
 	for payload := range graphInQueue {
+		if kill {
+			return
+		}
 		atomic.AddUint32(&inRateCount, 1)
 		go fusionService.Push(payload)
 	}
@@ -50,7 +54,7 @@ func tick() {
 }
 
 func loop(tickRate float64) {
-	for {
+	for !kill {
 		sleep := math.Max(0, float64(time.Second)/tickRate-float64(time.Since(lastTick)))
 		time.Sleep(time.Duration(sleep))
 		tick()
@@ -58,7 +62,7 @@ func loop(tickRate float64) {
 }
 
 func monitor() {
-	for {
+	for !kill {
 		time.Sleep(time.Second)
 		fmt.Printf("In Rate: %v / sec, Out Rate: %v / sec\n", atomic.LoadUint32(&inRateCount), atomic.LoadUint32(&outRateCount))
 		atomic.StoreUint32(&inRateCount, 0)
@@ -107,5 +111,8 @@ func main() {
 	go monitor()
 	go loop(TickRate)
 
-	<-sigs
+	for _ = range sigs {
+		kill = true
+		close(sigs)
+	}
 }

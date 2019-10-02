@@ -2,6 +2,7 @@ package main
 
 import (
 	"math"
+	"sync"
 	"time"
 
 	"./schema"
@@ -17,6 +18,7 @@ type GraphFusionService struct {
 	gridKeys        []tiles.Quadkey
 	remoteKeys      []tiles.Quadkey
 	observations    map[int][]schema.TrafficScene
+	pushMutex       *sync.Mutex
 }
 
 func (s *GraphFusionService) Init() {
@@ -33,6 +35,8 @@ func (s *GraphFusionService) Init() {
 	}
 
 	s.observations = make(map[int][]schema.TrafficScene)
+
+	s.pushMutex = &sync.Mutex{}
 }
 
 func (s *GraphFusionService) Push(msg []byte) {
@@ -48,6 +52,7 @@ func (s *GraphFusionService) Push(msg []byte) {
 
 	senderId := int(measuredBy.Id())
 
+	s.pushMutex.Lock()
 	if _, ok := s.observations[senderId]; !ok {
 		s.observations[senderId] = make([]schema.TrafficScene, 0)
 	}
@@ -55,6 +60,7 @@ func (s *GraphFusionService) Push(msg []byte) {
 	if len(s.observations[senderId]) > s.Keep {
 		s.observations[senderId] = s.observations[senderId][1:]
 	}
+	s.pushMutex.Unlock()
 }
 
 func (s *GraphFusionService) Get(maxAge time.Duration) map[tiles.Quadkey][]byte {

@@ -26,13 +26,14 @@ logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.DEBUG)
 
 STATES: List[GridCellState] = GridCellState.options()
 
+
 class MessageGenerator:
     def __init__(
             self,
             grid_tile_level: int = OCCUPANCY_TILE_LEVEL,
             grid_radius: int = OCCUPANCY_RADIUS_DEFAULT,
             max_rate: float = 5.,  # Hz
-            n_sample_scenes: int = 512,
+            n_sample_scenes: int = 1024,
     ):
         self.actor_id = random.randint(1, 9999)
         self.grid_tile_level = grid_tile_level
@@ -108,14 +109,11 @@ class MessageGenerator:
         return cls.gen_scene(quads, others, ego).to_bytes()
 
     def init_msgs(self):
-        _t = time.monotonic()
         logging.info(f'Generating and serializing {self.n_sample_scenes} scenes.')
         args = [(self.gen_quads, self.gen_others, self.gen_ego) for _ in range(self.n_sample_scenes)]
 
         with Pool(processes=12) as pool:
             self.gen_msgs = pool.starmap(self.gen_msg, args)
-
-        print(time.monotonic() - _t)
 
     def init_ego(self):
         bbox_corners = (
