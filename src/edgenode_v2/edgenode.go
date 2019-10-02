@@ -31,7 +31,7 @@ func listen() {
 	// Listen for /graph_in_raw messages
 	for payload := range graphInQueue {
 		atomic.AddUint32(&inRateCount, 1)
-		fusionService.Push(payload)
+		go fusionService.Push(payload)
 	}
 }
 

@@ -7,10 +7,9 @@ import logging
 import random
 import sys
 import time
+from multiprocessing.pool import Pool
 from threading import Thread, Lock
 from typing import Tuple, List, Union
-
-from tqdm import trange
 
 from client import TileSubscriptionService
 from common import quadkey
@@ -25,6 +24,7 @@ from common.util import geo
 
 logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.DEBUG)
 
+STATES: List[GridCellState] = GridCellState.options()
 
 class MessageGenerator:
     def __init__(
@@ -32,7 +32,7 @@ class MessageGenerator:
             grid_tile_level: int = OCCUPANCY_TILE_LEVEL,
             grid_radius: int = OCCUPANCY_RADIUS_DEFAULT,
             max_rate: float = 5.,  # Hz
-            n_sample_scenes: int = 128,
+            n_sample_scenes: int = 512,
     ):
         self.actor_id = random.randint(1, 9999)
         self.grid_tile_level = grid_tile_level
@@ -40,9 +40,8 @@ class MessageGenerator:
         self.max_rate: float = max_rate
         self.n_sample_scenes: int = n_sample_scenes
 
-        self.start_location: Tuple[float, float, float] = (49.000324, 7.997861, 2.8)
+        self.start_location: Tuple[float, float, float] = (49.000494, 7.995230, 2.8)
         self.types: List[ActorType] = [ActorType.vehicle(), ActorType.pedestrian(), ActorType.unknown()]
-        self.states: List[GridCellState] = GridCellState.options()
 
         self.gen_msgs: List[bytes] = None
         self.gen_ego: PEMDynamicActor = None
@@ -80,13 +79,43 @@ class MessageGenerator:
                 self.bytes_count += len(msg)
 
             if self.last_tick >= 0 and time.monotonic() - self.last_tick < 1 / self.max_rate:
-                time.sleep(1 / self.max_rate - (time.monotonic() - self.last_tick))
+                time.sleep(max(0.0, 1 / self.max_rate - (time.monotonic() - self.last_tick)))
 
             self.last_tick = time.monotonic()
 
+    @classmethod
+    def gen_scene(cls, quads: List[QuadKey], others: List[PEMDynamicActor], ego: PEMDynamicActor) -> PEMTrafficScene:
+        grid: PEMOccupancyGrid = PEMOccupancyGrid(cells=[])
+
+        for qk in quads:
+            state: GridCellState = random.choice(STATES)
+            occupant: Union[PEMDynamicActor, None] = random.choice(others) if state == GridCellState.occupied() else None
+
+            grid.cells.append(PEMGridCell(
+                hash=qk.key,
+                state=PEMRelation(cls.rand_prob(), state),
+                occupant=PEMRelation(cls.rand_prob(), occupant)
+            ))
+
+        return PEMTrafficScene(
+            timestamp=time.time(),
+            measured_by=ego,
+            occupancy_grid=grid
+        )
+
+    @classmethod
+    def gen_msg(cls, quads: List[QuadKey], others: List[PEMDynamicActor], ego: PEMDynamicActor) -> bytes:
+        return cls.gen_scene(quads, others, ego).to_bytes()
+
     def init_msgs(self):
+        _t = time.monotonic()
         logging.info(f'Generating and serializing {self.n_sample_scenes} scenes.')
-        self.gen_msgs = [self.gen_scene().to_bytes() for _ in trange(self.n_sample_scenes)]
+        args = [(self.gen_quads, self.gen_others, self.gen_ego) for _ in range(self.n_sample_scenes)]
+
+        with Pool(processes=12) as pool:
+            self.gen_msgs = pool.starmap(self.gen_msg, args)
+
+        print(time.monotonic() - _t)
 
     def init_ego(self):
         bbox_corners = (
@@ -135,29 +164,6 @@ class MessageGenerator:
         self.gen_keys = center.nearby(self.grid_radius)
         self.gen_quads = [QuadKey(k) for k in self.gen_keys]
         self.gen_pixels = [qk.to_pixel() for qk in self.gen_quads]
-
-    def gen_scene(self) -> PEMTrafficScene:
-        return PEMTrafficScene(
-            timestamp=time.time(),
-            measured_by=self.gen_ego,
-            occupancy_grid=self.gen_grid()
-        )
-
-    def gen_grid(self) -> PEMOccupancyGrid:
-        grid: PEMOccupancyGrid = PEMOccupancyGrid(cells=[])
-
-        for qk in self.gen_quads:
-            state: GridCellState = random.choice(self.states)
-            occupant: Union[PEMDynamicActor, None] = random.choice(
-                self.gen_others) if state == GridCellState.occupied() else None
-
-            grid.cells.append(PEMGridCell(
-                hash=qk.key,
-                state=PEMRelation(self.rand_prob(), state),
-                occupant=PEMRelation(self.rand_prob(), occupant)
-            ))
-
-        return grid
 
     @staticmethod
     def rand_prob() -> float:
