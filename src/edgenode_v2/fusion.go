@@ -63,6 +63,7 @@ func (s *GraphFusionService) Push(msg []byte) {
 	s.pushMutex.Unlock()
 }
 
+// For grid size of 20, Get() takes ~ 16 ms at 500 msg / sec, ~ 25 ms at 1500 msg / sec, ...
 func (s *GraphFusionService) Get(maxAge time.Duration) map[tiles.Quadkey][]byte {
 	allObs := make([]schema.TrafficScene, 0, len(s.observations)*s.Keep)
 	for _, observations := range s.observations {

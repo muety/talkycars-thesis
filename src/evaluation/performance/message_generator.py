@@ -172,7 +172,7 @@ class MessageGenerator:
             with self.lock:
                 diff: float = time.time() - self.start_time
                 logging.info(
-                    f'Average Rate: {round(self.msg_count / diff)} msg / sec, {round(self.bytes_count / diff / 1000)} kBytes / sec')
+                    f'Average Rate: {round(self.msg_count / diff)} msg / sec, {round((self.bytes_count / 1024) / diff)} kBytes / sec')
             time.sleep(1)
 
 
