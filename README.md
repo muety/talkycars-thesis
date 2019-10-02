@@ -5,7 +5,7 @@
 * Does only consider 2-dimensional road scenes (i.e. no bridges)
 * Intersections and more complex lane types are not modeled
 * Clock inconsistencies are neglected (i.e. it is assumed that all clients as well as the server can retrieve a perfectly accurate and synchronized time)
-* Low FPS 😞
+* Low FPS and sensor rate 😞
 
 ## Requirements
 * Python 3.7
@@ -40,6 +40,9 @@
 * Run a standalone **ego** vehicle: `cd src && python3 run.py ego --rolename dummy --render false --debug true`
   * When running on a different machine as the simulator, add the `--host <HOST_IP>` argument.
 * Run the **web** dashboard: `cd src && python3 run.py web`
+
+### Further Improvements
+* **QuadInt**s: Currently, an unpacked Cap'n'Proto message containing a radius-20 grid with level-24 cells without occupants is ~ 340 kBytes in size. By representing QuadKeys as 64-bit integers instead of strings (as done in [jquad](https://github.com/ethlo/jquad), for instance) could reduce the size to ~ 130 kBytes ([Trello Ticket #89](https://trello.com/c/BrxwRiMd)).  
 
 ## QuadTiles
 | Tile Level | Ground Resolution @ Equator (m) |
