@@ -148,7 +148,7 @@ class QuadKey:
     def set_level(self, level: int):
         assert level < self.level
         self.key = self.key[:level]
-        self.level = level
+        self.tile, self.level = tilesystem.quadkey_to_tile(self.key)
 
     def __eq__(self, other):
         return self.key == other.key

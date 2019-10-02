@@ -27,7 +27,7 @@ cdef long map_size(const long level):
 # Used in:
 #  – https://github.com/CartoDB/python-quadkey/blob/a7c53e8e8bd18eb9ba187b345bd2faf525b23ecc/quadkey.c#L194
 #  – https://github.com/ethlo/jquad/blob/3c0bed3b0433ef5f67e786a41c56af9cc103d7dd/src/main/java/com/ethlo/quadkey/QuadKey.java#L130
-# This one is required for quad ints to work properly. Otherwise they would overflow long for level 31
+# This one produces "smaller" quadints (why?)
 # However, with this map_size, quadkey strings are not generated properly anymore. Instead, we would probably have to
 # derive quadkeys from quadints using https://github.com/n1try/jquad/blob/095bbd0e1b1fc557c94532ec8455191aecf9b913/src/main/java/com/ethlo/quadkey/QuadKey.java#L154 in combination with https://stackoverflow.com/a/699891/3112139
 
@@ -68,9 +68,9 @@ cpdef (double, double) pixel_to_geo((double, double) pixel, const long level):
 cpdef (long, long) pixel_to_tile(const (long, long) pixel):
     return pixel[0] // 256, pixel[1] // 256
 
-cpdef long pixel_to_quadint(const (long, long) pixel):
-    cdef long b[5], s[5]
-    cdef long x, y
+cpdef unsigned long pixel_to_quadint(const (unsigned long, unsigned long) pixel):
+    cdef unsigned long b[5], s[5]
+    cdef unsigned long x, y
 
     b[:] = [0x5555555555555555, 0x3333333333333333, 0x0F0F0F0F0F0F0F0F, 0x00FF00FF00FF00FF, 0x0000FFFF0000FFFF]
     s[:] = [1, 2, 4, 8, 16]
