@@ -15,19 +15,12 @@ type GraphFusionService struct {
 	Keep            int
 	GridTileLevel   int
 	RemoteTileLevel int
-	gridKeys        []tiles.Quadkey
 	remoteKeys      []tiles.Quadkey
 	observations    map[int][]schema.TrafficScene
 	pushMutex       *sync.Mutex
 }
 
 func (s *GraphFusionService) Init() {
-	if gridKeys, err := s.Sector.ChildrenAt(s.GridTileLevel); err == nil {
-		s.gridKeys = gridKeys
-	} else {
-		panic(err.Error())
-	}
-
 	if remoteKeys, err := s.Sector.ChildrenAt(s.RemoteTileLevel); err == nil {
 		s.remoteKeys = remoteKeys
 	} else {

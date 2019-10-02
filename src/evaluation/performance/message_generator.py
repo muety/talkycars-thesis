@@ -7,6 +7,7 @@ import logging
 import random
 import sys
 import time
+from multiprocessing import current_process
 from multiprocessing.pool import Pool
 from threading import Thread, Lock
 from typing import Tuple, List, Union
@@ -110,10 +111,13 @@ class MessageGenerator:
 
     def init_msgs(self):
         logging.info(f'Generating and serializing {self.n_sample_scenes} scenes.')
-        args = [(self.gen_quads, self.gen_others, self.gen_ego) for _ in range(self.n_sample_scenes)]
 
-        with Pool(processes=12) as pool:
-            self.gen_msgs = pool.starmap(self.gen_msg, args)
+        if current_process().name == 'MainProcess':  # not within a daemon process, but standalone
+            args = [(self.gen_quads, self.gen_others, self.gen_ego) for _ in range(self.n_sample_scenes)]
+            with Pool(processes=12) as pool:
+                self.gen_msgs = pool.starmap(self.gen_msg, args)
+        else:
+            self.gen_msgs = [self.gen_msg(self.gen_quads, self.gen_others, self.gen_ego) for _ in range(self.n_sample_scenes)]
 
     def init_ego(self):
         bbox_corners = (
