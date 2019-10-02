@@ -142,6 +142,9 @@ class QuadKey:
         pixel = tilesystem.tile_to_pixel(self.tile, anchor)
         return tilesystem.pixel_to_geo(pixel, self.level)
 
+    def to_quadint(self, anchor: TileAnchor = TileAnchor.ANCHOR_NW) -> int:
+        return tilesystem.pixel_to_quadint(self.to_pixel(anchor))
+
     def set_level(self, level: int):
         assert level < self.level
         self.key = self.key[:level]

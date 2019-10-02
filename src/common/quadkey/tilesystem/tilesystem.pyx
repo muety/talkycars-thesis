@@ -23,6 +23,18 @@ cdef long map_size(const long level):
     cdef unsigned long base = 256
     return base << <unsigned long> level
 
+# Alternative map_size implementation
+# Used in:
+#  – https://github.com/CartoDB/python-quadkey/blob/a7c53e8e8bd18eb9ba187b345bd2faf525b23ecc/quadkey.c#L194
+#  – https://github.com/ethlo/jquad/blob/3c0bed3b0433ef5f67e786a41c56af9cc103d7dd/src/main/java/com/ethlo/quadkey/QuadKey.java#L130
+# This one is required for quad ints to work properly. Otherwise they would overflow long for level 31
+# However, with this map_size, quadkey strings are not generated properly anymore. Instead, we would probably have to
+# derive quadkeys from quadints using https://github.com/n1try/jquad/blob/095bbd0e1b1fc557c94532ec8455191aecf9b913/src/main/java/com/ethlo/quadkey/QuadKey.java#L154 in combination with https://stackoverflow.com/a/699891/3112139
+
+# cdef long map_size(const long level):
+#     cdef unsigned long base = 256
+#     return (1 << <unsigned long> level) & 0xFFFFFFFF
+
 cpdef double ground_resolution(double lat, const long level):
     lat = clip(lat, LATITUDE_RANGE)
     return math.cos(lat * math.pi / 180) * 2 * math.pi * EARTH_RADIUS / map_size(level)
@@ -56,6 +68,30 @@ cpdef (double, double) pixel_to_geo((double, double) pixel, const long level):
 cpdef (long, long) pixel_to_tile(const (long, long) pixel):
     return pixel[0] // 256, pixel[1] // 256
 
+cpdef long pixel_to_quadint(const (long, long) pixel):
+    cdef long b[5], s[5]
+    cdef long x, y
+
+    b[:] = [0x5555555555555555, 0x3333333333333333, 0x0F0F0F0F0F0F0F0F, 0x00FF00FF00FF00FF, 0x0000FFFF0000FFFF]
+    s[:] = [1, 2, 4, 8, 16]
+
+    x = (pixel[0] | pixel[0] << s[4]) & b[4]
+    y = (pixel[1] | pixel[1] << s[4]) & b[4]
+
+    x = (x | (x << s[3])) & b[3]
+    y = (y | (y << s[3])) & b[3]
+
+    x = (x | (x << s[2])) & b[2]
+    y = (y | (y << s[2])) & b[2]
+
+    x = (x | (x << s[1])) & b[1]
+    y = (y | (y << s[1])) & b[1]
+
+    x = (x | (x << s[0])) & b[0]
+    y = (y | (y << s[0])) & b[0]
+
+    return x | (y << 1)
+
 cpdef (long, long) tile_to_pixel(const (long, long) tile, tile_anchor anchor):
     cdef long pixel[2]
     pixel = [tile[0] * 256, tile[1] * 256]
@@ -70,6 +106,20 @@ cpdef (long, long) tile_to_pixel(const (long, long) tile, tile_anchor anchor):
         pixel = [pixel[0] + 256, pixel[1] + 256]
 
     return <long>pixel[0], <long>pixel[1]
+
+cpdef str quadint_to_quadkey(const long quadint):
+    cdef long n, i, char_code
+    cpdef str qk, bin_str
+
+    qk = ''
+    bin_str = '{0:b}'.format(quadint)
+    n = len(bin_str) + (2 - len(bin_str) % 2)
+
+    for i in range(2, n+2, 2):
+        char_code = (quadint >> (n-i)) & 0b11
+        qk += str(char_code)
+
+    return qk
 
 cpdef str tile_to_quadkey(const (long, long) tile, const long level):
     cdef int i
