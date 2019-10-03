@@ -138,9 +138,10 @@ class TalkyClient:
         logging.debug(f'LIDAR: {np.mean(self.tsdiffhistory1)}')
 
     def _on_gnss(self, obs: GnssObservation):
-        qk = obs.to_quadkey(level=REMOTE_GRID_TILE_LEVEL)
-        self.tss.update_position(qk)
-        self.fs.set_sector(QuadKey(qk.key[:EDGE_DISTRIBUTION_TILE_LEVEL]))
+        qk: QuadKey = obs.to_quadkey(level=REMOTE_GRID_TILE_LEVEL)
+        if qk != self.tss.current_position:
+            self.tss.update_position(qk)
+            self.fs.set_sector(QuadKey(qk.key[:EDGE_DISTRIBUTION_TILE_LEVEL]))
 
     def _on_grid(self, obs: OccupancyGridObservation):
         _ts = time.monotonic()

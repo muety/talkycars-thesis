@@ -68,7 +68,8 @@ class PEMFusionService(FusionService[PEMTrafficScene]):
         self.sector_keys = set(map(lambda qk: qk.key, sector.children(at_level=REMOTE_GRID_TILE_LEVEL)))
         self.grid_keys = set(map(lambda qk: qk.key, sector.children(at_level=OCCUPANCY_TILE_LEVEL)))
 
-        self.reverse_indices = [''] * len(self.grid_keys)
+        if len(self.reverse_indices) != len(self.grid_keys):
+            self.reverse_indices = [''] * len(self.grid_keys)
 
         for i, qk in enumerate(sorted(self.grid_keys)):
             self.indices[qk] = i

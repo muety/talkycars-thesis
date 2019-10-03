@@ -153,7 +153,7 @@ class QuadKey:
         self.tile, self.level = tilesystem.quadkey_to_tile(self.key)
 
     def __eq__(self, other):
-        return self.key == other.key
+        return isinstance(other, QuadKey) and self.key == other.key
 
     def __ne__(self, other):
         return not self.__eq__(other)
