@@ -14,7 +14,9 @@ IntOrNone = TypeVar('IntOrNone', int, None)
 
 
 def valid_level(level):
-    LEVEL_RANGE = (1, 31)
+    # Due to the way quadkeys are represented as 64-bit integers (https://github.com/joekarl/binary-quadkey/blob/64f76a15465169df9d0d5e9e653906fb00d8fa48/example/java/src/main/java/com/joekarl/binaryQuadkey/BinaryQuadkey.java#L67),
+    # we can not use 31 character quadkeys, but only 29, since five bits explicitly encode the zoom level
+    LEVEL_RANGE = (1, 29)
     return LEVEL_RANGE[0] <= level <= LEVEL_RANGE[1]
 
 
@@ -142,8 +144,8 @@ class QuadKey:
         pixel = tilesystem.tile_to_pixel(self.tile, anchor)
         return tilesystem.pixel_to_geo(pixel, self.level)
 
-    def to_quadint(self, anchor: TileAnchor = TileAnchor.ANCHOR_NW) -> int:
-        return tilesystem.pixel_to_quadint(self.to_pixel(anchor))
+    def to_quadint(self) -> int:
+        return tilesystem.quadkey_to_quadint(self.key)
 
     def set_level(self, level: int):
         assert level < self.level
@@ -190,6 +192,9 @@ def from_tile(tile: Tuple[int, int], level: int) -> 'QuadKey':
 def from_str(qk_str: str) -> 'QuadKey':
     return QuadKey(qk_str)
 
+
+def from_int(qk_int: int) -> 'QuadKey':
+    return QuadKey(tilesystem.quadint_to_quadkey(qk_int))
 
 def geo_to_dict(geo: Tuple[float, float]) -> Dict[str, float]:
     """ Take a geo tuple and return a labeled dict
