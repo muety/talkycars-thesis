@@ -1,6 +1,6 @@
 import itertools
 import re
-from enum import IntEnum, auto
+from enum import IntEnum
 from typing import Tuple, Iterable, List, TypeVar, Generator, Dict
 
 from .tilesystem import tilesystem
@@ -26,11 +26,11 @@ def valid_key(key) -> bool:
 
 
 class TileAnchor(IntEnum):
-    ANCHOR_NW = auto()
-    ANCHOR_NE = auto()
-    ANCHOR_SW = auto()
-    ANCHOR_SE = auto()
-    ANCHOR_CENTER = auto()
+    ANCHOR_NW = 0
+    ANCHOR_NE = 1
+    ANCHOR_SW = 2
+    ANCHOR_SE = 3
+    ANCHOR_CENTER = 4
 
 class QuadKey:
     @precondition(lambda c, key: valid_key(key))
