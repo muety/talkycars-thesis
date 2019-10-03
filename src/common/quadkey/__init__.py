@@ -157,7 +157,7 @@ class QuadKey:
         return not self.__eq__(other)
 
     def __lt__(self, other):
-        return self.key.__lt__(other)
+        return self.key.__lt__(other.key)
 
     def __str__(self):
         return self.key
