@@ -42,7 +42,7 @@
 * Run the **web** dashboard: `cd src && python3 run.py web`
 
 ### Further Improvements
-* **QuadInt**s: Currently, an unpacked Cap'n'Proto message containing a radius-20 grid with level-24 cells without occupants is ~ 340 kBytes in size. By representing QuadKeys as 64-bit integers instead of strings (as done in [jquad](https://github.com/ethlo/jquad), for instance) could reduce the size to ~ 130 kBytes ([Trello Ticket #89](https://trello.com/c/BrxwRiMd)).  
+* ✅ **QuadInt**s: Currently, an unpacked Cap'n'Proto message containing a radius-20 grid with level-24 cells without occupants is ~ 340 kBytes in size. By representing QuadKeys as 64-bit integers instead of strings (as done in [jquad](https://github.com/ethlo/jquad), for instance) could reduce the size to ~ 130 kBytes ([Trello Ticket #89](https://trello.com/c/BrxwRiMd)). ➡️ **Done.** Reduced average message size by 25 % (~ 210 kb now).   
 
 ## QuadTiles
 | Tile Level | Ground Resolution @ Equator (m) |

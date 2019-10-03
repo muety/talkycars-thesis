@@ -167,11 +167,7 @@ func (s *GraphFusionService) fuseCells(cells []schema.GridCell, timestamps []tim
 	cellStateVectors := make(map[tiles.Quadkey][]float32) // OccupanvyTileLevel -> []float
 
 	for j, c := range cells {
-		key, err := c.Hash()
-		if err != nil {
-			continue
-		}
-		hash := tiles.Quadkey(key)
+		hash := tiles.Quadkey(quadInt2QuadKey(c.Hash()))
 
 		// 1. Fuse State Vector
 		// TODO: Fuse occupants
@@ -237,7 +233,12 @@ func (s *GraphFusionService) fuseCells(cells []schema.GridCell, timestamps []tim
 			cellStateRelation.SetObject(schema.GridCellState_unknown)
 		}
 
-		cell.SetHash(string(qk))
+		quadint, err := quadKey2QuadInt(string(qk))
+		if err != nil {
+			continue
+		}
+
+		cell.SetHash(quadint)
 		cell.SetState(cellStateRelation)
 		cell.SetOccupant(cellOccupantRelation)
 

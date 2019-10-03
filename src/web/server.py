@@ -1,7 +1,6 @@
 import asyncio
 import logging
 import math
-import os
 from collections import deque
 from typing import Deque, Dict, Any
 
@@ -10,6 +9,7 @@ from starlette.responses import Response
 from starlette.staticfiles import StaticFiles
 from starlette.websockets import WebSocket
 
+from common import quadkey
 from common.bridge import MqttBridge
 from common.constants import *
 from common.serialization.schema.base import PEMTrafficScene
@@ -34,13 +34,15 @@ def graph2json(graph: PEMTrafficScene) -> Dict[str, Any]:
     }
 
     for c in graph.occupancy_grid.cells:
+        qk = quadkey.from_int(c.hash)
+
         if not c.state or not c.state.confidence or math.isnan(c.state.confidence):
             continue
-        data['states'][c.hash] = [int(c.state.object.value), round(c.state.confidence, 2)]
+        data['states'][qk.key] = [int(c.state.object.value), round(c.state.confidence, 2)]
 
         if not c.occupant or not c.occupant.object:
             continue
-        data['occupants'][c.hash] = [c.occupant.object.id, round(c.occupant.confidence, 2)]
+        data['occupants'][qk.key] = [c.occupant.object.id, round(c.occupant.confidence, 2)]
 
     return data
 
