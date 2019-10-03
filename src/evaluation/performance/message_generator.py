@@ -94,7 +94,7 @@ class MessageGenerator:
             occupant: Union[PEMDynamicActor, None] = random.choice(others) if state == GridCellState.occupied() else None
 
             grid.cells.append(PEMGridCell(
-                hash=qk.key,
+                hash=qk.to_quadint(),
                 state=PEMRelation(cls.rand_prob(), state),
                 occupant=PEMRelation(cls.rand_prob(), occupant)
             ))

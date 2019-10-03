@@ -47,14 +47,13 @@ class FusionService(Generic[T], ABC):
 class PEMFusionService(FusionService[PEMTrafficScene]):
     def __init__(self, sector: Union[QuadKey, str], keep=3):
         self.sector: QuadKey = None
-        self.sector_keys: Set[str] = None
-        self.grid_keys: Set[str] = None
+        self.sector_keys: Set[QuadKey] = None
+        self.grid_keys: Set[QuadKey] = None
 
         self.keep: int = keep
         self.indices: Dict[str, int] = {}
-        self.reverse_indices: List[str] = []
+        self.reverse_indices: List[QuadKey] = []
         self.observations: Dict[int, Deque[PEMTrafficScene]] = {}
-
         self.state_matrices: Dict[int, Deque[np.ndarray]] = {}
 
         self.set_sector(sector)
@@ -65,14 +64,14 @@ class PEMFusionService(FusionService[PEMTrafficScene]):
         assert sector.level == EDGE_DISTRIBUTION_TILE_LEVEL
 
         self.sector = sector
-        self.sector_keys = set(map(lambda qk: qk.key, sector.children(at_level=REMOTE_GRID_TILE_LEVEL)))
-        self.grid_keys = set(map(lambda qk: qk.key, sector.children(at_level=OCCUPANCY_TILE_LEVEL)))
+        self.sector_keys = set(sector.children(at_level=REMOTE_GRID_TILE_LEVEL))
+        self.grid_keys = set(sector.children(at_level=OCCUPANCY_TILE_LEVEL))
 
         if len(self.reverse_indices) != len(self.grid_keys):
-            self.reverse_indices = [''] * len(self.grid_keys)
+            self.reverse_indices = [None] * len(self.grid_keys)
 
         for i, qk in enumerate(sorted(self.grid_keys)):
-            self.indices[qk] = i
+            self.indices[qk.key] = i
             self.reverse_indices[i] = qk
 
     def push(self, sender_id: int, observation: PEMTrafficScene):
@@ -109,13 +108,14 @@ class PEMFusionService(FusionService[PEMTrafficScene]):
         cell_matrix: np.ndarray = np.full((len(self.grid_keys), n_states), np.nan)
 
         for cell in grid.cells:
-            if cell.hash not in self.indices:
+            qk: QuadKey = quadkey.from_int(cell.hash)
+            if qk.key not in self.indices:
                 continue
 
             for i in range(n_states):
                 s: int = cell.state.object.value
                 c: float = cell.state.confidence
-                cell_matrix[self.indices[cell.hash], i] = c if s == i else (1 - c) / n_states
+                cell_matrix[self.indices[qk.key], i] = c if s == i else (1 - c) / n_states
 
         return cell_matrix
 
@@ -158,14 +158,14 @@ class PEMFusionService(FusionService[PEMTrafficScene]):
 
         for idx in range(0, fused_states_masked.shape[0]):
             trueidx: int = int(idx_lookup[idx])
-            qk: str = self.reverse_indices[trueidx]
+            qk: QuadKey = self.reverse_indices[trueidx]
 
-            key: str = qk[:REMOTE_GRID_TILE_LEVEL]
+            key: str = qk.key[:REMOTE_GRID_TILE_LEVEL]
             if key not in fused_cells:
                 fused_cells[key] = []
 
             fused_cells[key].append(PEMGridCell(
-                hash=qk,
+                hash=qk.to_quadint(),
                 state=PEMRelation(float(max_confs[idx]), GridCellState(int(max_states[idx]))),
                 occupant=PEMRelation(0., None)  # TODO: Fuse occupant again
             ))

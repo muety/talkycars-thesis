@@ -185,7 +185,7 @@ class TalkyClient:
                     occupant_relation = PEMRelation(state_relation.confidence, None)
 
             pem_grid.cells.append(PEMGridCell(
-                hash=cell.quad_key.key,
+                hash=cell.quad_key.to_quadint(),
                 state=state_relation,
                 occupant=occupant_relation
             ))

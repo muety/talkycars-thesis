@@ -1,10 +1,8 @@
 import os
-from typing import Dict, Type, List, Iterable
+from typing import Dict, Type, List
 
 import capnp
 
-from common import quadkey
-from common.quadkey import QuadKey
 from common.serialization.schema import CapnpObject, GridCellState
 from common.serialization.schema.actor import PEMDynamicActor
 from .relation import PEMRelation
@@ -19,7 +17,7 @@ relation = capnp.load(os.path.join(dirname, './capnp/python/relation.capnp'))
 
 class PEMGridCell(CapnpObject):
     def __init__(self, **entries):
-        self.hash: str = None
+        self.hash: int = None
         self.state: PEMRelation[GridCellState] = None
         self.occupant: PEMRelation[PEMDynamicActor] = None
 
@@ -69,9 +67,6 @@ class PEMOccupancyGrid(CapnpObject):
 
         if len(entries) > 0:
             self.__dict__.update(**entries)
-
-    def get_parent_tiles(self, level: int = 20) -> Iterable[QuadKey]:
-        return frozenset([quadkey.from_str(c.hash[:level]) for c in self.cells])
 
     def to_message(self):
         grid = occupancy.OccupancyGrid.new_message()

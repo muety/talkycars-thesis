@@ -10,7 +10,7 @@ enum GridCellState {
 }
 
 struct GridCell {
-    hash @0 :Text;
+    hash @0 :UInt64;
     state @1 :GridCellStateRelation;
     occupant @2 :DynamicActorRelation;
 }

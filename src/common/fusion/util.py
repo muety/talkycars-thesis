@@ -1,10 +1,10 @@
 from itertools import starmap
 from typing import List, Set, Callable, Union
 
+from common import quadkey
 from common.constants import *
 from common.model import UncertainProperty
 from common.occupancy import Grid, GridCell
-from common.quadkey import QuadKey
 from common.serialization.schema.base import PEMTrafficScene
 from common.serialization.schema.occupancy import PEMGridCell
 from common.util import flatmap
@@ -35,7 +35,7 @@ class FusionUtils:
     def _convert_cell(c: PEMGridCell, convert: Callable, offset: float, height: float = OCCUPANCY_BBOX_HEIGHT) -> Union[GridCell, None]:
         try:
             return GridCell(
-                quad_key=QuadKey(c.hash),
+                quad_key=quadkey.from_int(c.hash),
                 state=UncertainProperty(c.state.confidence, c.state.object.value),
                 convert=convert,
                 offset=offset,
