@@ -74,6 +74,9 @@ class Vector3D(CapnpObject):
             z=self.z
         )
 
+    def as_tuple(self) -> Tuple[float, float, float]:
+        return (self.x, self.y, self.z)
+
     @classmethod
     def from_message_dict(cls, object_dict: Dict, target_cls: Type[CapnpObject] = None) -> 'Vector3D':
         return cls((*object_dict.values(),))
