@@ -24,6 +24,7 @@ var (
 	client                    MQTT.Client
 	fusionService             GraphFusionService
 	inRateCount, outRateCount uint32
+	outDelayCount             int64
 	lastTick                  time.Time
 	kill                      bool
 )
@@ -50,6 +51,7 @@ func tick() {
 
 	if len(m) > 0 {
 		atomic.AddUint32(&outRateCount, 1)
+		atomic.AddInt64(&outDelayCount, int64(time.Since(lastTick)))
 	}
 }
 
@@ -64,9 +66,19 @@ func loop(tickRate float64) {
 func monitor() {
 	for !kill {
 		time.Sleep(time.Second)
-		fmt.Printf("In Rate: %v / sec, Out Rate: %v / sec\n", atomic.LoadUint32(&inRateCount), atomic.LoadUint32(&outRateCount))
+
+		ir := atomic.LoadUint32(&inRateCount)
+		or := atomic.LoadUint32(&outRateCount)
+
+		var od int64
+		if or > 0 {
+			od = int64(outDelayCount) / int64(or)
+		}
+
+		fmt.Printf("In Rate: %v / sec, Out Rate: %v / sec., Avg. fusion time: %v\n", ir, or, time.Duration(od))
 		atomic.StoreUint32(&inRateCount, 0)
 		atomic.StoreUint32(&outRateCount, 0)
+		atomic.StoreInt64(&outDelayCount, 0)
 	}
 }
 
