@@ -36,7 +36,7 @@ class MessageGenerator:
             grid_radius: int = OCCUPANCY_RADIUS_DEFAULT,
             max_rate: float = 100,  # msgs / sec (total)
             n_sample_egos: int = 100,
-            n_sample_scenes: int = 64,
+            n_sample_scenes: int = 256,
     ):
         # Parameters
         self.grid_tile_level = grid_tile_level

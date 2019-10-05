@@ -2,13 +2,18 @@ package main
 
 import (
 	"math"
+	"runtime"
 	"sync"
+	"sync/atomic"
 	"time"
 
+	"./deque"
 	"./schema"
 	"github.com/n1try/tiles"
 	capnp "zombiezen.com/go/capnproto2"
 )
+
+// TODO: Min Timestamp
 
 type CellObservation struct {
 	Timestamp time.Time
@@ -18,6 +23,7 @@ type CellObservation struct {
 
 type CellFuseJob struct {
 	Hash         tiles.Quadkey
+	CellCount    *uint32
 	Observations []*CellObservation
 	OutGrid      *schema.OccupancyGrid
 }
@@ -29,10 +35,16 @@ type GraphFusionService struct {
 	RemoteTileLevel int
 	remoteKeys      []tiles.Quadkey
 	gridKeys        map[tiles.Quadkey][]tiles.Quadkey
-	observations    map[tiles.Quadkey][]*CellObservation
+	observations    map[tiles.Quadkey]*deque.Deque
+	cellCount       map[tiles.Quadkey]*uint32
 	mutex1          *sync.Mutex
 	mutex2          *sync.Mutex
 }
+
+var (
+	lock1 sync.RWMutex = sync.RWMutex{}
+	lock2 sync.RWMutex = sync.RWMutex{}
+)
 
 func (s *GraphFusionService) Init() {
 	if remoteKeys, err := s.Sector.ChildrenAt(s.RemoteTileLevel); err == nil {
@@ -50,16 +62,9 @@ func (s *GraphFusionService) Init() {
 		}
 	}
 
-	s.observations = make(map[tiles.Quadkey][]*CellObservation)
+	s.observations = make(map[tiles.Quadkey]*deque.Deque)
 	s.mutex1 = &sync.Mutex{}
 	s.mutex2 = &sync.Mutex{}
-
-	go func() {
-		for {
-			time.Sleep(1 * time.Second)
-			s.cleanUp()
-		}
-	}()
 }
 
 func (s *GraphFusionService) Push(msg []byte) {
@@ -90,23 +95,23 @@ func (s *GraphFusionService) Push(msg []byte) {
 		cell := cellList.At(i)
 		hash := tiles.Quadkey(quadInt2QuadKey(cell.Hash()))
 
-		s.mutex1.Lock()
+		lock1.Lock()
 		if _, ok := s.observations[hash]; !ok {
-			s.observations[hash] = make([]*CellObservation, 0)
+			s.observations[hash] = deque.NewCappedDeque(FusionKeepObs)
 		}
 
-		s.observations[hash] = append(s.observations[hash], &CellObservation{
+		s.observations[hash].Append(&CellObservation{
 			Timestamp: ts,
 			Hash:      hash,
 			Cell:      &cell,
 		})
-		s.mutex1.Unlock()
+		lock1.Unlock()
 	}
-
-	// TODO: Clear out-dated observations
 }
 
 func (s *GraphFusionService) Get(maxAge time.Duration) map[tiles.Quadkey][]byte {
+	s.cellCount = make(map[tiles.Quadkey]*uint32)
+
 	messages := make(map[tiles.Quadkey]*capnp.Message)
 	scenes := make(map[tiles.Quadkey]schema.TrafficScene)
 	grids := make(map[tiles.Quadkey]schema.OccupancyGrid)
@@ -120,7 +125,7 @@ func (s *GraphFusionService) Get(maxAge time.Duration) map[tiles.Quadkey][]byte 
 	defer close(results)
 
 	// Start fuseWorker pool
-	for w := 0; w < 8; w++ {
+	for w := 0; w < runtime.NumCPU(); w++ {
 		go fuseWorker(w, jobs, results)
 	}
 
@@ -129,16 +134,17 @@ func (s *GraphFusionService) Get(maxAge time.Duration) map[tiles.Quadkey][]byte 
 		for obs := range results {
 			parent := obs.Hash[:RemoteGridTileLevel]
 
-			s.mutex2.Lock()
+			lock2.Lock()
 			cells[parent] = append(cells[parent], *obs.Cell)
-			s.mutex2.Unlock()
+			lock2.Unlock()
 
 			wg.Done()
 		}
 	}()
 
-	s.mutex1.Lock()
-	for hash, cellObservations := range s.observations {
+	lock1.RLock()
+
+	for hash, cellDeque := range s.observations {
 		parent := hash[:RemoteGridTileLevel]
 
 		if _, ok := messages[parent]; !ok {
@@ -154,10 +160,19 @@ func (s *GraphFusionService) Get(maxAge time.Duration) map[tiles.Quadkey][]byte 
 				continue
 			}
 
-			cellList, err := grid.NewCells(s.countPresentCells(parent))
+			count := s.countPresentCells(parent)
+
+			cellList, err := grid.NewCells(count)
 			if err != nil {
 				continue
 			}
+
+			for i := 0; i < int(count); i++ {
+				schema.NewGridCell(cellList.Segment())
+			}
+
+			c := uint32(0)
+			s.cellCount[parent] = &c
 
 			grid.SetCells(cellList)
 			scene.SetTimestamp(timeToFloat(time.Now()))
@@ -166,27 +181,44 @@ func (s *GraphFusionService) Get(maxAge time.Duration) map[tiles.Quadkey][]byte 
 			messages[parent] = msg
 			scenes[parent] = scene
 			grids[parent] = grid
-			s.mutex2.Lock()
+
+			lock2.Lock()
 			cells[parent] = make([]schema.GridCell, 0)
-			s.mutex2.Unlock()
+			lock2.Unlock()
+		}
+
+		cellObservations := make([]*CellObservation, cellDeque.Size())
+		previousItem := cellDeque.FirstElement()
+
+		for i := 0; i < cellDeque.Size() && previousItem != nil; i++ {
+			if i > 0 {
+				previousItem = previousItem.Next()
+			}
+
+			if obs := previousItem.Value.(*CellObservation); time.Since(obs.Timestamp) < maxAge {
+				cellObservations[i] = previousItem.Value.(*CellObservation)
+			}
 		}
 
 		grid := grids[parent]
 		job := CellFuseJob{
 			Hash:         hash,
+			CellCount:    s.cellCount[parent],
 			Observations: cellObservations,
 			OutGrid:      &grid,
 		}
+
 		wg.Add(1)
 		jobs <- job
 	}
-	s.mutex1.Unlock()
+
+	lock1.RUnlock()
 
 	wg.Wait()
 
 	encodedMessages := make(map[tiles.Quadkey][]byte)
 
-	s.mutex2.Lock()
+	// TODO: Multi-threaded encoding
 	for parent, cellz := range cells {
 		cellList, err := grids[parent].Cells()
 		if err != nil {
@@ -204,12 +236,11 @@ func (s *GraphFusionService) Get(maxAge time.Duration) map[tiles.Quadkey][]byte 
 
 		encodedMessages[parent] = encodedMessage
 	}
-	s.mutex2.Unlock()
 
 	return encodedMessages
 }
 
-func fuseCell(hash tiles.Quadkey, obs []*CellObservation, outGrid *schema.OccupancyGrid) (*CellObservation, error) {
+func fuseCell(hash tiles.Quadkey, cellCount *uint32, obs []*CellObservation, outGrid *schema.OccupancyGrid) (*CellObservation, error) {
 	stateVector := []float32{0, 0, 0}
 
 	for _, o := range obs {
@@ -234,10 +265,8 @@ func fuseCell(hash tiles.Quadkey, obs []*CellObservation, outGrid *schema.Occupa
 		return nil, err
 	}
 
-	newCell, err := schema.NewGridCell(outCellList.Segment())
-	if err != nil {
-		return nil, err
-	}
+	j := int(atomic.AddUint32(cellCount, 1) - 1)
+	newCell := outCellList.At(j)
 
 	newStateRelation, err := newCell.NewState()
 	if err != nil {
@@ -296,35 +325,6 @@ func (s *GraphFusionService) countPresentCells(parent tiles.Quadkey) int32 {
 	return count
 }
 
-func (s *GraphFusionService) cleanUp() {
-	s.mutex1.Lock()
-	for hash, observations := range s.observations {
-		c := 0
-		deleteIdxs := make([]bool, len(observations))
-
-		for i, obs := range observations {
-			deleteIdxs[i] = time.Since(obs.Timestamp) > GraphMaxAge
-			if !deleteIdxs[i] {
-				c++
-			}
-		}
-
-		newObservations := make([]*CellObservation, c)
-		for i, b := range deleteIdxs {
-			if !b {
-				newObservations = append(newObservations, observations[i])
-			}
-		}
-
-		if len(newObservations) > 0 {
-			s.observations[hash] = newObservations
-		} else {
-			delete(s.observations, hash)
-		}
-	}
-	s.mutex1.Unlock()
-}
-
 func fuseWorker(id int, jobs <-chan CellFuseJob, results chan<- *CellObservation) {
 	for job := range jobs {
 		defer func() {
@@ -332,7 +332,8 @@ func fuseWorker(id int, jobs <-chan CellFuseJob, results chan<- *CellObservation
 			return
 		}()
 
-		result, err := fuseCell(job.Hash, job.Observations, job.OutGrid)
+		// Do fusion work
+		result, err := fuseCell(job.Hash, job.CellCount, job.Observations, job.OutGrid)
 		if err != nil {
 			return
 		}
