@@ -10,14 +10,21 @@ import (
 	capnp "zombiezen.com/go/capnproto2"
 )
 
+type CellObservation struct {
+	Timestamp time.Time
+	Hash      tiles.Quadkey
+	Cell      schema.GridCell
+}
+
 type GraphFusionService struct {
 	Sector          tiles.Quadkey
 	Keep            int
 	GridTileLevel   int
 	RemoteTileLevel int
 	remoteKeys      []tiles.Quadkey
-	observations    map[int][]schema.TrafficScene
+	observations    map[tiles.Quadkey][]*CellObservation
 	pushMutex       *sync.Mutex
+	getMutex        *sync.Mutex
 }
 
 func (s *GraphFusionService) Init() {
@@ -27,59 +34,201 @@ func (s *GraphFusionService) Init() {
 		panic(err.Error())
 	}
 
-	s.observations = make(map[int][]schema.TrafficScene)
-
+	s.observations = make(map[tiles.Quadkey][]*CellObservation)
 	s.pushMutex = &sync.Mutex{}
+	s.getMutex = &sync.Mutex{}
 }
 
 func (s *GraphFusionService) Push(msg []byte) {
-	graph, err := DecodeGraph(msg)
+	graph, err := decodeGraph(msg)
 	if err != nil {
 		return
 	}
 
-	measuredBy, err := graph.MeasuredBy()
+	//measuredBy, err := graph.MeasuredBy()
 	if err != nil {
 		return
 	}
 
-	senderId := int(measuredBy.Id())
+	grid, err := graph.OccupancyGrid()
+	if err != nil {
+		return
+	}
+
+	cellList, err := grid.Cells()
+	if err != nil {
+		return
+	}
+
+	ts := floatToTime(graph.Timestamp())
+	//senderId := int(measuredBy.Id())
 
 	s.pushMutex.Lock()
-	if _, ok := s.observations[senderId]; !ok {
-		s.observations[senderId] = make([]schema.TrafficScene, 0)
-	}
-	s.observations[senderId] = append(s.observations[senderId], *graph)
-	if len(s.observations[senderId]) > s.Keep {
-		s.observations[senderId] = s.observations[senderId][1:]
+	for i := 0; i < cellList.Len(); i++ {
+		cell := cellList.At(i)
+		hash := tiles.Quadkey(quadInt2QuadKey(cell.Hash()))
+
+		if _, ok := s.observations[hash]; !ok {
+			s.observations[hash] = make([]*CellObservation, 0)
+		}
+
+		s.observations[hash] = append(s.observations[hash], &CellObservation{
+			Timestamp: ts,
+			Hash:      hash,
+			Cell:      cell,
+		})
 	}
 	s.pushMutex.Unlock()
+
+	// TODO: Clear out-dated observations
 }
 
 func (s *GraphFusionService) Get(maxAge time.Duration) map[tiles.Quadkey][]byte {
-	allObs := make([]schema.TrafficScene, 0, len(s.observations)*s.Keep)
-	for _, observations := range s.observations {
-		for _, o := range observations {
-			ts := floatToTime(o.Timestamp())
-			if time.Since(ts) < maxAge {
-				allObs = append(allObs, o)
+	messages := make(map[tiles.Quadkey]*capnp.Message)
+	scenes := make(map[tiles.Quadkey]schema.TrafficScene)
+	grids := make(map[tiles.Quadkey]schema.OccupancyGrid)
+	cells := make(map[tiles.Quadkey][]schema.GridCell)
+
+	var wg sync.WaitGroup
+	results := make(chan CellObservation)
+
+	for hash, cellObservations := range s.observations {
+		parent := hash[:RemoteGridTileLevel]
+
+		if _, ok := messages[parent]; !ok {
+			msg, seg, _ := capnp.NewMessage(capnp.SingleSegment(nil))
+
+			scene, err := schema.NewRootTrafficScene(seg)
+			if err != nil {
+				continue
+			}
+
+			grid, err := scene.NewOccupancyGrid()
+			if err != nil {
+				continue
+			}
+
+			cellList, err := grid.NewCells(s.countPresentCells(parent))
+			if err != nil {
+				continue
+			}
+
+			grid.SetCells(cellList)
+			scene.SetTimestamp(timeToFloat(time.Now()))
+			scene.SetOccupancyGrid(grid)
+
+			messages[parent] = msg
+			scenes[parent] = scene
+			grids[parent] = grid
+			cells[parent] = make([]schema.GridCell, 0)
+		}
+
+		grid := grids[parent]
+		go s.fuseCell(hash, &cellObservations, &grid, results)
+		wg.Add(1)
+	}
+
+	go func() {
+		for obs := range results {
+			parent := obs.Hash[:RemoteGridTileLevel]
+
+			s.getMutex.Lock()
+			cells[parent] = append(cells[parent], obs.Cell)
+			s.getMutex.Unlock()
+
+			wg.Done()
+		}
+	}()
+
+	wg.Wait()
+
+	encodedMessages := make(map[tiles.Quadkey][]byte)
+
+	for parent, cellz := range cells {
+		cellList, err := grids[parent].Cells()
+		if err != nil {
+			continue
+		}
+
+		for i, c := range cellz {
+			cellList.Set(i, c)
+		}
+
+		encodedMessage, err := messages[parent].MarshalPacked()
+		if err != nil {
+			continue
+		}
+
+		encodedMessages[parent] = encodedMessage
+	}
+
+	return encodedMessages
+}
+
+func (s *GraphFusionService) fuseCell(hash tiles.Quadkey, obs *[]*CellObservation, outGrid *schema.OccupancyGrid, results chan CellObservation) {
+	stateVector := []float32{0, 0, 0}
+
+	for _, o := range *obs {
+		stateRelation, err := o.Cell.State()
+		if err != nil {
+			continue
+		}
+
+		conf, state := stateRelation.Confidence(), stateRelation.Object()
+
+		for i := 0; i < NStates; i++ {
+			if i == int(state) {
+				stateVector[i] += decay(conf, o.Timestamp)
+			} else {
+				stateVector[i] += decay(float32(math.Min(float64((1.0-conf)/NStates), 1.0/NStates))-0.001, o.Timestamp)
 			}
 		}
 	}
 
-	encodedMsgs := make(map[tiles.Quadkey][]byte)
-	for parent, scene := range s.fuseScenes(allObs) {
-		msg, err := scene.MarshalPacked()
-		if err != nil {
-			continue
-		}
-		encodedMsgs[parent] = msg
+	outCellList, err := outGrid.Cells()
+	if err != nil {
+		return
 	}
 
-	return encodedMsgs
+	newCell, err := schema.NewGridCell(outCellList.Segment())
+	if err != nil {
+		return
+	}
+
+	newStateRelation, err := newCell.NewState()
+	if err != nil {
+		return
+	}
+
+	newOccupantRelation, err := newCell.NewOccupant()
+	if err != nil {
+		return
+	}
+
+	quadInt, err := quadKey2QuadInt(string(hash))
+	if err != nil {
+		return
+	}
+
+	meanStateVector := meanCellState(stateVector, int32(len(*obs)))
+	maxConf, maxState := getMaxState(meanStateVector)
+	newStateRelation.SetConfidence(maxConf)
+	newStateRelation.SetObject(maxState)
+
+	newCell.SetHash(quadInt)
+	newCell.SetState(newStateRelation)
+	newCell.SetOccupant(newOccupantRelation)
+
+	fusedObs := CellObservation{
+		Timestamp: time.Now(), // shouldn't matter ever, could be anything
+		Hash:      hash,
+		Cell:      newCell,
+	}
+
+	results <- fusedObs
 }
 
-func DecodeGraph(msg []byte) (*schema.TrafficScene, error) {
+func decodeGraph(msg []byte) (*schema.TrafficScene, error) {
 	decodedMsg, err := capnp.UnmarshalPacked(msg)
 	if err != nil {
 		return nil, err
@@ -91,161 +240,21 @@ func DecodeGraph(msg []byte) (*schema.TrafficScene, error) {
 	return &graph, nil
 }
 
-func (s *GraphFusionService) fuseScenes(scenes []schema.TrafficScene) map[tiles.Quadkey]*capnp.Message {
-	cells := make([]schema.GridCell, 0)
-	timestamps := make([]time.Time, 0)
-	minTimestamp := timeToFloat(time.Now())
+func (s *GraphFusionService) countPresentCells(parent tiles.Quadkey) int32 {
+	var count int32
 
-	messages := make(map[tiles.Quadkey]*capnp.Message)
-	fusedScenes := make(map[tiles.Quadkey]schema.TrafficScene)
-	fusedGrids := make(map[tiles.Quadkey]schema.OccupancyGrid)
-
-	for _, parent := range s.remoteKeys {
-		msg, seg, _ := capnp.NewMessage(capnp.SingleSegment(nil))
-		fusedScene, err := schema.NewRootTrafficScene(seg)
-		if err != nil {
-			continue
-		}
-
-		fusedGrid, err := fusedScene.NewOccupancyGrid()
-		if err != nil {
-			continue
-		}
-
-		fusedScene.SetOccupancyGrid(fusedGrid)
-		fusedScenes[parent] = fusedScene
-		fusedGrids[parent] = fusedGrid
-		messages[parent] = msg
+	all, err := parent.ChildrenAt(OccupancyTileLevel)
+	if err != nil {
+		panic(err)
 	}
 
-	for _, scene := range scenes {
-		ts := floatToTime(scene.Timestamp())
-
-		grid, err := scene.OccupancyGrid()
-		if err != nil {
-			continue
-		}
-
-		gridCells, err := grid.Cells()
-		if err != nil {
-			continue
-		}
-
-		for i := 0; i < gridCells.Len(); i++ {
-			cells = append(cells, gridCells.At(i))
-			timestamps = append(timestamps, ts) // TODO: Check!
-		}
-
-		if scene.Timestamp() < minTimestamp {
-			minTimestamp = scene.Timestamp()
+	for _, qk := range all {
+		if _, ok := s.observations[qk]; ok {
+			count++
 		}
 	}
 
-	fusedCells := s.fuseCells(cells, timestamps, fusedGrids)
-	for parent, cells := range fusedCells {
-		fusedGrids[parent].SetCells(cells)
-		fusedScenes[parent].SetTimestamp(timeToFloat(time.Now()))
-		fusedScenes[parent].SetMinTimestamp(minTimestamp)
-	}
-
-	for parent := range messages {
-		if _, ok := fusedCells[parent]; !ok {
-			delete(messages, parent)
-		}
-	}
-
-	return messages
-}
-
-func (s *GraphFusionService) fuseCells(cells []schema.GridCell, timestamps []time.Time, outGrids map[tiles.Quadkey]schema.OccupancyGrid) map[tiles.Quadkey]schema.GridCell_List {
-	fusedCells := make(map[tiles.Quadkey]schema.GridCell_List)
-	fusedCellCount := make(map[tiles.Quadkey]int)
-
-	cellCount := make(map[tiles.Quadkey]int32)            // RemoteTileLevel -> int
-	cellStateObsCount := make(map[tiles.Quadkey]int32)    // OccupancyTileLevel -> int
-	cellStateVectors := make(map[tiles.Quadkey][]float32) // OccupanvyTileLevel -> []float
-
-	for j, c := range cells {
-		hash := tiles.Quadkey(quadInt2QuadKey(c.Hash()))
-
-		// 1. Fuse State Vector
-		// TODO: Fuse occupants
-
-		if _, ok := cellStateVectors[hash]; !ok {
-			cellStateVectors[hash] = []float32{0, 0, 0} // Better: Use NStates
-			cellCount[hash[:RemoteGridTileLevel]]++
-		}
-
-		stateRelation, err := c.State()
-		if err != nil {
-			continue
-		}
-
-		conf, state := stateRelation.Confidence(), stateRelation.Object()
-
-		for i := 0; i < NStates; i++ {
-			if i == int(state) {
-				cellStateVectors[hash][i] += decay(conf, timestamps[j])
-				cellStateObsCount[hash]++
-			} else {
-				cellStateVectors[hash][i] += decay(float32(math.Min(float64((1.0-conf)/NStates), 1.0/NStates))-0.001, timestamps[j])
-			}
-		}
-	}
-
-	for qk := range cellStateObsCount {
-		parent := tiles.Quadkey(qk[:s.RemoteTileLevel])
-		count := cellCount[parent]
-
-		if _, ok := outGrids[parent]; !ok {
-			continue
-		}
-
-		if _, ok := fusedCells[parent]; !ok {
-			cellList, _ := outGrids[parent].NewCells(count)
-			fusedCells[parent] = cellList
-			fusedCellCount[parent] = 0
-		}
-
-		cell, err := schema.NewGridCell(fusedCells[parent].Segment())
-		if err != nil {
-			continue
-		}
-
-		cellStateRelation, err := cell.NewState()
-		if err != nil {
-			continue
-		}
-
-		cellOccupantRelation, err := cell.NewOccupant()
-		if err != nil {
-			continue
-		}
-
-		if stateVector, ok := cellStateVectors[qk]; ok {
-			meanStateVector := meanCellState(stateVector, cellStateObsCount[qk])
-			maxConf, maxState := getMaxState(meanStateVector)
-			cellStateRelation.SetConfidence(maxConf)
-			cellStateRelation.SetObject(maxState)
-		} else {
-			cellStateRelation.SetConfidence(float32(0))
-			cellStateRelation.SetObject(schema.GridCellState_unknown)
-		}
-
-		quadint, err := quadKey2QuadInt(string(qk))
-		if err != nil {
-			continue
-		}
-
-		cell.SetHash(quadint)
-		cell.SetState(cellStateRelation)
-		cell.SetOccupant(cellOccupantRelation)
-
-		fusedCells[parent].Set(fusedCellCount[parent], cell)
-		fusedCellCount[parent]++
-	}
-
-	return fusedCells
+	return count
 }
 
 func getMaxState(stateVector []float32) (float32, schema.GridCellState) {
