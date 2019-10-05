@@ -151,7 +151,7 @@ class MessageGenerator:
             self.gen_quads_pool.append([QuadKey(k) for k in center.nearby(self.grid_radius)])
 
     def init_msgs(self):
-        logging.info(f'Generating and serializing {self.n_sample_scenes} scenes.')
+        logging.info(f'Generating and serializing {self.n_sample_scenes} scenes for {self.n_sample_egos} ego vehicles.')
 
         # not within a daemon process, but standalone
         # TODO: Make batches of data to prevent from redundant data copying to processes
