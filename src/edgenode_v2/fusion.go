@@ -13,7 +13,6 @@ import (
 
 	"./schema"
 	"github.com/n1try/tiles"
-	cmap "github.com/orcaman/concurrent-map"
 	log "github.com/sirupsen/logrus"
 	capnp "zombiezen.com/go/capnproto2"
 )
@@ -41,8 +40,8 @@ type GraphFusionService struct {
 	In              chan []byte
 	remoteKeys      []tiles.Quadkey
 	gridKeys        map[tiles.Quadkey][]tiles.Quadkey
-	observations    cmap.ConcurrentMap
-	presentCells    cmap.ConcurrentMap
+	observations    sync.Map
+	presentCells    sync.Map
 }
 
 var (
@@ -68,8 +67,8 @@ func (s *GraphFusionService) Init() {
 	}
 
 	s.In = make(chan []byte)
-	s.observations = cmap.New()
-	s.presentCells = cmap.New()
+	s.observations = sync.Map{}
+	s.presentCells = sync.Map{}
 
 	// Start push worker pool
 	for w := 0; w < nPushWorkers; w++ {
@@ -112,8 +111,8 @@ func (s *GraphFusionService) Push(msg []byte) {
 		cell := cellList.At(i)
 		hash := tiles.Quadkey(quadInt2QuadKey(cell.Hash()))
 
-		s.presentCells.SetIfAbsent(string(hash), true)
-		s.observations.Set(getKey(hash, senderId), &CellObservation{
+		s.presentCells.Store(hash, true)
+		s.observations.Store(getKey(hash, senderId), &CellObservation{
 			Timestamp: ts,
 			Hash:      hash,
 			Cell:      &cell,
@@ -159,8 +158,8 @@ func (s *GraphFusionService) Get(maxAge time.Duration) map[tiles.Quadkey][]byte 
 
 	cellObservations := make(map[tiles.Quadkey]*list.List)
 
-	for tuple := range s.observations.IterBuffered() {
-		obs := tuple.Val.(*CellObservation)
+	s.observations.Range(func(key, val interface{}) bool {
+		obs := val.(*CellObservation)
 		hash := obs.Hash
 		parent := hash[:RemoteGridTileLevel]
 
@@ -170,13 +169,13 @@ func (s *GraphFusionService) Get(maxAge time.Duration) map[tiles.Quadkey][]byte 
 			scene, err := schema.NewRootTrafficScene(seg)
 			if err != nil {
 				log.Error(err)
-				continue
+				return false
 			}
 
 			grid, err := scene.NewOccupancyGrid()
 			if err != nil {
 				log.Error(err)
-				continue
+				return false
 			}
 
 			count := s.countPresentCells(parent)
@@ -184,7 +183,7 @@ func (s *GraphFusionService) Get(maxAge time.Duration) map[tiles.Quadkey][]byte 
 			cellList, err := grid.NewCells(count)
 			if err != nil {
 				log.Error(err)
-				continue
+				return false
 			}
 
 			for i := 0; i < int(count); i++ {
@@ -212,7 +211,9 @@ func (s *GraphFusionService) Get(maxAge time.Duration) map[tiles.Quadkey][]byte 
 		}
 
 		cellObservations[hash].PushBack(obs)
-	}
+
+		return true
+	})
 
 	for hash, observations := range cellObservations {
 		parent := hash[:RemoteGridTileLevel]
@@ -345,11 +346,12 @@ func decodeGraph(msg []byte) (*schema.TrafficScene, error) {
 func (s *GraphFusionService) countPresentCells(parent tiles.Quadkey) int32 {
 	var count int32
 
-	for _, qk := range s.presentCells.Keys() {
-		if strings.HasPrefix(qk, string(parent)) {
+	s.presentCells.Range(func(key, _ interface{}) bool {
+		if strings.HasPrefix(string(key.(tiles.Quadkey)), string(parent)) {
 			count++
 		}
-	}
+		return true
+	})
 
 	return count
 }
