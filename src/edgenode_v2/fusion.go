@@ -39,12 +39,12 @@ type GraphFusionService struct {
 	remoteKeys      []tiles.Quadkey
 	observations    cmap.ConcurrentMap
 	gridKeys        map[tiles.Quadkey][]tiles.Quadkey
-	cellCount       map[tiles.Quadkey]*uint32
 }
 
 var (
-	lock1 sync.RWMutex = sync.RWMutex{}
-	lock2 sync.RWMutex = sync.RWMutex{}
+	lock1        sync.RWMutex = sync.RWMutex{}
+	nFuseWorkers int          = int(math.Pow(4, OccupancyTileLevel-RemoteGridTileLevel))
+	nPushWorkers int          = runtime.NumCPU()
 )
 
 func (s *GraphFusionService) Init() {
@@ -67,7 +67,7 @@ func (s *GraphFusionService) Init() {
 	s.observations = cmap.New()
 
 	// Start push worker pool
-	for w := 0; w < runtime.NumCPU()*2; w++ {
+	for w := 0; w < nPushWorkers; w++ {
 		go s.pushWorker(w, s.In)
 	}
 }
@@ -118,13 +118,14 @@ func (s *GraphFusionService) Push(msg []byte) {
 }
 
 func (s *GraphFusionService) Get(maxAge time.Duration) map[tiles.Quadkey][]byte {
-	s.cellCount = make(map[tiles.Quadkey]*uint32)
 
-	now := timeToFloat(time.Now())
+	now := time.Now()
+	nowFloat := timeToFloat(now)
 	messages := make(map[tiles.Quadkey]*capnp.Message)
 	scenes := make(map[tiles.Quadkey]schema.TrafficScene)
 	grids := make(map[tiles.Quadkey]schema.OccupancyGrid)
 	cells := make(map[tiles.Quadkey][]schema.GridCell)
+	cellCount := make(map[tiles.Quadkey]*uint32)
 
 	var wg sync.WaitGroup
 	jobs := make(chan CellFuseJob)
@@ -134,7 +135,7 @@ func (s *GraphFusionService) Get(maxAge time.Duration) map[tiles.Quadkey][]byte 
 	defer close(results)
 
 	// Start fuseWorker pool
-	for w := 0; w < runtime.NumCPU()*2; w++ {
+	for w := 0; w < nFuseWorkers; w++ {
 		go s.fuseWorker(w, jobs, results)
 	}
 
@@ -143,9 +144,9 @@ func (s *GraphFusionService) Get(maxAge time.Duration) map[tiles.Quadkey][]byte 
 		for obs := range results {
 			parent := obs.Hash[:RemoteGridTileLevel]
 
-			lock2.Lock()
+			lock1.Lock()
 			cells[parent] = append(cells[parent], *obs.Cell)
-			lock2.Unlock()
+			lock1.Unlock()
 
 			wg.Done()
 		}
@@ -181,19 +182,19 @@ func (s *GraphFusionService) Get(maxAge time.Duration) map[tiles.Quadkey][]byte 
 			}
 
 			c := uint32(0)
-			s.cellCount[parent] = &c
+			cellCount[parent] = &c
 
 			grid.SetCells(cellList)
-			scene.SetTimestamp(now)
+			scene.SetTimestamp(nowFloat)
 			scene.SetOccupancyGrid(grid)
 
 			messages[parent] = msg
 			scenes[parent] = scene
 			grids[parent] = grid
 
-			lock2.Lock()
+			lock1.Lock()
 			cells[parent] = make([]schema.GridCell, 0)
-			lock2.Unlock()
+			lock1.Unlock()
 		}
 
 		sz := cellDeque.Size()
@@ -205,7 +206,7 @@ func (s *GraphFusionService) Get(maxAge time.Duration) map[tiles.Quadkey][]byte 
 				previousItem = previousItem.Prev()
 			}
 
-			if obs := previousItem.Value.(*CellObservation); time.Since(obs.Timestamp) < maxAge {
+			if obs := previousItem.Value.(*CellObservation); now.Sub(obs.Timestamp) < maxAge {
 				cellObservations[i] = previousItem.Value.(*CellObservation)
 			}
 		}
@@ -213,7 +214,7 @@ func (s *GraphFusionService) Get(maxAge time.Duration) map[tiles.Quadkey][]byte 
 		grid := grids[parent]
 		job := CellFuseJob{
 			Hash:         hash,
-			CellCount:    s.cellCount[parent],
+			CellCount:    cellCount[parent],
 			Observations: cellObservations,
 			OutGrid:      &grid,
 		}
