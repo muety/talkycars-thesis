@@ -10,6 +10,6 @@ const (
 	TopicGraphRawIn          = "/graph_raw_in"
 	TopicPrefixGraphFusedOut = "/graph_fused_out"
 	GraphMaxAge              = time.Duration(1 * time.Hour) // time.Duration(5 * time.Second)
-	FusionKeepObs            = 100                          // Important: Make sure this is AT LEAST is large as the maximum number of concurrent producers
+	FusionKeepObs            = 300                          // Important: Make sure this is AT LEAST is large as the maximum number of concurrent producers
 	NStates                  = 3
 )

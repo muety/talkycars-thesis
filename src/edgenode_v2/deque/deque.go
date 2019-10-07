@@ -97,6 +97,13 @@ func (s *Deque) FirstElement() *list.Element {
 	return s.container.Front()
 }
 
+func (s *Deque) LastElement() *list.Element {
+	s.RLock()
+	defer s.RUnlock()
+
+	return s.container.Back()
+}
+
 // Last returns the last value stored in the deque in a O(1) time complexity
 func (s *Deque) Last() interface{} {
 	s.RLock()

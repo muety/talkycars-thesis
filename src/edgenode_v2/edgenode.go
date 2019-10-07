@@ -6,7 +6,6 @@
 package main
 
 import (
-	"fmt"
 	"math"
 	"os"
 	"os/signal"
@@ -17,6 +16,7 @@ import (
 	MQTT "github.com/eclipse/paho.mqtt.golang"
 	"github.com/n1try/tiles"
 	"github.com/pkg/profile"
+	log "github.com/sirupsen/logrus"
 )
 
 var (
@@ -76,7 +76,7 @@ func monitor() {
 			od = int64(outDelayCount) / int64(or)
 		}
 
-		fmt.Printf("In Rate: %v / sec, Out Rate: %v / sec., Avg. fusion time: %v\n", ir, or, time.Duration(od))
+		log.Infof("In Rate: %v / sec, Out Rate: %v / sec., Avg. fusion time: %v\n", ir, or, time.Duration(od))
 		atomic.StoreUint32(&inRateCount, 0)
 		atomic.StoreUint32(&outRateCount, 0)
 		atomic.StoreInt64(&outDelayCount, 0)
@@ -84,6 +84,12 @@ func monitor() {
 }
 
 func init() {
+	// Set up logging
+	plainFormatter := new(PlainFormatter)
+	plainFormatter.TimestampFormat = "2006-01-02 15:04:05"
+	plainFormatter.LevelDesc = []string{"PANC", "FATL", "ERRO", "WARN", "INFO", "DEBG"}
+	log.SetFormatter(plainFormatter)
+
 	var tile tiles.Quadkey
 
 	// Read command-line args
@@ -104,7 +110,9 @@ func init() {
 }
 
 func main() {
-	pprof := profile.Start(profile.MemProfileRate(256))
+	//pprof := profile.Start(profile.MemProfileRate(256))
+	pprof := profile.Start(profile.CPUProfile)
+
 	go func() {
 		time.Sleep(30 * time.Second)
 		pprof.Stop()
@@ -117,7 +125,7 @@ func main() {
 	if token := client.Connect(); token.Wait() && token.Error() != nil {
 		panic(token.Error())
 	}
-	fmt.Println("Connected to broker.")
+	log.Info("Connected to broker.")
 	defer client.Disconnect(100)
 
 	if token := client.Subscribe(TopicGraphRawIn, 0, func(client MQTT.Client, msg MQTT.Message) {
