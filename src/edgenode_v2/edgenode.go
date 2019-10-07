@@ -104,7 +104,7 @@ func init() {
 
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM, syscall.SIGKILL)
 
-	fusionService = GraphFusionService{Sector: tile, Keep: FusionKeepObs, GridTileLevel: OccupancyTileLevel, RemoteTileLevel: RemoteGridTileLevel}
+	fusionService = GraphFusionService{Sector: tile, GridTileLevel: OccupancyTileLevel, RemoteTileLevel: RemoteGridTileLevel}
 	fusionService.Init()
 }
 

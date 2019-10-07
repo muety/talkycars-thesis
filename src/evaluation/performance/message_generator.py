@@ -36,7 +36,7 @@ class MessageGenerator:
             grid_radius: int = OCCUPANCY_RADIUS_DEFAULT,
             max_rate: float = 100,  # msgs / sec (total)
             n_sample_egos: int = 100,
-            n_sample_scenes: int = 256,
+            n_sample_scenes: int = 512,
     ):
         # Parameters
         self.grid_tile_level = grid_tile_level
@@ -217,7 +217,7 @@ def run(args=sys.argv[1:]):
     argparser.add_argument('--egos', '-e', default=1, type=int, help='Number of different ego vehicles to simulate sending data from')
 
     args, _ = argparser.parse_known_args(args)
-    print(f'Rate: {args.rate}, Level: {args.level}, Radius: {args.radius}')
+    logging.info(f'Rate: {args.rate}, Level: {args.level}, Radius: {args.radius}, Egos: {args.egos}')
 
     gen = MessageGenerator(grid_radius=args.radius, grid_tile_level=args.level, max_rate=args.rate, n_sample_egos=args.egos)
     gen.run()
