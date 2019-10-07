@@ -36,26 +36,13 @@ func (s *Deque) Append(item interface{}) bool {
 	s.Lock()
 	defer s.Unlock()
 
-	if s.capacity < 0 || s.container.Len() < s.capacity {
-		s.container.PushBack(item)
-		return true
+	if s.capacity >= 0 && s.container.Len() >= s.capacity {
+		s.container.Remove(s.container.Front())
 	}
 
-	return false
-}
+	s.container.PushBack(item)
 
-// Prepend inserts element at the Deques front in a O(1) time complexity,
-// returning true if successful or false if the deque is at capacity.
-func (s *Deque) Prepend(item interface{}) bool {
-	s.Lock()
-	defer s.Unlock()
-
-	if s.capacity < 0 || s.container.Len() < s.capacity {
-		s.container.PushFront(item)
-		return true
-	}
-
-	return false
+	return true
 }
 
 // Pop removes the last element of the deque in a O(1) time complexity

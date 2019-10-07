@@ -37,7 +37,7 @@ func listen() {
 			return
 		}
 		atomic.AddUint32(&inRateCount, 1)
-		go fusionService.Push(payload)
+		fusionService.In <- payload
 	}
 }
 

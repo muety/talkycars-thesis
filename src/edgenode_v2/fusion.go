@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"math"
 	"runtime"
 	"sync"
@@ -33,6 +34,7 @@ type GraphFusionService struct {
 	Keep            int
 	GridTileLevel   int
 	RemoteTileLevel int
+	In              chan []byte
 	remoteKeys      []tiles.Quadkey
 	gridKeys        map[tiles.Quadkey][]tiles.Quadkey
 	observations    map[tiles.Quadkey]*deque.Deque
@@ -60,10 +62,18 @@ func (s *GraphFusionService) Init() {
 		}
 	}
 
+	s.In = make(chan []byte)
 	s.observations = make(map[tiles.Quadkey]*deque.Deque)
+
+	for w := 0; w < 1; w++ {
+		go s.pushWorker(w, s.In)
+	}
 }
 
+// Don't call Push() directly from the outside, but push graphs into s.In channel
 func (s *GraphFusionService) Push(msg []byte) {
+	t := time.Now()
+
 	graph, err := decodeGraph(msg)
 	if err != nil {
 		return
@@ -95,14 +105,16 @@ func (s *GraphFusionService) Push(msg []byte) {
 		if _, ok := s.observations[hash]; !ok {
 			s.observations[hash] = deque.NewCappedDeque(FusionKeepObs)
 		}
+		lock1.Unlock()
 
 		s.observations[hash].Append(&CellObservation{
 			Timestamp: ts,
 			Hash:      hash,
 			Cell:      &cell,
 		})
-		lock1.Unlock()
 	}
+
+	fmt.Println(time.Since(t))
 }
 
 func (s *GraphFusionService) Get(maxAge time.Duration) map[tiles.Quadkey][]byte {
@@ -122,7 +134,7 @@ func (s *GraphFusionService) Get(maxAge time.Duration) map[tiles.Quadkey][]byte 
 
 	// Start fuseWorker pool
 	for w := 0; w < runtime.NumCPU(); w++ {
-		go fuseWorker(w, jobs, results)
+		go s.fuseWorker(w, jobs, results)
 	}
 
 	// Wait for results
@@ -321,7 +333,13 @@ func (s *GraphFusionService) countPresentCells(parent tiles.Quadkey) int32 {
 	return count
 }
 
-func fuseWorker(id int, jobs <-chan CellFuseJob, results chan<- *CellObservation) {
+func (s *GraphFusionService) pushWorker(id int, messages <-chan []byte) {
+	for msg := range messages {
+		s.Push(msg)
+	}
+}
+
+func (s *GraphFusionService) fuseWorker(id int, jobs <-chan CellFuseJob, results chan<- *CellObservation) {
 	for job := range jobs {
 		defer func() {
 			recover()
