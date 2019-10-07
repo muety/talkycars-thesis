@@ -16,6 +16,7 @@ import (
 
 	MQTT "github.com/eclipse/paho.mqtt.golang"
 	"github.com/n1try/tiles"
+	"github.com/pkg/profile"
 )
 
 var (
@@ -103,6 +104,12 @@ func init() {
 }
 
 func main() {
+	pprof := profile.Start(profile.MemProfileRate(256))
+	go func() {
+		time.Sleep(30 * time.Second)
+		pprof.Stop()
+	}()
+
 	opts := MQTT.NewClientOptions()
 	opts.AddBroker("tcp://localhost:1883")
 

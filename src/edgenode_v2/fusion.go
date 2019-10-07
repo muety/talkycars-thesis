@@ -37,8 +37,6 @@ type GraphFusionService struct {
 	gridKeys        map[tiles.Quadkey][]tiles.Quadkey
 	observations    map[tiles.Quadkey]*deque.Deque
 	cellCount       map[tiles.Quadkey]*uint32
-	mutex1          *sync.Mutex
-	mutex2          *sync.Mutex
 }
 
 var (
@@ -63,8 +61,6 @@ func (s *GraphFusionService) Init() {
 	}
 
 	s.observations = make(map[tiles.Quadkey]*deque.Deque)
-	s.mutex1 = &sync.Mutex{}
-	s.mutex2 = &sync.Mutex{}
 }
 
 func (s *GraphFusionService) Push(msg []byte) {
