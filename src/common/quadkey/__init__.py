@@ -8,6 +8,8 @@ from .util import precondition
 
 LAT_STR = 'lat'
 LON_STR = 'lon'
+LATITUDE_RANGE = (-85.05112878, 85.05112878)
+LONGITUDE_RANGE = (-180., 180.)
 KEY_PATTERN = re.compile("^[0-3]+$")
 
 IntOrNone = TypeVar('IntOrNone', int, None)
@@ -20,7 +22,11 @@ def valid_level(level):
     return LEVEL_RANGE[0] <= level <= LEVEL_RANGE[1]
 
 
-@precondition(lambda key: valid_level(len(key)))
+def valid_geo(lat, lon):
+    return LATITUDE_RANGE[0] <= lat <= LATITUDE_RANGE[1] \
+           and LONGITUDE_RANGE[0] <= lon <= LONGITUDE_RANGE[1] \
+ \
+           @precondition(lambda key: valid_level(len(key)))
 def valid_key(key) -> bool:
     return KEY_PATTERN.match(key) is not None
 
@@ -31,6 +37,7 @@ class TileAnchor(IntEnum):
     ANCHOR_SW = 2
     ANCHOR_SE = 3
     ANCHOR_CENTER = 4
+
 
 class QuadKey:
     @precondition(lambda c, key: valid_key(key))
@@ -106,7 +113,7 @@ class QuadKey:
             se, nw = self_tile, to_tile
         cur = ne[:] if ne else se[:]
         while cur[x] >= (sw[x] if sw else nw[x]):
-            while (sw and cur[y] <= sw[y]) or (se and cur[y] >= se[y]):
+            while (sw and cur[y] <= sw[y]) or (nw and cur[y] >= nw[y]):
                 yield from_tile(tuple(cur), first.level)
                 cur[y] += 1 if sw else -1
             cur[x] -= 1
@@ -171,6 +178,7 @@ class QuadKey:
         return hash(self.key)
 
 
+@precondition(lambda geo, level: valid_geo(*geo))
 def from_geo(geo: Tuple[float, float], level: int) -> 'QuadKey':
     """
     Constucts a quadkey representation from geo and level
@@ -196,6 +204,8 @@ def from_str(qk_str: str) -> 'QuadKey':
 def from_int(qk_int: int) -> 'QuadKey':
     return QuadKey(tilesystem.quadint_to_quadkey(qk_int))
 
+
+@precondition(lambda geo: valid_geo(*geo))
 def geo_to_dict(geo: Tuple[float, float]) -> Dict[str, float]:
     """ Take a geo tuple and return a labeled dict
         (lat, lon) -> {'lat': lat, 'lon', lon}
