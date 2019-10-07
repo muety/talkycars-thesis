@@ -1,9 +1,12 @@
 package main
 
 import (
+	"bytes"
 	"container/list"
 	"math"
 	"runtime"
+	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -103,7 +106,7 @@ func (s *GraphFusionService) Push(msg []byte) {
 	}
 
 	ts := floatToTime(graph.Timestamp())
-	senderId := uint32(measuredBy.Id())
+	senderId := int(measuredBy.Id())
 
 	for i := 0; i < cellList.Len(); i++ {
 		cell := cellList.At(i)
@@ -342,8 +345,8 @@ func decodeGraph(msg []byte) (*schema.TrafficScene, error) {
 func (s *GraphFusionService) countPresentCells(parent tiles.Quadkey) int32 {
 	var count int32
 
-	for _, qk := range s.gridKeys[parent] {
-		if s.presentCells.Has(string(qk)) {
+	for _, qk := range s.presentCells.Keys() {
+		if strings.HasPrefix(qk, string(parent)) {
 			count++
 		}
 	}
@@ -407,6 +410,10 @@ func decay(val float32, t, now time.Time) float32 {
 	return val * float32(factor)
 }
 
-func getKey(qk tiles.Quadkey, senderId uint32) string {
-	return string(qk) + "_" + string(senderId)
+func getKey(qk tiles.Quadkey, senderId int) string {
+	// https://hermanschaaf.com/efficient-string-concatenation-in-go/
+	var buffer bytes.Buffer
+	buffer.WriteString(string(qk))
+	buffer.WriteString(strconv.Itoa(senderId))
+	return buffer.String()
 }
