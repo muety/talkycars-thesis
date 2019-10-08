@@ -9,20 +9,20 @@
 
 ## Requirements
 * Python 3.7
-  * You might want to use [pyenv](https://github.com/pyenv/pyenv) for version management
+  * You might want to use [pyenv](https://github.com/pyenv/pyenv) for version management (see [Common Build Problems](https://github.com/pyenv/pyenv/wiki/Common-build-problems))
 * Go 1.13
 * [Carla](https://github.com/carla-simulator/carla) 0.9.6
 * [Cap'n'Proto](https://capnproto.org/install.html) 0.7.0
 
 ## Setup
 * `python3 -m venv ./venv`
+* `source venv/bin/activate`
 * `pip3 install -r requirements.txt`
 * `go get ./...`
 * `go get -u -t zombiezen.com/go/capnproto2/...`
 
 ## Run
 ### Preparations
-* Activate virtualenv: `source venv/bin/activate`
 * Set some paths
   * `export PYTHONPATH=$PYTHONPATH:"$('pwd')/src/simulation"`
   * `export PYTHONPATH=$PYTHONPATH:"$('pwd')/carla"`
@@ -34,7 +34,7 @@
   * If the broker is started on a different machine as any of the other modules, you need to specify `MQTT_BASE_HOSTNAME=<BROKER_IP>` as an environment variable on the machine running the respective module (e.g. `simulation` or `ego`)
 
 ### Run Modules (examples)
-* Run a **simulation**: `src && python3 run.py sim --scene scene1`
+* Run a **simulation**: `cd src && python3 run.py sim --scene scene1`
 * Run the **edge node** / server / RSU: `cd src && python3 run.py edge --debug --tile 1202032332303131`
   * **Alternatively:** Run **v2** (Go implementation) of the edge node: `cd src && python3 run.py edge2 --tile 1202032332303131`
 * Run a standalone **ego** vehicle: `cd src && python3 run.py ego --rolename dummy --render false --debug true`
