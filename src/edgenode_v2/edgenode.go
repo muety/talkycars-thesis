@@ -6,6 +6,7 @@
 package main
 
 import (
+	"fmt"
 	"math"
 	"os"
 	"os/signal"
@@ -69,7 +70,7 @@ func loop(tickRate float64) {
 
 func monitor() {
 	for !kill {
-		time.Sleep(time.Second)
+		time.Sleep(500 * time.Millisecond)
 		tdelta := float32(time.Since(lastEval)) / float32(time.Second)
 
 		ir := float32(atomic.LoadUint32(&inRateCount)) / tdelta
@@ -82,7 +83,7 @@ func monitor() {
 			od = int64(outDelayCount) / int64(or)
 		}
 
-		log.Infof("%.4f, %.4f, %.4f, %.4f, %.4f\n", ir, or, ib, ob, float32(od)/float32(time.Second))
+		fmt.Printf("%d, %.4f, %.4f, %.4f, %.4f, %.4f\n", time.Now().UnixNano(), ir, or, ib, ob, float32(od)/float32(time.Second))
 
 		atomic.StoreUint32(&inRateCount, 0)
 		atomic.StoreUint32(&outRateCount, 0)

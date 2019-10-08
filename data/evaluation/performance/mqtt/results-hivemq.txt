@@ -1,0 +1,5 @@
+size=160000
+
+Result : broker=tcp://172.31.45.194:1883, clients=1, totalCount=10000, duration=2790ms, throughput=3584.23messages/sec
+Result : broker=tcp://172.31.45.194:1883, clients=10, totalCount=100000, duration=27619ms, throughput=3620.70messages/sec
+Result : broker=tcp://172.31.45.194:1883, clients=100, totalCount=1000000, duration=276907ms, throughput=3611.32messages/sec
