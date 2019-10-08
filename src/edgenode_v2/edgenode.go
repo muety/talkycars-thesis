@@ -83,7 +83,7 @@ func monitor() {
 			od = int64(outDelayCount) / int64(or)
 		}
 
-		fmt.Printf("%d, %.4f, %.4f, %.4f, %.4f, %.4f\n", time.Now().Unix(), ir, or, ib, ob, float32(od)/float32(time.Second))
+		fmt.Printf("%d, %.4f, %.4f, %.4f, %.4f, %.4f\n", time.Now().UnixNano(), ir, or, ib, ob, float32(od)/float32(time.Second))
 
 		atomic.StoreUint32(&inRateCount, 0)
 		atomic.StoreUint32(&outRateCount, 0)
