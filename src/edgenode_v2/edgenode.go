@@ -6,7 +6,6 @@
 package main
 
 import (
-	"fmt"
 	"math"
 	"os"
 	"os/signal"
@@ -83,7 +82,7 @@ func monitor() {
 			od = int64(outDelayCount) / int64(or)
 		}
 
-		fmt.Printf("%.4f, %.4f, %.4f, %.4f, %.4f\n", ir, or, ib, ob, float32(od)/float32(time.Second))
+		log.Infof("%.4f, %.4f, %.4f, %.4f, %.4f\n", ir, or, ib, ob, float32(od)/float32(time.Second))
 
 		atomic.StoreUint32(&inRateCount, 0)
 		atomic.StoreUint32(&outRateCount, 0)
