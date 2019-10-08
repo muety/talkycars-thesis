@@ -78,8 +78,6 @@ func (s *GraphFusionService) Init() {
 
 // Don't call Push() directly from the outside, but push graphs into s.In channel
 func (s *GraphFusionService) Push(msg []byte) {
-	t0 := time.Now()
-
 	graph, err := decodeGraph(msg)
 	if err != nil {
 		log.Error(err)
@@ -118,8 +116,6 @@ func (s *GraphFusionService) Push(msg []byte) {
 			Cell:      &cell,
 		})
 	}
-
-	log.Debug(time.Since(t0))
 }
 
 func (s *GraphFusionService) Get(maxAge time.Duration) map[tiles.Quadkey][]byte {

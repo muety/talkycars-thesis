@@ -6,6 +6,7 @@
 package main
 
 import (
+	"fmt"
 	"math"
 	"os"
 	"os/signal"
@@ -19,14 +20,16 @@ import (
 )
 
 var (
-	sigs                      chan os.Signal
-	graphInQueue              chan []byte
-	client                    MQTT.Client
-	fusionService             GraphFusionService
-	inRateCount, outRateCount uint32
-	outDelayCount             int64
-	lastTick                  time.Time
-	kill                      bool
+	sigs                        chan os.Signal
+	graphInQueue                chan []byte
+	client                      MQTT.Client
+	fusionService               GraphFusionService
+	inRateCount, outRateCount   uint32
+	inBytesCount, outBytesCount uint32
+	outDelayCount               int64
+	lastTick                    time.Time = time.Now()
+	lastEval                    time.Time = time.Now()
+	kill                        bool
 )
 
 func listen() {
@@ -36,6 +39,7 @@ func listen() {
 			return
 		}
 		atomic.AddUint32(&inRateCount, 1)
+		atomic.AddUint32(&inBytesCount, uint32(len(payload)))
 		fusionService.In <- payload
 	}
 }
@@ -47,6 +51,7 @@ func tick() {
 
 	for k, msg := range m {
 		client.Publish(TopicPrefixGraphFusedOut+"/"+string(k), 0, false, msg)
+		atomic.AddUint32(&outBytesCount, uint32(len(msg)))
 	}
 
 	if len(m) > 0 {
@@ -66,19 +71,27 @@ func loop(tickRate float64) {
 func monitor() {
 	for !kill {
 		time.Sleep(time.Second)
+		tdelta := float32(time.Since(lastEval)) / float32(time.Second)
 
-		ir := atomic.LoadUint32(&inRateCount)
-		or := atomic.LoadUint32(&outRateCount)
+		ir := float32(atomic.LoadUint32(&inRateCount)) / tdelta
+		or := float32(atomic.LoadUint32(&outRateCount)) / tdelta
+		ib := float32(atomic.LoadUint32(&inBytesCount)) / tdelta
+		ob := float32(atomic.LoadUint32(&outBytesCount)) / tdelta
 
 		var od int64
 		if or > 0 {
 			od = int64(outDelayCount) / int64(or)
 		}
 
-		log.Infof("In Rate: %v / sec, Out Rate: %v / sec., Avg. fusion time: %v\n", ir, or, time.Duration(od))
+		fmt.Printf("%.4f, %.4f, %.4f, %.4f, %.4f\n", ir, or, ib, ob, float32(od)/float32(time.Second))
+
 		atomic.StoreUint32(&inRateCount, 0)
 		atomic.StoreUint32(&outRateCount, 0)
+		atomic.StoreUint32(&inBytesCount, 0)
+		atomic.StoreUint32(&outBytesCount, 0)
 		atomic.StoreInt64(&outDelayCount, 0)
+
+		lastEval = time.Now()
 	}
 }
 
