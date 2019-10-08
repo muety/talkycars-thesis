@@ -45,9 +45,8 @@ type GraphFusionService struct {
 }
 
 var (
-	lock1        sync.RWMutex = sync.RWMutex{}
-	nFuseWorkers int          = int(math.Pow(4, OccupancyTileLevel-RemoteGridTileLevel))
-	nPushWorkers int          = runtime.NumCPU()
+	nFuseWorkers int = int(math.Pow(4, OccupancyTileLevel-RemoteGridTileLevel))
+	nPushWorkers int = runtime.NumCPU()
 )
 
 func (s *GraphFusionService) Init() {
@@ -125,7 +124,7 @@ func (s *GraphFusionService) Get(maxAge time.Duration) map[tiles.Quadkey][]byte 
 	messages := make(map[tiles.Quadkey]*capnp.Message)
 	scenes := make(map[tiles.Quadkey]schema.TrafficScene)
 	grids := make(map[tiles.Quadkey]schema.OccupancyGrid)
-	cells := make(map[tiles.Quadkey][]schema.GridCell)
+	cells := sync.Map{}
 
 	var wg sync.WaitGroup
 	jobs := make(chan CellFuseJob)
@@ -144,9 +143,9 @@ func (s *GraphFusionService) Get(maxAge time.Duration) map[tiles.Quadkey][]byte 
 		for obs := range results {
 			parent := obs.Hash[:RemoteGridTileLevel]
 
-			lock1.Lock()
-			cells[parent] = append(cells[parent], *obs.Cell)
-			lock1.Unlock()
+			if l, ok := cells.Load(parent); ok {
+				l.(*list.List).PushBack(obs.Cell)
+			}
 
 			wg.Done()
 		}
@@ -197,9 +196,7 @@ func (s *GraphFusionService) Get(maxAge time.Duration) map[tiles.Quadkey][]byte 
 			scenes[parent] = scene
 			grids[parent] = grid
 
-			lock1.Lock()
-			cells[parent] = make([]schema.GridCell, 0)
-			lock1.Unlock()
+			cells.Store(parent, list.New())
 		}
 
 		if _, ok := cellObservations[hash]; !ok {
@@ -230,25 +227,34 @@ func (s *GraphFusionService) Get(maxAge time.Duration) map[tiles.Quadkey][]byte 
 
 	encodedMessages := make(map[tiles.Quadkey][]byte)
 
-	for parent, cellz := range cells {
+	cells.Range(func(key, val interface{}) bool {
+		parent := key.(tiles.Quadkey)
+		cellz := val.(*list.List)
+
 		cellList, err := grids[parent].Cells()
 		if err != nil {
 			log.Error(err)
-			continue
+			return false
 		}
 
-		for i, c := range cellz {
-			cellList.Set(i, c)
+		i := 0
+		elem := cellz.Front()
+		for elem != nil {
+			cellList.Set(i, *(elem.Value.(*schema.GridCell)))
+			elem = elem.Next()
+			i++
 		}
 
 		encodedMessage, err := messages[parent].MarshalPacked()
 		if err != nil {
 			log.Error(err)
-			continue
+			return false
 		}
 
 		encodedMessages[parent] = encodedMessage
-	}
+
+		return true
+	})
 
 	return encodedMessages
 }
