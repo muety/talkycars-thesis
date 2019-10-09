@@ -39,7 +39,7 @@ class RandomPathEgoStrategy(EgoStrategy):
         self.point_end = self.wpp.get()
 
         self._player = self._create_player()
-        self.agent = BasicAgent(self.player, target_speed=EGO_TARGET_SPEED)
+        self.agent = BasicAgent(self.player, target_speed=EGO_TARGET_SPEED, ignore_traffic_lights=True)
         self.agent.set_location_destination(self.point_end.location)
 
     def step(self, clock=None) -> bool:

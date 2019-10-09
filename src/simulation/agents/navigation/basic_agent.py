@@ -24,7 +24,7 @@ class BasicAgent(Agent):
     target destination. This agent respects traffic lights and other vehicles.
     """
 
-    def __init__(self, vehicle, target_speed=20):
+    def __init__(self, vehicle, target_speed=20, ignore_traffic_lights=False):
         """
 
         :param vehicle: actor to apply to local planner logic onto
@@ -45,6 +45,7 @@ class BasicAgent(Agent):
         self._path_seperation_hop = 2
         self._path_seperation_threshold = 0.5
         self._target_speed = target_speed
+        self.ignore_traffic_lights = ignore_traffic_lights
         self._grp = None
 
     def set_destination(self, location):
@@ -110,13 +111,14 @@ class BasicAgent(Agent):
             hazard_detected = True
 
         # check for the state of the traffic lights
-        light_state, traffic_light = self._is_light_red(lights_list)
-        if light_state:
-            if debug:
-                print('=== RED LIGHT AHEAD [{}])'.format(traffic_light.id))
+        if not self.ignore_traffic_lights:
+            light_state, traffic_light = self._is_light_red(lights_list)
+            if light_state:
+                if debug:
+                    print('=== RED LIGHT AHEAD [{}])'.format(traffic_light.id))
 
-            self._state = AgentState.BLOCKED_RED_LIGHT
-            hazard_detected = True
+                self._state = AgentState.BLOCKED_RED_LIGHT
+                hazard_detected = True
 
         if hazard_detected:
             control = self.emergency_stop()
