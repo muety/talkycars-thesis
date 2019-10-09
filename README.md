@@ -35,14 +35,21 @@
 
 ### Run Modules (examples)
 * Run a **simulation**: `cd src && python3 run.py sim --scene scene1`
-* Run the **edge node** / server / RSU: `cd src && python3 run.py edge --debug --tile 1202032332303131`
+* Run the **edge node** (aka. RSU): `cd src && python3 run.py edge --debug --tile 1202032332303131`
   * **Alternatively:** Run **v2** (Go implementation) of the edge node: `cd src && python3 run.py edge2 --tile 1202032332303131`
 * Run a standalone **ego** vehicle: `cd src && python3 run.py ego --rolename dummy --render false --debug true`
   * When running on a different machine as the simulator, add the `--host <HOST_IP>` argument.
 * Run the **web** dashboard: `cd src && python3 run.py web`
 
 ### Further Improvements
-* ✅ **QuadInt**s: Currently, an unpacked Cap'n'Proto message containing a radius-20 grid with level-24 cells without occupants is ~ 340 kBytes in size. By representing QuadKeys as 64-bit integers instead of strings (as done in [jquad](https://github.com/ethlo/jquad), for instance) could reduce the size to ~ 130 kBytes ([Trello Ticket #89](https://trello.com/c/BrxwRiMd)). ➡️ **Done.** Reduced average message size by 25 % (~ 210 kb now).   
+* ✅ **QuadInt**s: Currently, an unpacked Cap'n'Proto message containing a radius-20 grid with level-24 cells without occupants is ~ 340 kBytes in size. By representing QuadKeys as 64-bit integers instead of strings (as done in [jquad](https://github.com/ethlo/jquad), for instance) could reduce the size to ~ 130 kBytes ([Trello Ticket #89](https://trello.com/c/BrxwRiMd)). ➡️ **Done.** Reduced average message size by 25 % (~ 210 kb now).
+
+### Troubleshooting
+_**ImportError: libjpeg.so.8: cannot open shared object file**_
+* `sudo apt-get install libjpeg-turbo8`
+
+_**ImportError:libpng16.so.16 cannot open shared object file**_
+* `sudo apt-get install libpng16-16`
 
 ## QuadTiles
 | Tile Level | Ground Resolution @ Equator (m) |

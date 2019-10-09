@@ -45,8 +45,9 @@ type GraphFusionService struct {
 }
 
 var (
-	nFuseWorkers int = int(math.Pow(4, OccupancyTileLevel-RemoteGridTileLevel))
-	nPushWorkers int = runtime.NumCPU()
+	lock1        sync.RWMutex = sync.RWMutex{}
+	nFuseWorkers int          = int(math.Pow(4, OccupancyTileLevel-RemoteGridTileLevel))
+	nPushWorkers int          = runtime.NumCPU()
 )
 
 func (s *GraphFusionService) Init() {
@@ -83,6 +84,11 @@ func (s *GraphFusionService) Push(msg []byte) {
 		return
 	}
 
+	ts := floatToTime(graph.Timestamp())
+	if time.Since(ts) > GraphMaxAge {
+		return
+	}
+
 	measuredBy, err := graph.MeasuredBy()
 	if err != nil {
 		log.Error(err)
@@ -101,14 +107,13 @@ func (s *GraphFusionService) Push(msg []byte) {
 		return
 	}
 
-	ts := floatToTime(graph.Timestamp())
 	senderId := int(measuredBy.Id())
 
 	for i := 0; i < cellList.Len(); i++ {
 		cell := cellList.At(i)
 		hash := tiles.Quadkey(quadInt2QuadKey(cell.Hash()))
 
-		s.presentCells.Store(hash, true)
+		s.presentCells.Store(hash, ts)
 		s.observations.Store(getKey(hash, senderId), &CellObservation{
 			Timestamp: ts,
 			Hash:      hash,
@@ -158,6 +163,10 @@ func (s *GraphFusionService) Get(maxAge time.Duration) map[tiles.Quadkey][]byte 
 		hash := obs.Hash
 		parent := hash[:RemoteGridTileLevel]
 
+		if now.Sub(obs.Timestamp) > GraphMaxAge {
+			return true
+		}
+
 		if _, ok := messages[parent]; !ok {
 			msg, seg, _ := capnp.NewMessage(capnp.SingleSegment(nil))
 
@@ -173,7 +182,7 @@ func (s *GraphFusionService) Get(maxAge time.Duration) map[tiles.Quadkey][]byte 
 				return false
 			}
 
-			count := s.countPresentCells(parent)
+			count := s.countPresentCells(parent, now)
 
 			cellList, err := grid.NewCells(count)
 			if err != nil {
@@ -185,7 +194,7 @@ func (s *GraphFusionService) Get(maxAge time.Duration) map[tiles.Quadkey][]byte 
 				schema.NewGridCell(cellList.Segment())
 			}
 
-			c := uint32(0)
+			var c uint32
 			cellCount[parent] = &c
 
 			grid.SetCells(cellList)
@@ -286,6 +295,8 @@ func fuseCell(hash tiles.Quadkey, cellCount *uint32, obs *list.List, outGrid *sc
 		listItem = listItem.Next()
 	}
 
+	lock1.Lock()
+
 	outCellList, err := outGrid.Cells()
 	if err != nil {
 		log.Error(err)
@@ -322,6 +333,8 @@ func fuseCell(hash tiles.Quadkey, cellCount *uint32, obs *list.List, outGrid *sc
 	newCell.SetState(newStateRelation)
 	newCell.SetOccupant(newOccupantRelation)
 
+	lock1.Unlock()
+
 	fusedObs := &CellObservation{
 		Timestamp: time.Now(), // shouldn't matter ever, could be anything
 		Hash:      hash,
@@ -345,12 +358,16 @@ func decodeGraph(msg []byte) (*schema.TrafficScene, error) {
 	return &graph, nil
 }
 
-func (s *GraphFusionService) countPresentCells(parent tiles.Quadkey) int32 {
+func (s *GraphFusionService) countPresentCells(parent tiles.Quadkey, now time.Time) int32 {
 	var count int32
 
-	s.presentCells.Range(func(key, _ interface{}) bool {
+	s.presentCells.Range(func(key, val interface{}) bool {
 		if strings.HasPrefix(string(key.(tiles.Quadkey)), string(parent)) {
-			count++
+			if now.Sub(val.(time.Time)) <= GraphMaxAge {
+				count++
+			} else {
+				s.presentCells.Delete(key)
+			}
 		}
 		return true
 	})
@@ -366,8 +383,6 @@ func (s *GraphFusionService) pushWorker(id int, messages <-chan []byte) {
 
 func (s *GraphFusionService) fuseWorker(id int, jobs <-chan CellFuseJob, results chan<- *CellObservation) {
 	for job := range jobs {
-		//fmt.Printf("Worker %v processing cell %v\n", id, job.Hash)
-
 		defer func() {
 			recover()
 			return

@@ -69,7 +69,7 @@ func loop(tickRate float64) {
 
 func monitor() {
 	for !kill {
-		time.Sleep(500 * time.Millisecond)
+		time.Sleep(1 * time.Second)
 		tdelta := float32(time.Since(lastEval)) / float32(time.Second)
 
 		ir := float32(atomic.LoadUint32(&inRateCount)) / tdelta
