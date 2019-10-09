@@ -2,9 +2,7 @@ package main
 
 import (
 	"strconv"
-	"fmt"
 	"bytes"
-	log "github.com/sirupsen/logrus"
 )
 
 func quadInt2QuadKey(quadint uint64) string {
@@ -35,14 +33,4 @@ func quadKey2QuadInt(quadkey string) (uint64, error) {
 	qi |= uint64(zoom)
 
 	return qi, nil
-}
-
-type PlainFormatter struct {
-    TimestampFormat string
-    LevelDesc []string
-}
-
-func (f *PlainFormatter) Format(entry *log.Entry) ([]byte, error) {
-    timestamp := fmt.Sprintf(entry.Time.Format(f.TimestampFormat))
-    return []byte(fmt.Sprintf("%s %s %s\n", f.LevelDesc[entry.Level], timestamp, entry.Message)), nil
 }

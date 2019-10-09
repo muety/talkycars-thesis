@@ -11,9 +11,9 @@ import (
 	"sync/atomic"
 	"time"
 
+	"./log"
 	"./schema"
 	"github.com/n1try/tiles"
-	log "github.com/sirupsen/logrus"
 	capnp "zombiezen.com/go/capnproto2"
 )
 

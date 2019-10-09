@@ -13,9 +13,10 @@ import (
 	"syscall"
 	"time"
 
+	"./log"
+
 	MQTT "github.com/eclipse/paho.mqtt.golang"
 	"github.com/n1try/tiles"
-	log "github.com/sirupsen/logrus"
 )
 
 var (
@@ -82,7 +83,7 @@ func monitor() {
 			od = atomic.LoadUint64(&outDelayCount) / uint64(or)
 		}
 
-		log.Infof("%d, %.4f, %.4f, %.4f, %.4f, %.4f\n", time.Now().UnixNano(), ir, or, ib, ob, float32(od)/float32(time.Second))
+		log.Infof("%d, %.4f, %.4f, %.4f, %.4f, %.4f", time.Now().UnixNano(), ir, or, ib, ob, float32(od)/float32(time.Second))
 
 		atomic.StoreUint32(&inRateCount, 0)
 		atomic.StoreUint32(&outRateCount, 0)
@@ -96,10 +97,10 @@ func monitor() {
 
 func init() {
 	// Set up logging
-	plainFormatter := new(PlainFormatter)
+	plainFormatter := new(log.PlainFormatter)
 	plainFormatter.TimestampFormat = "2006-01-02 15:04:05"
 	plainFormatter.LevelDesc = []string{"PANC", "FATL", "ERRO", "WARN", "INFO", "DEBG"}
-	log.SetFormatter(plainFormatter)
+	log.SetLogFormatter(plainFormatter)
 
 	var tile tiles.Quadkey
 

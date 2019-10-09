@@ -5,7 +5,6 @@ CAUTION: Since messages are pre-generated, the timestamp will be out-dated prett
 import argparse
 import logging
 import random
-import os
 import sys
 import time
 from multiprocessing import current_process
@@ -34,14 +33,14 @@ class MessageGenerator:
             self,
             grid_tile_level: int = OCCUPANCY_TILE_LEVEL,
             grid_radius: int = OCCUPANCY_RADIUS_DEFAULT,
-            max_rate: float = 100,  # msgs / sec (total)
+            rate: float = 10,  # msgs / ego / sec (total)
             n_sample_egos: int = 100,
             n_sample_scenes: int = 512,
     ):
         # Parameters
         self.grid_tile_level = grid_tile_level
         self.grid_radius = grid_radius
-        self.max_rate: float = max_rate
+        self.rate: float = rate
         self.n_sample_scenes: int = n_sample_scenes
         self.n_sample_egos: int = n_sample_egos
         self.parallel: bool = True
@@ -89,8 +88,8 @@ class MessageGenerator:
                 self.msg_count += 1
                 self.bytes_count += len(msg)
 
-            if self.last_tick >= 0 and time.monotonic() - self.last_tick < 1 / self.max_rate:
-                time.sleep(max(0.0, 1 / self.max_rate - (time.monotonic() - self.last_tick)))
+            if self.last_tick >= 0 and time.monotonic() - self.last_tick < 1 / self.rate:
+                time.sleep(max(0.0, 1 / (self.rate * self.n_sample_egos) - (time.monotonic() - self.last_tick)))
 
             self.last_tick = time.monotonic()
 
@@ -219,7 +218,7 @@ def run(args=sys.argv[1:]):
     args, _ = argparser.parse_known_args(args)
     logging.info(f'Rate: {args.rate}, Level: {args.level}, Radius: {args.radius}, Egos: {args.egos}')
 
-    gen = MessageGenerator(grid_radius=args.radius, grid_tile_level=args.level, max_rate=args.rate, n_sample_egos=args.egos)
+    gen = MessageGenerator(grid_radius=args.radius, grid_tile_level=args.level, rate=args.rate, n_sample_egos=args.egos)
     gen.run()
 
 
