@@ -51,7 +51,8 @@ class WaypointProvider:
         free_spawn_points: List[carla.Transform] = []
         for p1 in spawn_points:
             if is_occupied(p1):
-                break
+                continue
+
             free_spawn_points.append(p1)
 
         self.waypoints = free_spawn_points
