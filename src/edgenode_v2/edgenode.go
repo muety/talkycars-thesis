@@ -25,16 +25,16 @@ var (
 	fusionService               GraphFusionService
 	inRateCount, outRateCount   uint32
 	inBytesCount, outBytesCount uint32
-	outDelayCount               int64
+	outDelayCount               uint64
 	lastTick                    time.Time = time.Now()
 	lastEval                    time.Time = time.Now()
-	kill                        bool
+	kill                        uint32    // actually boolean
 )
 
 func listen() {
 	// Listen for /graph_in_raw messages
 	for payload := range graphInQueue {
-		if kill {
+		if atomic.LoadUint32(&kill) > 0 {
 			return
 		}
 		atomic.AddUint32(&inRateCount, 1)
@@ -55,12 +55,12 @@ func tick() {
 
 	if len(m) > 0 {
 		atomic.AddUint32(&outRateCount, 1)
-		atomic.AddInt64(&outDelayCount, int64(time.Since(lastTick)))
+		atomic.AddUint64(&outDelayCount, uint64(time.Since(lastTick)))
 	}
 }
 
 func loop(tickRate float64) {
-	for !kill {
+	for atomic.LoadUint32(&kill) == 0 {
 		sleep := math.Max(0, float64(time.Second)/tickRate-float64(time.Since(lastTick)))
 		time.Sleep(time.Duration(sleep))
 		tick()
@@ -68,7 +68,7 @@ func loop(tickRate float64) {
 }
 
 func monitor() {
-	for !kill {
+	for atomic.LoadUint32(&kill) == 0 {
 		time.Sleep(1 * time.Second)
 		tdelta := float32(time.Since(lastEval)) / float32(time.Second)
 
@@ -77,9 +77,9 @@ func monitor() {
 		ib := float32(atomic.LoadUint32(&inBytesCount)) / tdelta
 		ob := float32(atomic.LoadUint32(&outBytesCount)) / tdelta
 
-		var od int64
+		var od uint64
 		if or > 0 {
-			od = int64(outDelayCount) / int64(or)
+			od = atomic.LoadUint64(&outDelayCount) / uint64(or)
 		}
 
 		log.Infof("%d, %.4f, %.4f, %.4f, %.4f, %.4f\n", time.Now().UnixNano(), ir, or, ib, ob, float32(od)/float32(time.Second))
@@ -88,7 +88,7 @@ func monitor() {
 		atomic.StoreUint32(&outRateCount, 0)
 		atomic.StoreUint32(&inBytesCount, 0)
 		atomic.StoreUint32(&outBytesCount, 0)
-		atomic.StoreInt64(&outDelayCount, 0)
+		atomic.StoreUint64(&outDelayCount, 0)
 
 		lastEval = time.Now()
 	}
@@ -151,7 +151,7 @@ func main() {
 	go loop(TickRate)
 
 	for _ = range sigs {
-		kill = true
+		atomic.AddUint32(&kill, 1)
 		close(sigs)
 	}
 }
