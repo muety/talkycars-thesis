@@ -85,8 +85,11 @@ class TalkyClient:
         self.outbound.subscribe(OBS_GRID_LOCAL, self._on_grid)
         self.outbound.subscribe(OBS_GRAPH_LOCAL, self._on_local_graph)
 
+        # Debugging stuff
+        self.last_publish: int = time.monotonic()
         self.tsdiffhistory1: Deque[float] = deque(maxlen=100)
         self.tsdiffhistory2: Deque[float] = deque(maxlen=100)
+        self.tsdiffhistory3: Deque[float] = deque(maxlen=100)
 
     def tear_down(self):
         self.alive = False
@@ -201,6 +204,11 @@ class TalkyClient:
         contained_tiles = frozenset(map(lambda c: c.quad_key.key, grid.cells))
         self.tss.publish_graph(encoded_msg, contained_tiles)
         self.inbound.publish(OBS_GRAPH_LOCAL, EmptyObservation(time.time()))
+
+        # Debug logging
+        self.tsdiffhistory3.append(time.monotonic() - self.last_publish)
+        self.last_publish = time.monotonic()
+        logging.debug(f'PUBLISH: {np.mean(self.tsdiffhistory3)}')
 
         self.fs.push(int(self.ego_id), graph)
 
