@@ -89,7 +89,8 @@ def spawn_npcs(carla_client: carla.Client, wpp: WaypointProvider = None, n=10) -
     vehicle_blueprints = world.get_blueprint_library().filter('vehicle.*')
 
     if not wpp:
-        wpp = WaypointProvider(world.get_map().get_spawn_points())
+        wpp = WaypointProvider(world)
+        wpp.update(free_only=True)
 
     start_points: List[carla.Transform] = []
     end_points: List[carla.Transform] = []
@@ -132,12 +133,9 @@ def spawn_npcs(carla_client: carla.Client, wpp: WaypointProvider = None, n=10) -
     return agents
 
 
-def spawn_static_vehicles(carla_client: carla.Client, wpp: WaypointProvider = None, n=10) -> List[carla.Actor]:
+def spawn_static_vehicles(carla_client: carla.Client, n=10) -> List[carla.Actor]:
     world: carla.World = carla_client.get_world()
     map: carla.Map = world.get_map()
-
-    if not wpp:
-        wpp = WaypointProvider(world.get_map().get_spawn_points())
 
     vehicle_blueprints = world.get_blueprint_library().filter('vehicle.*')
     actor_ids: List[int] = []

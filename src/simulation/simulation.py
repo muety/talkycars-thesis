@@ -113,7 +113,7 @@ def run(args=sys.argv[1:]):
         default='scene1',
         help='Scene to run (located in ./scenes) (default: \'scene1\')')
 
-    args = argparser.parse_args(args)
+    args, additional_args = argparser.parse_known_args(args)
 
     log_level = logging.DEBUG if args.debug else logging.INFO
     logging.basicConfig(format='%(levelname)s: %(message)s', level=log_level)

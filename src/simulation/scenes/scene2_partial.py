@@ -35,8 +35,12 @@ class Scene(AbstractScene):
         self._world = self._sim.load_world(SCENE2_MAP_NAME)
         self._map = self._world.get_map()
 
-        spawn_points: List[carla.Transform] = self._world.get_map().get_spawn_points()
-        self._waypoint_provider: WaypointProvider = WaypointProvider(spawn_points)
+        self._waypoint_provider: WaypointProvider = WaypointProvider(
+            self._world,
+            center=carla.Location(*SCENE2_AREA_CENTER),
+            center_dist=SCENE2_CENTER_DIST
+        )
+        self._waypoint_provider.update(free_only=True)
 
         self.initialized = True
 
@@ -49,7 +53,7 @@ class Scene(AbstractScene):
             time.sleep(1)
             n_present = simulation.count_present_vehicles(SCENE2_ROLE_NAME_PREFIX, self._world)
 
-        self._waypoint_provider.update(self._world, free_only=True)
+        self._waypoint_provider.update(free_only=True)
 
         # Create walkers
         logging.info(f'Attempting to spawn {SCENE2_N_PEDESTRIANS} pedestrians.')
@@ -57,7 +61,7 @@ class Scene(AbstractScene):
 
         # Create static vehicles
         logging.info(f'Attempting to spawn {SCENE2_N_STATIC} static vehicles.')
-        self._static = simulation.spawn_static_vehicles(self._sim, self._waypoint_provider, SCENE2_N_STATIC)
+        self._static = simulation.spawn_static_vehicles(self._sim, SCENE2_N_STATIC)
 
         # Create moving vehicles
         logging.info(f'Attempting to spawn {SCENE2_N_VEHICLES} NPC vehicles.')

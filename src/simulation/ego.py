@@ -232,7 +232,14 @@ def run(args=sys.argv[1:]):
             for i, a in enumerate(additional_args):
                 if a == f'{ADD_ARGS_PREFIX}seed' and len(additional_args) > i:
                     arg_seed = int(additional_args[i + 1])
-            strat = RandomPathEgoStrategy(id=arg_id, wait_for_egos=SCENE2_N_EGOS, seed=arg_seed)
+
+            strat = RandomPathEgoStrategy(
+                id=arg_id,
+                wait_for_egos=SCENE2_N_EGOS,
+                seed=arg_seed,
+                center=SCENE2_AREA_CENTER,
+                center_dist=SCENE2_CENTER_DIST
+            )
 
         ego = Ego(client,
                   name=args.rolename,

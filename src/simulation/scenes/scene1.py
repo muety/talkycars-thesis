@@ -10,7 +10,7 @@ from util import simulation
 import carla
 
 N_PEDESTRIANS = 50
-MAP_NAME = 'Town07'
+MAP_NAME = 'Town01'
 
 
 class Scene(AbstractScene):
@@ -29,6 +29,7 @@ class Scene(AbstractScene):
 
         # Create egos
         main_hero = Ego(self._sim,
+                        # TODO: Make this configurable through a command-line argument
                         strategy=ManualEgoStrategy(config=0),
                         name='main_hero',
                         render=True,
