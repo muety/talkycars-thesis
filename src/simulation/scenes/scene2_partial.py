@@ -59,7 +59,7 @@ class Scene(AbstractScene):
         logging.info(f'Attempting to spawn {SCENE2_N_STATIC} static vehicles.')
         self._static = simulation.spawn_static_vehicles(self._sim, self._waypoint_provider, SCENE2_N_STATIC)
 
-        # Create static vehicles
+        # Create moving vehicles
         logging.info(f'Attempting to spawn {SCENE2_N_VEHICLES} NPC vehicles.')
         self._agents = simulation.spawn_npcs(self._sim, self._waypoint_provider, SCENE2_N_VEHICLES)
 

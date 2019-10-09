@@ -59,6 +59,8 @@ class World(object):
         self.n_ticks += 1
 
     def destroy(self):
+        logging.info('Destroying simulation.')
+
         for e in self.egos:
             e.destroy()
 
@@ -78,6 +80,9 @@ def game_loop(args):
         while True:
             if killer.kill_now or world.tick(clock):
                 return world.destroy()
+
+    except Exception as e:
+        logging.error(e)
 
     finally:
         if world is not None:

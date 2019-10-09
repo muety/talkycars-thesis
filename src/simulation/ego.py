@@ -226,13 +226,11 @@ def run(args=sys.argv[1:]):
 
         # Case 3: Random Path Strategy (with additional options)
         elif args.strategy == 'random_path':
-            arg_id: int = 0
+            arg_id: int = random.randint(0, 9999)
             arg_seed: int = 0
+            args.rolename = f'{SCENE2_ROLE_NAME_PREFIX}_{arg_id}'
             for i, a in enumerate(additional_args):
-                if a == f'{ADD_ARGS_PREFIX}id' and len(additional_args) > i:
-                    arg_id = int(additional_args[i + 1])
-                    args.rolename = f'{SCENE2_ROLE_NAME_PREFIX}_{arg_id}'
-                elif a == f'{ADD_ARGS_PREFIX}seed' and len(additional_args) > i:
+                if a == f'{ADD_ARGS_PREFIX}seed' and len(additional_args) > i:
                     arg_seed = int(additional_args[i + 1])
             strat = RandomPathEgoStrategy(id=arg_id, wait_for_egos=SCENE2_N_EGOS, seed=arg_seed)
 
