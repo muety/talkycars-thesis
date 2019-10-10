@@ -72,8 +72,13 @@ class Scene(AbstractScene):
             a.run_and_apply()
             if a.done():
                 logging.info(f'Replanning NPC agent {a.vehicle.id}.')
-                self._waypoint_provider.update(self._world)
-                a.set_location_destination(self._waypoint_provider.get().location)
+                self._waypoint_provider.update(free_only=True)
+
+                try:
+                    a.set_location_destination(self._waypoint_provider.get().location)
+                except AttributeError:
+                    logging.warning(f'Couldn\'t find new destination for agent {a.vehicle.id}. Removing ...')
+                    self._agents.remove(a)
 
         return False
 
