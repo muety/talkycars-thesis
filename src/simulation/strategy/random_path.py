@@ -6,7 +6,7 @@ from util import simulation
 
 import carla
 from common.constants import *
-from common.util.waypoint import WaypointProvider
+from common.util.waypoint import WaypointProvider, MaxDistancePolicy
 from . import EgoStrategy
 
 DISTANCE_THRESHOLD_METERS = 15.
@@ -36,7 +36,9 @@ class RandomPathEgoStrategy(EgoStrategy):
             self._init_missing_waypoint_provider(ego)
 
         self.point_start = self.wpp.get()
-        self.point_end = self.wpp.get()
+        self.point_end = self.wpp.get(MaxDistancePolicy(ref=self.point_start.location))
+
+        logging.info(f'Distance between start and destination: {self.point_start.location.distance(self.point_end.location)} m')
 
         self._player = self._create_player()
         self.agent = BasicAgent(self.player, target_speed=EGO_TARGET_SPEED, ignore_traffic_lights=True)
