@@ -79,7 +79,7 @@ func monitor() {
 		ob := float32(atomic.LoadUint32(&outBytesCount)) / tdelta
 
 		var od uint64
-		if or > 0 {
+		if uint64(or) > 0 {
 			od = atomic.LoadUint64(&outDelayCount) / uint64(or)
 		}
 

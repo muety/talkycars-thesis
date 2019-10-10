@@ -146,12 +146,12 @@ func (s *GraphFusionService) Get(maxAge time.Duration) map[tiles.Quadkey][]byte 
 	// Wait for results
 	go func() {
 		for obs := range results {
-			parent := obs.Hash[:RemoteGridTileLevel]
-
-			if l, ok := cells.Load(parent); ok {
-				l.(*list.List).PushBack(obs.Cell)
+			if obs != nil {
+				parent := obs.Hash[:RemoteGridTileLevel]
+				if l, ok := cells.Load(parent); ok {
+					l.(*list.List).PushBack(obs.Cell)
+				}
 			}
-
 			wg.Done()
 		}
 	}()
@@ -163,56 +163,54 @@ func (s *GraphFusionService) Get(maxAge time.Duration) map[tiles.Quadkey][]byte 
 		hash := obs.Hash
 		parent := hash[:RemoteGridTileLevel]
 
-		if now.Sub(obs.Timestamp) > GraphMaxAge {
-			return true
+		if now.Sub(obs.Timestamp) <= GraphMaxAge {
+			if _, ok := messages[parent]; !ok {
+				msg, seg, _ := capnp.NewMessage(capnp.SingleSegment(nil))
+
+				scene, err := schema.NewRootTrafficScene(seg)
+				if err != nil {
+					log.Error(err)
+					return false
+				}
+
+				grid, err := scene.NewOccupancyGrid()
+				if err != nil {
+					log.Error(err)
+					return false
+				}
+
+				count := s.countPresentCells(parent, now)
+
+				cellList, err := grid.NewCells(count)
+				if err != nil {
+					log.Error(err)
+					return false
+				}
+
+				for i := 0; i < int(count); i++ {
+					schema.NewGridCell(cellList.Segment())
+				}
+
+				var c uint32
+				cellCount[parent] = &c
+
+				grid.SetCells(cellList)
+				scene.SetTimestamp(nowFloat)
+				scene.SetOccupancyGrid(grid)
+
+				messages[parent] = msg
+				scenes[parent] = scene
+				grids[parent] = grid
+
+				cells.Store(parent, list.New())
+			}
+
+			if _, ok := cellObservations[hash]; !ok {
+				cellObservations[hash] = list.New()
+			}
+
+			cellObservations[hash].PushBack(obs)
 		}
-
-		if _, ok := messages[parent]; !ok {
-			msg, seg, _ := capnp.NewMessage(capnp.SingleSegment(nil))
-
-			scene, err := schema.NewRootTrafficScene(seg)
-			if err != nil {
-				log.Error(err)
-				return false
-			}
-
-			grid, err := scene.NewOccupancyGrid()
-			if err != nil {
-				log.Error(err)
-				return false
-			}
-
-			count := s.countPresentCells(parent, now)
-
-			cellList, err := grid.NewCells(count)
-			if err != nil {
-				log.Error(err)
-				return false
-			}
-
-			for i := 0; i < int(count); i++ {
-				schema.NewGridCell(cellList.Segment())
-			}
-
-			var c uint32
-			cellCount[parent] = &c
-
-			grid.SetCells(cellList)
-			scene.SetTimestamp(nowFloat)
-			scene.SetOccupancyGrid(grid)
-
-			messages[parent] = msg
-			scenes[parent] = scene
-			grids[parent] = grid
-
-			cells.Store(parent, list.New())
-		}
-
-		if _, ok := cellObservations[hash]; !ok {
-			cellObservations[hash] = list.New()
-		}
-
-		cellObservations[hash].PushBack(obs)
 
 		return true
 	})
@@ -296,6 +294,7 @@ func fuseCell(hash tiles.Quadkey, cellCount *uint32, obs *list.List, outGrid *sc
 	}
 
 	lock1.Lock()
+	defer lock1.Unlock()
 
 	outCellList, err := outGrid.Cells()
 	if err != nil {
@@ -332,8 +331,6 @@ func fuseCell(hash tiles.Quadkey, cellCount *uint32, obs *list.List, outGrid *sc
 	newCell.SetHash(quadInt)
 	newCell.SetState(newStateRelation)
 	newCell.SetOccupant(newOccupantRelation)
-
-	lock1.Unlock()
 
 	fusedObs := &CellObservation{
 		Timestamp: time.Now(), // shouldn't matter ever, could be anything
@@ -383,19 +380,25 @@ func (s *GraphFusionService) pushWorker(id int, messages <-chan []byte) {
 
 func (s *GraphFusionService) fuseWorker(id int, jobs <-chan CellFuseJob, results chan<- *CellObservation) {
 	for job := range jobs {
-		defer func() {
-			recover()
-			return
-		}()
-
-		// Do fusion work
-		result, err := fuseCell(job.Hash, job.CellCount, job.Observations, job.OutGrid)
-		if err != nil {
-			log.Error(err)
-			return
-		}
-		results <- result
+		results <- runFuseJob(&job)
 	}
+}
+
+// Will always exit normally, regardless whether fuseCell() panicked.
+func runFuseJob(job *CellFuseJob) *CellObservation {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Warnf("Had to recover while processing cell %s.", string(job.Hash))
+		}
+	}()
+
+	// Do fusion work
+	result, err := fuseCell(job.Hash, job.CellCount, job.Observations, job.OutGrid)
+	if err != nil {
+		log.Error(err)
+	}
+
+	return result
 }
 
 func getMaxState(stateVector []float32) (float32, schema.GridCellState) {
