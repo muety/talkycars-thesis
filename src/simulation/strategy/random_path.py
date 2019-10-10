@@ -38,7 +38,8 @@ class RandomPathEgoStrategy(EgoStrategy):
 
         self.point_start = self.wpp.get()  # Set start
         self._player = self._create_player()  # Create player
-        end_point_policy: WaypointPickPolicy = MaxStreetDistancePolicy(ref=self.point_start.location, player=self.player)
+        #end_point_policy: WaypointPickPolicy = MaxStreetDistancePolicy(ref=self.point_start.location, player=self.player)
+        end_point_policy: WaypointPickPolicy = MaxDistancePolicy(ref=self.point_start.location)
         self.point_end = self.wpp.get(end_point_policy)  # Set destination
         dist: float = cast(MaxDistancePolicy, end_point_policy).distance
         logging.info(f'{"Street" if isinstance(end_point_policy, MaxStreetDistancePolicy) else "Airline"} distance between start and destination: {dist} m')
