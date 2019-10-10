@@ -1,12 +1,13 @@
 import logging
 import random
+from typing import cast
 
 from agents.navigation.basic_agent import BasicAgent
 from util import simulation
 
 import carla
 from common.constants import *
-from common.util.waypoint import WaypointProvider, MaxDistancePolicy
+from common.util.waypoint import WaypointProvider, MaxDistancePolicy, MaxStreetDistancePolicy, WaypointPickPolicy
 from . import EgoStrategy
 
 DISTANCE_THRESHOLD_METERS = 15.
@@ -35,12 +36,13 @@ class RandomPathEgoStrategy(EgoStrategy):
         if not self.wpp:
             self._init_missing_waypoint_provider(ego)
 
-        self.point_start = self.wpp.get()
-        self.point_end = self.wpp.get(MaxDistancePolicy(ref=self.point_start.location))
+        self.point_start = self.wpp.get()  # Set start
+        self._player = self._create_player()  # Create player
+        end_point_policy: WaypointPickPolicy = MaxStreetDistancePolicy(ref=self.point_start.location, player=self.player)
+        dist: float = cast(MaxDistancePolicy, end_point_policy).distance
+        self.point_end = self.wpp.get(end_point_policy)  # Set destination
+        logging.info(f'{"Street" if isinstance(end_point_policy, MaxStreetDistancePolicy) else "Airline"} distance between start and destination: {dist} m')
 
-        logging.info(f'Distance between start and destination: {self.point_start.location.distance(self.point_end.location)} m')
-
-        self._player = self._create_player()
         self.agent = BasicAgent(self.player, target_speed=EGO_TARGET_SPEED, ignore_traffic_lights=True)
         self.agent.set_location_destination(self.point_end.location)
 

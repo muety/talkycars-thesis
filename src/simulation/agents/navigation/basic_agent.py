@@ -9,6 +9,7 @@
 """ This module implements an agent that roams around a track following random
 waypoints and avoiding other vehicles.
 The agent also responds to traffic lights. """
+from typing import Deque, Tuple, Any, List
 
 from agents.navigation.agent import Agent, AgentState
 from agents.navigation.global_route_planner import GlobalRoutePlanner
@@ -48,13 +49,13 @@ class BasicAgent(Agent):
         self.ignore_traffic_lights = ignore_traffic_lights
         self._grp = None
 
-    def set_destination(self, location):
+    def set_destination(self, location, custom_start=None):
         """
         This method creates a list of waypoints from agent's position to destination location
         based on the route returned by the global router
         """
 
-        start_waypoint = self._map.get_waypoint(self._vehicle.get_location())
+        start_waypoint = self._map.get_waypoint(custom_start if custom_start else self._vehicle.get_location())
         end_waypoint = self._map.get_waypoint(
             carla.Location(location[0], location[1], location[2]))
 
@@ -63,8 +64,18 @@ class BasicAgent(Agent):
 
         self._local_planner.set_global_plan(route_trace)
 
-    def set_location_destination(self, location):
-        return self.set_destination((location.x, location.y, location.z))
+    def set_location_destination(self, location, custom_start=None):
+        return self.set_destination((location.x, location.y, location.z), custom_start)
+
+    def get_global_plan_distance(self) -> float:
+        plan: Deque[Tuple[carla.Waypoint, Any]] = self._local_planner.global_plan
+        points: List[carla.Location] = [t[0].transform.location for t in plan]
+
+        dist: float = 0
+        for i in range(max(0, len(points) - 1)):
+            dist += points[i].distance(points[i + 1])
+
+        return dist
 
     def _trace_route(self, start_waypoint, end_waypoint):
         """

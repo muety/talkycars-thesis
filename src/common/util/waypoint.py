@@ -1,21 +1,51 @@
 import random
-from abc import ABC
-from typing import List, Union, cast
+from abc import ABC, abstractmethod
+from typing import List, Union
+
+from agents.navigation.basic_agent import BasicAgent
 
 import carla
 
+CarlaDynamicActor = Union[carla.Vehicle, carla.Walker]
 
 class WaypointPickPolicy(ABC):
-    pass
-
+    @abstractmethod
+    def pick(self, available_waypoints: List[carla.Transform]):
+        pass
 
 class RandomPickPolicy(WaypointPickPolicy):
-    pass
-
+    def pick(self, available_waypoints: List[carla.Transform]):
+        return random.choice(available_waypoints)
 
 class MaxDistancePolicy(WaypointPickPolicy):
     def __init__(self, ref: carla.Location):
         self.ref: carla.Location = ref
+        self._picked: carla.Transform = None
+
+    def pick(self, available_waypoints: List[carla.Transform]):
+        self._picked = sorted(available_waypoints, key=self._sortkey, reverse=True)[0]
+        return self._picked
+
+    @property
+    def distance(self) -> float:
+        return self._dist(self._picked) if self._picked else 0
+
+    def _dist(self, waypoint: carla.Transform) -> float:
+        return waypoint.location.distance(self.ref)
+
+    def _sortkey(self, waypoint: carla.Transform) -> float:
+        return self._dist(waypoint)
+
+
+class MaxStreetDistancePolicy(MaxDistancePolicy):
+    def __init__(self, ref: carla.Location, player: CarlaDynamicActor):
+        super().__init__(ref)
+        self.player: CarlaDynamicActor = player
+        self._agent: BasicAgent = BasicAgent(player)
+
+    def _dist(self, waypoint: carla.Transform) -> float:
+        self._agent.set_location_destination(waypoint.location, custom_start=self.ref)
+        return self._agent.get_global_plan_distance()
 
 class WaypointProvider:
     def __init__(
@@ -101,10 +131,4 @@ class WaypointProvider:
         if len(choice) == 0:
             return None
 
-        if isinstance(policy, RandomPickPolicy):
-            return random.choice(choice)
-        elif isinstance(policy, MaxDistancePolicy):
-            p: MaxDistancePolicy = cast(MaxDistancePolicy, policy)
-            return sorted(choice, key=lambda w: w.location.distance(p.ref), reverse=True)[0]
-
-        return None
+        return policy.pick(choice)

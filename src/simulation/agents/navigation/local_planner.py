@@ -185,6 +185,10 @@ class LocalPlanner(object):
         self._target_road_option = RoadOption.LANEFOLLOW
         self._global_plan = True
 
+    @property
+    def global_plan(self):
+        return self._waypoints_queue
+
     def run_step(self, debug=True):
         """
         Execute one step of local planning which involves running the longitudinal and lateral PID controllers to
