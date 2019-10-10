@@ -24,6 +24,7 @@ class Point(Noisifiable, ABC):
         noise = self.__class__(*[random.gauss(mu, sigma) for i in range(self.dim())])
         return self + noise
 
+
 class Point2D(Point):
     def __init__(self, x: float, y: float):
         self.x = x
@@ -43,6 +44,7 @@ class Point2D(Point):
 
     def components(self) -> Tuple[float, float]:
         return self.x, self.y
+
 
 class Point3D(Point):
     def __init__(self, x: float, y: float, z: float):

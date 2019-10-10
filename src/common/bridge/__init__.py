@@ -81,5 +81,6 @@ class MqttBridge:
         for s in set().union(*matching_subs):
             s(msg.payload)
 
+
 class MqttBridgeUtils:
     pass

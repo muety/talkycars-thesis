@@ -26,6 +26,7 @@ def on_graph(message: bytes):
     except:
         print('Failed to parse graph.')
 
+
 def graph2json(graph: PEMTrafficScene) -> Dict[str, Any]:
     data: Dict[str, Any] = {
         'timestamp': graph.timestamp,
@@ -62,6 +63,7 @@ def connect_mqtt(for_file: str):
     mqtt.listen(block=False)
 
     logging.info(f'Subscribed to {TOPIC_PREFIX_GRAPH_FUSED_OUT}/{for_file}')
+
 
 @app.on_event('shutdown')
 def shutdown():

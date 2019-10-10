@@ -26,6 +26,8 @@ from common.quadkey import QuadKey
     
     More schematic sketch: https://go.gliffy.com/go/html5/13072860
 '''
+
+
 class TileSubscriptionService:
     def __init__(self, on_graph_cb: Callable, rate_limit: float = 0.0):
         self.active_bridges: Dict[str, MqttBridge] = {}

@@ -24,6 +24,7 @@ from common.util import GracefulKiller, proc_wrap
 
 ADD_ARGS_PREFIX = '--strat-'
 
+
 class Ego:
     def __init__(self,
                  client: carla.Client,

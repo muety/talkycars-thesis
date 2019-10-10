@@ -28,6 +28,7 @@ logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.DEBUG)
 STATES: List[GridCellState] = GridCellState.options()
 COLORS: List[str] = ['blue', 'red', 'green', 'yellow', 'black', 'white']
 
+
 class MessageGenerator:
     def __init__(
             self,
@@ -154,7 +155,7 @@ class MessageGenerator:
 
         # not within a daemon process, but standalone
         # TODO: Make batches of data to prevent from redundant data copying to processes
-        if self.parallel and current_process().name == 'MainProcess':  
+        if self.parallel and current_process().name == 'MainProcess':
             args = [(self.gen_quads_pool, self.gen_others, self.gen_ego_pool) for _ in range(self.n_sample_scenes)]
             with Pool(processes=os.cpu_count()) as pool:
                 self.gen_msgs = pool.starmap(self.generate_message, args)

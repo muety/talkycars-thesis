@@ -23,8 +23,8 @@ def valid_level(level):
 
 
 def valid_geo(lat, lon):
-    return LATITUDE_RANGE[0] <= lat <= LATITUDE_RANGE[1] \
-           and LONGITUDE_RANGE[0] <= lon <= LONGITUDE_RANGE[1] \
+    return LATITUDE_RANGE[0] <= lat <= LATITUDE_RANGE[1] and LONGITUDE_RANGE[0] <= lon <= LONGITUDE_RANGE[1]
+
 
 def valid_key(key) -> bool:
     return KEY_PATTERN.match(key) is not None

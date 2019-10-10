@@ -8,14 +8,17 @@ import carla
 
 CarlaDynamicActor = Union[carla.Vehicle, carla.Walker]
 
+
 class WaypointPickPolicy(ABC):
     @abstractmethod
     def pick(self, available_waypoints: List[carla.Transform]):
         pass
 
+
 class RandomPickPolicy(WaypointPickPolicy):
     def pick(self, available_waypoints: List[carla.Transform]):
         return random.choice(available_waypoints)
+
 
 class MaxDistancePolicy(WaypointPickPolicy):
     def __init__(self, ref: carla.Location):
@@ -46,6 +49,7 @@ class MaxStreetDistancePolicy(MaxDistancePolicy):
     def _dist(self, waypoint: carla.Transform) -> float:
         self._agent.set_location_destination(waypoint.location, custom_start=self.ref)
         return self._agent.get_global_plan_distance()
+
 
 class WaypointProvider:
     def __init__(

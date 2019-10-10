@@ -67,6 +67,7 @@ class World(object):
         simulation.multi_destroy(self.sim, self.npcs)
         simulation.multi_destroy(self.sim, [a.vehicle for a in self.agents])
 
+
 def game_loop(args):
     killer = GracefulKiller()
     world = None

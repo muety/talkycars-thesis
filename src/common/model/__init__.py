@@ -41,5 +41,6 @@ class UncertainProperty(Generic[T]):
             return UncertainProperty(self.confidence, tuple([cast(Noisifiable, v).with_gaussian_noise(mu, sigma) for v in self.value]))
         raise e
 
+
 from .actor import *
 from .geom import *

@@ -19,6 +19,7 @@ class EgoStrategy(ABC):
     def player(self) -> carla.Vehicle:
         pass
 
+
 from .empty import *
 from .manual import *
 from .observer import *
