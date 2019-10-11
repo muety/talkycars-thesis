@@ -86,7 +86,7 @@ class TalkyClient:
         self.outbound.subscribe(OBS_GRAPH_LOCAL, self._on_local_graph)
 
         # Debugging stuff
-        self.last_publish: int = time.monotonic()
+        self.last_publish: float = time.monotonic()
         self.tsdiffhistory1: Deque[float] = deque(maxlen=100)
         self.tsdiffhistory2: Deque[float] = deque(maxlen=100)
         self.tsdiffhistory3: Deque[float] = deque(maxlen=100)
