@@ -17,8 +17,6 @@ import (
 	capnp "zombiezen.com/go/capnproto2"
 )
 
-// TODO: Min Timestamp
-
 type CellObservation struct {
 	Timestamp    time.Time
 	MinTimestamp time.Time
