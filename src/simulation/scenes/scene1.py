@@ -9,8 +9,8 @@ from util import simulation
 
 import carla
 
-N_PEDESTRIANS = 50
-MAP_NAME = 'Town01'
+N_PEDESTRIANS = 10
+MAP_NAME = 'Town07'
 
 
 class Scene(AbstractScene):

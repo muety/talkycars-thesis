@@ -267,6 +267,7 @@ func (s *GraphFusionService) Get(maxAge time.Duration) map[tiles.Quadkey][]byte 
 }
 
 func fuseCell(hash tiles.Quadkey, cellCount *uint32, obs *list.List, outGrid *schema.OccupancyGrid) (*CellObservation, error) {
+	var totalWeights, normalizationFactor float32
 	stateVector := []float32{0, 0, 0}
 	now := time.Now()
 
@@ -281,12 +282,18 @@ func fuseCell(hash tiles.Quadkey, cellCount *uint32, obs *list.List, outGrid *sc
 		}
 
 		conf, state := stateRelation.Confidence(), stateRelation.Object()
+		weight := decay(1, o.Timestamp, now)
+
+		totalWeights += weight
+		if weight > normalizationFactor {
+			normalizationFactor = weight
+		}
 
 		for i := 0; i < NStates; i++ {
 			if i == int(state) {
-				stateVector[i] += decay(conf, o.Timestamp, now)
+				stateVector[i] += conf * weight
 			} else {
-				stateVector[i] += decay(float32(math.Min(float64((1.0-conf)/NStates), 1.0/NStates))-0.001, o.Timestamp, now)
+				stateVector[i] += (float32(math.Min(float64((1.0-conf)/NStates), 1.0/NStates)) - 0.001) * weight
 			}
 		}
 
@@ -323,7 +330,7 @@ func fuseCell(hash tiles.Quadkey, cellCount *uint32, obs *list.List, outGrid *sc
 		return nil, err
 	}
 
-	meanStateVector := meanCellState(stateVector, int32(obs.Len()))
+	meanStateVector := meanCellState(stateVector, totalWeights, normalizationFactor)
 	maxConf, maxState := getMaxState(meanStateVector)
 	newStateRelation.SetConfidence(maxConf)
 	newStateRelation.SetObject(maxState)
@@ -414,8 +421,12 @@ func getMaxState(stateVector []float32) (float32, schema.GridCellState) {
 	return maxConf, state
 }
 
-func meanCellState(stateSumVector []float32, count int32) []float32 {
-	return []float32{stateSumVector[0] / float32(count), stateSumVector[1] / float32(count), stateSumVector[2] / float32(count)}
+func meanCellState(stateSumVector []float32, weightSum, normalizeTo float32) []float32 {
+	return []float32{
+		stateSumVector[0] / weightSum * normalizeTo,
+		stateSumVector[1] / weightSum * normalizeTo,
+		stateSumVector[2] / weightSum * normalizeTo,
+	}
 }
 
 func timeToFloat(t time.Time) float64 {
