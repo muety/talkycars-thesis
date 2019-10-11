@@ -18,7 +18,6 @@ import (
 )
 
 // TODO: Min Timestamp
-// TODO: Cleanup ?
 
 type CellObservation struct {
 	Timestamp time.Time
@@ -113,7 +112,11 @@ func (s *GraphFusionService) Push(msg []byte) {
 		cell := cellList.At(i)
 		hash := tiles.Quadkey(quadInt2QuadKey(cell.Hash()))
 
-		s.presentCells.Store(hash, ts)
+		// Store latest timestamp for this cell in presentCells
+		if ts1, ok := s.presentCells.Load(hash); !ok || ts1.(time.Time).Before(ts) {
+			s.presentCells.Store(hash, ts)
+		}
+
 		s.observations.Store(getKey(hash, senderId), &CellObservation{
 			Timestamp: ts,
 			Hash:      hash,
