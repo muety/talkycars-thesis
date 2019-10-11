@@ -20,9 +20,10 @@ import (
 // TODO: Min Timestamp
 
 type CellObservation struct {
-	Timestamp time.Time
-	Hash      tiles.Quadkey
-	Cell      *schema.GridCell
+	Timestamp    time.Time
+	MinTimestamp time.Time
+	Hash         tiles.Quadkey
+	Cell         *schema.GridCell
 }
 
 type CellFuseJob struct {
@@ -128,6 +129,7 @@ func (s *GraphFusionService) Push(msg []byte) {
 func (s *GraphFusionService) Get(maxAge time.Duration) map[tiles.Quadkey][]byte {
 	now := time.Now()
 	nowFloat := timeToFloat(now)
+	minTs := now
 	cellCount := make(map[tiles.Quadkey]*uint32)
 	messages := make(map[tiles.Quadkey]*capnp.Message)
 	scenes := make(map[tiles.Quadkey]schema.TrafficScene)
@@ -152,6 +154,9 @@ func (s *GraphFusionService) Get(maxAge time.Duration) map[tiles.Quadkey][]byte 
 			if obs != nil {
 				parent := obs.Hash[:RemoteGridTileLevel]
 				if l, ok := cells.Load(parent); ok {
+					if obs.MinTimestamp.Before(minTs) {
+						minTs = obs.MinTimestamp
+					}
 					l.(*list.List).PushBack(obs.Cell)
 				}
 			}
@@ -255,12 +260,13 @@ func (s *GraphFusionService) Get(maxAge time.Duration) map[tiles.Quadkey][]byte 
 			i++
 		}
 
+		scenes[parent].SetMinTimestamp(timeToFloat(minTs))
+
 		encodedMessage, err := messages[parent].MarshalPacked()
 		if err != nil {
 			log.Error(err)
 			return false
 		}
-
 		encodedMessages[parent] = encodedMessage
 
 		return true
@@ -271,8 +277,10 @@ func (s *GraphFusionService) Get(maxAge time.Duration) map[tiles.Quadkey][]byte 
 
 func fuseCell(hash tiles.Quadkey, cellCount *uint32, obs *list.List, outGrid *schema.OccupancyGrid) (*CellObservation, error) {
 	var totalWeights, normalizationFactor float32
-	stateVector := []float32{0, 0, 0}
+
 	now := time.Now()
+	minTimestamp := now
+	stateVector := []float32{0, 0, 0}
 
 	listItem := obs.Front()
 	for listItem != nil {
@@ -298,6 +306,10 @@ func fuseCell(hash tiles.Quadkey, cellCount *uint32, obs *list.List, outGrid *sc
 			} else {
 				stateVector[i] += (float32(math.Min(float64((1.0-conf)/NStates), 1.0/NStates)) - 0.001) * weight
 			}
+		}
+
+		if o.Timestamp.Before(minTimestamp) {
+			minTimestamp = o.Timestamp
 		}
 
 		listItem = listItem.Next()
@@ -343,9 +355,10 @@ func fuseCell(hash tiles.Quadkey, cellCount *uint32, obs *list.List, outGrid *sc
 	newCell.SetOccupant(newOccupantRelation)
 
 	fusedObs := &CellObservation{
-		Timestamp: time.Now(), // shouldn't matter ever, could be anything
-		Hash:      hash,
-		Cell:      &newCell,
+		Timestamp:    time.Now(), // shouldn't matter ever, could be anything
+		MinTimestamp: minTimestamp,
+		Hash:         hash,
+		Cell:         &newCell,
 	}
 
 	return fusedObs, nil
