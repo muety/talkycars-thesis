@@ -84,11 +84,11 @@ class WaypointProvider:
         return wp
 
     # Initializes this instance's waypoints as all unoccupied waypoints in a map
-    def update(self, free_only: bool = False):
+    def update(self, free_only: bool = False, anywhere: bool = False):
         spawn_points: List[carla.Transform] = self.world.get_map().get_spawn_points()
 
         # Return only waypoints in a radius of x meters around a specified point on the map
-        if self.center_dist < float('inf'):
+        if not anywhere and self.center_dist < float('inf'):
             spawn_points = [p for p in spawn_points if p is not None and p.location.distance(self.center) <= self.center_dist]
 
         if not free_only:

@@ -1,0 +1,8 @@
+Random seeds for scene: 10
+
+Durations:
+seed        time
+8           96 s
+16          90 s
+32          225 s
+64          249 s

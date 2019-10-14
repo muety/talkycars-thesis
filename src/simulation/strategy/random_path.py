@@ -77,6 +77,8 @@ class RandomPathEgoStrategy(EgoStrategy):
 
     def _init_missing_waypoint_provider(self, ego: 'ego.Ego'):
         seed: int = self.kwargs['seed'] if 'seed' in self.kwargs else 0
+        logging.info(f'Using {seed} as a random seed.')
+
         center: carla.Location = carla.Location(self.kwargs['area_center']) if 'area_center' in self.kwargs else carla.Location(0, 0, 0)
         center_dist: float = self.kwargs['center_dist'] if 'center_dist' in self.kwargs else float('inf')
 

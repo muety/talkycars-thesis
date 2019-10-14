@@ -26,6 +26,8 @@ class Scene(AbstractScene):
         self._map: carla.Map = None
         self._sim: carla.Client = sim
         self._waypoint_provider = None
+        self._start_time: float = 0.
+        self._tick_count: int = 0
 
     def init(self):
         if self.initialized:
@@ -52,8 +54,9 @@ class Scene(AbstractScene):
             logging.info(f'Waiting for {SCENE2_N_EGOS - n_present} / {SCENE2_N_EGOS} to join the simulation.')
             time.sleep(1)
             n_present = simulation.count_present_vehicles(SCENE2_ROLE_NAME_PREFIX, self._world)
+        self._start_time = time.time()
 
-        self._waypoint_provider.update(free_only=True)
+        self._waypoint_provider.update(free_only=True, anywhere=True)
 
         # Create walkers
         logging.info(f'Attempting to spawn {SCENE2_N_PEDESTRIANS} pedestrians.')
@@ -68,6 +71,12 @@ class Scene(AbstractScene):
         self._agents = simulation.spawn_npcs(self._sim, self._waypoint_provider, SCENE2_N_VEHICLES)
 
     def tick(self, clock: pygame.time.Clock) -> bool:
+        self._tick_count += 1
+
+        if self._tick_count % 10 == 0 and self.done(SCENE2_MIN_REMAINING_EGOS):
+            logging.info(f'Finished simulation after {time.time() - self._start_time} s')
+            return True
+
         for a in self._agents:
             a.run_and_apply()
             if a.done():
@@ -81,6 +90,9 @@ class Scene(AbstractScene):
                     self._agents.remove(a)
 
         return False
+
+    def done(self, n_remaining: int = 0):
+        return simulation.count_present_vehicles(SCENE2_ROLE_NAME_PREFIX, self._world) <= n_remaining
 
     @property
     def egos(self) -> List[Ego]:
