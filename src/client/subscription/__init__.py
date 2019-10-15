@@ -29,7 +29,14 @@ from common.quadkey import QuadKey
 
 
 class TileSubscriptionService:
-    def __init__(self, on_graph_cb: Callable, rate_limit: float = 0.0):
+    def __init__(
+            self,
+            on_graph_cb: Callable,
+            rate_limit: float = 0.0,
+            topic_prefix: str = TOPIC_PREFIX_GRAPH_FUSED_OUT,
+            edge_node_level: int = EDGE_DISTRIBUTION_TILE_LEVEL,
+            remote_tile_level: int = REMOTE_GRID_TILE_LEVEL,
+    ):
         self.active_bridges: Dict[str, MqttBridge] = {}
         self.active_subscriptions: Set[str] = set()
         self.current_position: QuadKey = None
@@ -37,11 +44,14 @@ class TileSubscriptionService:
         self.on_graph_cb = self._wrap_graph_callback(on_graph_cb)
         self.rate_limit: float = rate_limit
         self.locks: Dict[str, Lock] = {'graph': Lock()}
+        self.edge_node_level: int = edge_node_level
+        self.remote_tile_level: int = remote_tile_level
+        self.topic_prefix: int = topic_prefix
 
         self.pool: ThreadPool = ThreadPool(1)
 
     def update_position(self, qk: QuadKey):
-        parent = quadkey.from_str(qk.key[:REMOTE_GRID_TILE_LEVEL])
+        parent = quadkey.from_str(qk.key[:self.remote_tile_level])
 
         if self.current_parent and parent and self.current_parent == parent:
             return
@@ -49,7 +59,7 @@ class TileSubscriptionService:
         logging.debug(f'Subscription-relevant tile changed from {self.current_parent} to {parent}.')
 
         sub_tiles = frozenset(parent.nearby(1))
-        node_tiles = frozenset([key[:EDGE_DISTRIBUTION_TILE_LEVEL] for key in sub_tiles])
+        node_tiles = frozenset([key[:self.edge_node_level] for key in sub_tiles])
 
         # Handle connections: clean up old
         for node_key in set(self.active_bridges.keys()).difference(node_tiles):
@@ -73,18 +83,18 @@ class TileSubscriptionService:
         # Handle subscriptions: clean up old
         for sub_key in self.active_subscriptions.difference(sub_tiles):
             self.active_subscriptions.remove(sub_key)
-            node_key = sub_key[:EDGE_DISTRIBUTION_TILE_LEVEL]
+            node_key = sub_key[:self.edge_node_level]
             if node_key not in self.active_bridges:
                 continue
 
             logging.debug(f'Removing subscription for {sub_key} at {node_key}')
 
             bridge = self.active_bridges[node_key]
-            bridge.unsubscribe(f'{TOPIC_PREFIX_GRAPH_FUSED_OUT}/{sub_key}', self.on_graph_cb)
+            bridge.unsubscribe(f'{self.topic_prefix}/{sub_key}', self.on_graph_cb)
 
         # Handle subscriptions: init new
         for sub_key in sub_tiles.difference(self.active_subscriptions):
-            node_key = sub_key[:EDGE_DISTRIBUTION_TILE_LEVEL]
+            node_key = sub_key[:self.edge_node_level]
 
             logging.debug(f'Attempting to subscribe to {sub_key} at {node_key}')
 
@@ -93,7 +103,7 @@ class TileSubscriptionService:
             if not bridge:
                 continue
 
-            bridge.subscribe(f'{TOPIC_PREFIX_GRAPH_FUSED_OUT}/{sub_key}', self.on_graph_cb)
+            bridge.subscribe(f'{self.topic_prefix}/{sub_key}', self.on_graph_cb)
             self.active_subscriptions.add(sub_key)
 
         self.current_position = qk
@@ -121,7 +131,7 @@ class TileSubscriptionService:
             b.disconnect()
 
     def _try_get_bridge(self, for_key: str) -> MqttBridge:
-        for_key = for_key[:EDGE_DISTRIBUTION_TILE_LEVEL]
+        for_key = for_key[:self.edge_node_level]
         if for_key not in self.active_bridges:
             logging.warning(f'No active bridge responsible for {for_key} found.')
             return None
