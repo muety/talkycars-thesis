@@ -1,15 +1,14 @@
 import argparse
 import logging
 import sys
-import time
 from typing import List
 
-from client import TileSubscriptionService
+from common.bridge import MqttBridge
 from common.constants import *
 from common.quadkey import QuadKey
 from common.serialization.schema.base import PEMTrafficScene
 
-BASE_KEY = '120203233231202'
+BASE_KEY = '120203233231202'  # Town01
 
 logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.DEBUG)
 
@@ -19,17 +18,12 @@ class GridCollector:
         self.tick_rate: int = rate
         self.base_tile: QuadKey = base_tile
         self.tiles: List[QuadKey] = base_tile.children(at_level=REMOTE_GRID_TILE_LEVEL)
-        self.tss: TileSubscriptionService = TileSubscriptionService(
-            self.on_remote_grid,
-            manual_mode=True,
-            edge_node_level=15  # Determined using map_tiles.py for Town01
-        )
+        self.bridge: MqttBridge = MqttBridge()
 
     def start(self):
-        self.tss.update_subscriptions(
-            frozenset(map(str, self.tiles)),
-            frozenset(map(str, [self.base_tile]))
-        )
+        for t in self.tiles:
+            self.bridge.subscribe(f'{TOPIC_PREFIX_GRAPH_FUSED_OUT}/{t.key}', self.on_remote_grid)
+        self.bridge.listen()
 
     def on_remote_grid(self, msg: bytes):
         scene: PEMTrafficScene = PEMTrafficScene.from_bytes(msg)
@@ -46,8 +40,6 @@ def run(args=sys.argv[1:]):
         base_tile=QuadKey(BASE_KEY),
         rate=args.rate
     ).start()
-
-    time.sleep(10)
 
 
 if __name__ == '__main__':
