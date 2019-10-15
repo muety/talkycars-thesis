@@ -1,9 +1,10 @@
 import logging
 import time
 
-from util import WaypointProvider, simulation
+from util import simulation
 
 import carla
+from common.util import WaypointProvider
 
 logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.DEBUG)
 
