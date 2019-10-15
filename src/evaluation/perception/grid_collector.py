@@ -4,25 +4,34 @@ import pickle
 import sys
 import time
 from datetime import datetime
-from threading import Thread
-from typing import List
+from threading import Thread, Lock
+from typing import List, Iterator, FrozenSet, Iterable, Dict, Set
 
 import carla
+from client import map_dynamic_actor, get_occupied_cells
 from common.bridge import MqttBridge
 from common.constants import *
+from common.model import DynamicActor
 from common.quadkey import QuadKey
 from common.util import GracefulKiller
 
 BASE_KEY = '120203233231202'  # Town01
 DATA_DIR = '../../../data/evaluation/perception'
-FLUSH_AFTER = 1e2
+FLUSH_AFTER = 1e4
 
 logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.DEBUG)
 
 
-class ObservationMessageContainer:
+class OccupancyObservationContainer:
     def __init__(self, msg: bytes, tile: QuadKey):
         self.msg = msg
+        self.tile = tile
+        self.ts = time.time()
+
+
+class OccupancyGroundTruthContainer:
+    def __init__(self, occupied_cells: FrozenSet[QuadKey], tile: QuadKey):
+        self.occupied_cells = occupied_cells
         self.tile = tile
         self.ts = time.time()
 
@@ -46,14 +55,20 @@ class GridCollector:
 
         self.bridge: MqttBridge = MqttBridge()
         self.client: carla.Client = carla_client
+        self.world: carla.World = carla_client.get_world()
+        self.map: carla.Map = self.world.get_map()
 
         self.start_time: datetime = datetime.now()
         self.last_tick: float = 0
         self.tick_count: int = 0
         self.flush_count: int = 0
+        self.active_threads: List[Thread] = []
+        self.lock1: Lock = Lock()
 
-        self.observation_buffer: List[ObservationMessageContainer] = []
-        self.occupancy_observations: List[ObservationMessageContainer] = []
+        self.observation_buffer: List[OccupancyObservationContainer] = []
+        self.ground_truth_buffer: List[OccupancyGroundTruthContainer] = []
+        self.occupancy_observations: List[OccupancyObservationContainer] = []
+        self.occupancy_ground_truth: List[OccupancyGroundTruthContainer] = []
 
         for d in [self.data_dir, self.data_dir_observed, self.data_dir_actual]:
             if not os.path.exists(d):
@@ -62,34 +77,56 @@ class GridCollector:
     def start(self):
         for t in self.tiles:
             def cb(payload):
-                return self.on_remote_grid(t, payload)
+                return self.on_graph_msg(t, payload)
 
             self.bridge.subscribe(f'{TOPIC_PREFIX_GRAPH_FUSED_OUT}/{t.key}', cb)
 
         self.bridge.listen(block=False)
 
-        self.run_sync_loop()
+        self.run_loop()
 
-    def run_sync_loop(self):
+    def run_loop(self):
         while True:
-            self.tick()
+            # Generate ground truth
+            self.push_ground_truth()
+
+            # Sync ground truth and latest observations
+            self.sync()
+
+            # Sleep
             time.sleep(max(0.0, self.tick_timeout - (time.monotonic() - self.last_tick)))
             self.last_tick = time.monotonic()
 
             if self.killer.kill_now:
-                self.flush()
+                self.sync()
+
+                if len(self.occupancy_observations) > 0 and len(self.occupancy_ground_truth) > 0:
+                    self.flush()
+
                 return
 
-    def tick(self):
-        # Flush observation buffer
-        self.occupancy_observations += self.observation_buffer[:]
-        self.observation_buffer.clear()
+    def sync(self):
+        with self.lock1:
+            buffer_len = min(len(self.ground_truth_buffer), len(self.observation_buffer))
+
+            # Flush observation buffer
+            self.occupancy_observations += self.observation_buffer[-buffer_len:]
+            self.observation_buffer.clear()
+
+        # Flush actor buffer
+        self.occupancy_ground_truth += self.ground_truth_buffer[-buffer_len:]
+        self.ground_truth_buffer.clear()
 
         if self.tick_count % 10 == 0:
-            k = len(self.occupancy_observations)
-            n = k + (FLUSH_AFTER * self.flush_count)
+            k_observations = len(self.occupancy_observations)
+            n_observations = k_observations + (FLUSH_AFTER * self.flush_count)
 
-            logging.debug(f'Observations {k} (~ {n})')
+            k_ground_truth = len(self.occupancy_ground_truth)
+            n_ground_truth = k_ground_truth + (FLUSH_AFTER * self.flush_count)
+
+            k = min(k_observations, k_ground_truth)
+
+            logging.debug(f'Observations: {k_observations} (~ {n_observations}); Ground Truth: {k_ground_truth} (~ {n_ground_truth})')
 
             if k > FLUSH_AFTER and k % (FLUSH_AFTER * (self.flush_count + 1)):
                 Thread(target=self.flush).start()
@@ -102,13 +139,51 @@ class GridCollector:
         logging.info('Flushing observations ...')
         with open(os.path.join(self.data_dir_observed, self.start_time.strftime(tpl)), 'wb') as f:
             pickle.dump(self.occupancy_observations, f)
-
         self.occupancy_observations.clear()
+
+        logging.info('Flushing ground truth ...')
+        with open(os.path.join(self.data_dir_actual, self.start_time.strftime(tpl)), 'wb') as f:
+            pickle.dump(self.occupancy_ground_truth, f)
+        self.occupancy_ground_truth.clear()
+
         self.flush_count += 1
 
-    def on_remote_grid(self, tile: QuadKey, msg: bytes):
-        self.observation_buffer.append(ObservationMessageContainer(msg, tile))
+    def on_graph_msg(self, tile: QuadKey, msg: bytes):
+        if not self.lock1.locked():
+            self.observation_buffer.append(OccupancyObservationContainer(msg, tile))
 
+    def push_ground_truth(self):
+        occupied_cells: Dict[str, Set[QuadKey]] = self.split_by_level(
+            self.fetch_occupied_cells(),
+            level=REMOTE_GRID_TILE_LEVEL
+        )
+
+        for tile, cells in occupied_cells.items():
+            self.ground_truth_buffer.append(OccupancyGroundTruthContainer(
+                occupied_cells=frozenset(cells),
+                tile=QuadKey(tile)
+            ))
+
+    def fetch_occupied_cells(self) -> FrozenSet[QuadKey]:
+        carla_actors: List[carla.Actor] = []
+        carla_actors += list(self.world.get_actors().filter('vehicle.*'))
+        carla_actors += list(self.world.get_actors().filter('walker.*'))
+        all_actors: Iterator[DynamicActor] = map(lambda a: map_dynamic_actor(a, self.map), carla_actors)
+
+        occupied_cells: Iterator[FrozenSet[QuadKey]] = map(get_occupied_cells, all_actors)
+
+        return frozenset().union(*occupied_cells)
+
+    def split_by_level(self, quadkeys: Iterable[QuadKey], level=REMOTE_GRID_TILE_LEVEL) -> Dict[str, Set[QuadKey]]:
+        key_map: Dict[str, Set[QuadKey]] = dict()
+
+        for q in quadkeys:
+            parent = q.key[:level]
+            if parent not in key_map:
+                key_map[parent] = set()
+            key_map[parent].add(q)
+
+        return key_map
 
 def run(args=sys.argv[1:]):
     argparser = argparse.ArgumentParser(description='TalkyCars Grid Collector')
