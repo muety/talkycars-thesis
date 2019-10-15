@@ -11,7 +11,7 @@ import numpy as np
 from client.observation import ObservationManager, LinearObservationTracker
 from client.observation.sink import CsvTrafficSceneSink, ObservationSink
 from client.subscription import TileSubscriptionService
-from client.utils import ClientUtils
+from client.utils import map_pem_actor, get_occupied_cells_multi
 from common.constants import *
 from common.fusion import FusionService, FusionServiceFactory
 from common.fusion.util import FusionUtils
@@ -158,11 +158,11 @@ class TalkyClient:
             return
 
         ego_actor: DynamicActor = actors_ego_obs.value[0]
-        visible_actors: Dict[str, DynamicActor] = ClientUtils.get_occupied_cells_multi(actors_others_obs.value + [ego_actor])
+        visible_actors: Dict[str, DynamicActor] = get_occupied_cells_multi(actors_others_obs.value + [ego_actor])
 
         # Generate PEM complex object attributes
         ts: float = min([ts1, actors_ego_obs.timestamp, actors_others_obs.timestamp])
-        pem_ego = ClientUtils.map_pem_actor(ego_actor)
+        pem_ego = map_pem_actor(ego_actor)
         pem_grid = PEMOccupancyGrid(cells=[])
 
         for cell in grid.cells:
@@ -174,7 +174,7 @@ class TalkyClient:
             if cell.quad_key.key in visible_actors:
                 actor = visible_actors[cell.quad_key.key]
                 self.tracker.track(group_key, str(actor.id))
-                occupant_relation = PEMRelation(self.tracker.get(group_key, str(actor.id)), ClientUtils.map_pem_actor(actor))
+                occupant_relation = PEMRelation(self.tracker.get(group_key, str(actor.id)), map_pem_actor(actor))
             else:
                 occupant_relation = PEMRelation(cell.state.confidence, None)
 

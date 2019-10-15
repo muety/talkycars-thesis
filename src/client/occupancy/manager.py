@@ -4,7 +4,7 @@ from typing import List, Set, Dict, Callable, FrozenSet
 import numpy as np
 
 from client.observation import LinearObservationTracker
-from client.utils import ClientUtils
+from client.utils import get_occupied_cells
 from common import quadkey
 from common.constants import *
 from common.model import UncertainProperty, DynamicActor
@@ -176,7 +176,7 @@ class OccupancyGridManager:
 
         quadkeys: List[quadkey.QuadKey] = list(map(lambda k: quadkey.QuadKey(k), nearby))
 
-        self.ego_occupied_cells: FrozenSet[quadkey.QuadKey] = ClientUtils.get_occupied_cells(self.ego) if self.ego else frozenset()
+        self.ego_occupied_cells: FrozenSet[quadkey.QuadKey] = get_occupied_cells(self.ego) if self.ego else frozenset()
 
         cells: Set[GridCell] = set(map(lambda q: GridCell(
             quad_key=q,
