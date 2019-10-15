@@ -298,13 +298,7 @@ func fuseCell(hash tiles.Quadkey, cellCount *uint32, obs *list.List, outGrid *sc
 			normalizationFactor = weight
 		}
 
-		for i := 0; i < NStates; i++ {
-			if i == int(state) {
-				stateVector[i] += conf * weight
-			} else {
-				stateVector[i] += (float32(math.Min(float64((1.0-conf)/NStates), 1.0/NStates)) - 0.001) * weight
-			}
-		}
+		stateVector[int(state)] += conf * weight
 
 		if o.Timestamp.Before(minTimestamp) {
 			minTimestamp = o.Timestamp
