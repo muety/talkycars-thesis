@@ -62,7 +62,9 @@ def run():
         import uvicorn
         from web.server import app
         uvicorn.run(app, port=8080)
-
+    elif sys.argv[1] in {'collector'}:
+        from evaluation.perception import grid_collector
+        grid_collector.run(sys.argv[2:])
 
 if __name__ == '__main__':
     run()

@@ -2,7 +2,7 @@ import logging
 import time
 from multiprocessing.pool import ThreadPool
 from threading import Lock
-from typing import Iterable, Dict, Tuple, Callable, Set
+from typing import Iterable, Dict, Tuple, Callable, Set, FrozenSet
 
 from common import quadkey
 from common.bridge import MqttBridge
@@ -33,6 +33,7 @@ class TileSubscriptionService:
             self,
             on_graph_cb: Callable,
             rate_limit: float = 0.0,
+            manual_mode: bool = False,
             topic_prefix: str = TOPIC_PREFIX_GRAPH_FUSED_OUT,
             edge_node_level: int = EDGE_DISTRIBUTION_TILE_LEVEL,
             remote_tile_level: int = REMOTE_GRID_TILE_LEVEL,
@@ -43,24 +44,33 @@ class TileSubscriptionService:
         self.current_parent: QuadKey = None
         self.on_graph_cb = self._wrap_graph_callback(on_graph_cb)
         self.rate_limit: float = rate_limit
-        self.locks: Dict[str, Lock] = {'graph': Lock()}
+        self.manual_mode: bool = manual_mode
         self.edge_node_level: int = edge_node_level
         self.remote_tile_level: int = remote_tile_level
         self.topic_prefix: int = topic_prefix
+        self.locks: Dict[str, Lock] = {'graph': Lock()}
 
         self.pool: ThreadPool = ThreadPool(1)
 
-    def update_position(self, qk: QuadKey):
+    def update_position(self, qk: QuadKey) -> bool:
         parent = quadkey.from_str(qk.key[:self.remote_tile_level])
 
-        if self.current_parent and parent and self.current_parent == parent:
-            return
+        if self.manual_mode or (self.current_parent and parent and self.current_parent == parent):
+            return False
 
         logging.debug(f'Subscription-relevant tile changed from {self.current_parent} to {parent}.')
 
         sub_tiles = frozenset(parent.nearby(1))
         node_tiles = frozenset([key[:self.edge_node_level] for key in sub_tiles])
 
+        if self.update_subscriptions(sub_tiles, node_tiles):
+            self.current_position = qk
+            self.current_parent = parent
+            return True
+
+        return False
+
+    def update_subscriptions(self, tiles: FrozenSet[str], node_tiles: FrozenSet[str]) -> bool:
         # Handle connections: clean up old
         for node_key in set(self.active_bridges.keys()).difference(node_tiles):
             logging.debug(f'Tearing down connection for {node_key}')
@@ -77,11 +87,11 @@ class TileSubscriptionService:
                 bridge.listen(block=False)
             except:
                 logging.warning(f'Failed to connect to MQTT bridge at {bridge.broker_config}')
-                return
+                return False
             self.active_bridges[node_key] = bridge
 
         # Handle subscriptions: clean up old
-        for sub_key in self.active_subscriptions.difference(sub_tiles):
+        for sub_key in self.active_subscriptions.difference(tiles):
             self.active_subscriptions.remove(sub_key)
             node_key = sub_key[:self.edge_node_level]
             if node_key not in self.active_bridges:
@@ -93,7 +103,7 @@ class TileSubscriptionService:
             bridge.unsubscribe(f'{self.topic_prefix}/{sub_key}', self.on_graph_cb)
 
         # Handle subscriptions: init new
-        for sub_key in sub_tiles.difference(self.active_subscriptions):
+        for sub_key in tiles.difference(self.active_subscriptions):
             node_key = sub_key[:self.edge_node_level]
 
             logging.debug(f'Attempting to subscribe to {sub_key} at {node_key}')
@@ -101,13 +111,13 @@ class TileSubscriptionService:
             bridge = self._try_get_bridge(node_key)
 
             if not bridge:
+                logging.debug('Failed.')
                 continue
 
             bridge.subscribe(f'{self.topic_prefix}/{sub_key}', self.on_graph_cb)
             self.active_subscriptions.add(sub_key)
 
-        self.current_position = qk
-        self.current_parent = parent
+        return True
 
     # Maybe move graph generation logic into here?
     def publish_graph(self, encoded_msg: bytes, contained_tiles: Iterable[str]):
