@@ -47,6 +47,7 @@ class GridCollector:
 
         self.start_time: datetime = datetime.now()
         self.last_tick: float = 0
+        self.last_msg: float = 0
         self.tick_count: int = 0
         self.flush_count: int = 0
         self.active_threads: List[Thread] = []
@@ -78,7 +79,8 @@ class GridCollector:
     def run_loop(self):
         while True:
             # Generate ground truth
-            self.push_ground_truth()
+            if time.monotonic() - self.last_msg <= GRID_TTL_SEC:
+                self.push_ground_truth()
 
             # Sync ground truth and latest observations
             self.sync()
@@ -141,6 +143,7 @@ class GridCollector:
     def on_graph_msg(self, tile: QuadKey, msg: bytes):
         if not self.lock1.locked():
             self.observation_buffer.append(OccupancyObservationContainer(msg, tile))
+            self.last_msg = time.monotonic()
 
     def push_ground_truth(self):
         occupied_cells: Dict[str, Set[QuadKey]] = self.split_by_level(
