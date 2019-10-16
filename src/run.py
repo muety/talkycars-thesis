@@ -65,6 +65,9 @@ def run():
     elif sys.argv[1] in {'collector'}:
         from evaluation.perception import grid_collector
         grid_collector.run(sys.argv[2:])
+    elif sys.argv[1] in {'evaluator'}:
+        from evaluation.perception import grid_evaluator
+        grid_evaluator.run(sys.argv[2:])
 
 if __name__ == '__main__':
     run()

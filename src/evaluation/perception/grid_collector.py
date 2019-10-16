@@ -5,7 +5,7 @@ import sys
 import time
 from datetime import datetime
 from threading import Thread, Lock
-from typing import List, Iterator, FrozenSet, Iterable, Dict, Set
+from typing import List, Iterator, FrozenSet, Iterable, Dict, Set, Callable
 
 import carla
 from client import map_dynamic_actor, get_occupied_cells
@@ -14,26 +14,13 @@ from common.constants import *
 from common.model import DynamicActor
 from common.quadkey import QuadKey
 from common.util import GracefulKiller
+from evaluation.perception import OccupancyObservationContainer, OccupancyGroundTruthContainer
 
 BASE_KEY = '120203233231202'  # Town01
 DATA_DIR = '../../../data/evaluation/perception'
 FLUSH_AFTER = 1e4
 
 logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.DEBUG)
-
-
-class OccupancyObservationContainer:
-    def __init__(self, msg: bytes, tile: QuadKey):
-        self.msg = msg
-        self.tile = tile
-        self.ts = time.time()
-
-
-class OccupancyGroundTruthContainer:
-    def __init__(self, occupied_cells: FrozenSet[QuadKey], tile: QuadKey):
-        self.occupied_cells = occupied_cells
-        self.tile = tile
-        self.ts = time.time()
 
 
 class GridCollector:
@@ -75,11 +62,14 @@ class GridCollector:
                 os.makedirs(d)
 
     def start(self):
-        for t in self.tiles:
+        def get_cb(tile: QuadKey) -> Callable:
             def cb(payload):
-                return self.on_graph_msg(t, payload)
+                return self.on_graph_msg(tile, payload)
 
-            self.bridge.subscribe(f'{TOPIC_PREFIX_GRAPH_FUSED_OUT}/{t.key}', cb)
+            return cb
+
+        for t in self.tiles:
+            self.bridge.subscribe(f'{TOPIC_PREFIX_GRAPH_FUSED_OUT}/{t}', get_cb(t))
 
         self.bridge.listen(block=False)
 
