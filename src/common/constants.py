@@ -7,6 +7,7 @@ OBS_CAMERA_RGB_IMAGE = 'camera_image'
 OBS_POSITION = 'player_pos'
 OBS_ACTOR_EGO, OBS_ACTORS_RAW = 'ego_actor', 'all_dynamic_actors'
 OBS_GRID_LOCAL, OBS_GRID_COMBINED = 'local_occupancy_grid', 'occupancy_grid'
+OBS_OOC_LOCAL = 'local_occupancy_observation_container'
 OBS_GRAPH_LOCAL = 'local_graph'
 OBS_GNSS_PREFIX = 'pos_gnss_'
 
@@ -56,3 +57,6 @@ SCENE2_CENTER_DIST = 95.
 SCENE2_MIN_REMAINING_EGOS = SCENE2_N_EGOS // 2
 
 MQTT_BASE_HOSTNAME = os.getenv('MQTT_BASE_HOSTNAME', 'localhost')
+
+EVAL2_BASE_KEY = '120203233231202'  # Town01
+EVAL2_DATA_DIR = '../../../data/evaluation/perception'

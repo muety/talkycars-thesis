@@ -1,23 +1,26 @@
+import pickle
 import typing
+import uuid
 from abc import ABC, abstractmethod
 from collections import OrderedDict
-from typing import Dict, List, Any, cast, Tuple
+from typing import Dict, List, Any, cast
 
 from common.constants import *
-from common.observation import Observation, OccupancyGridObservation, ActorsObservation
+from common.observation import OccupancyGridObservation, ActorsObservation
+from evaluation.perception import OccupancyObservationContainer
 
 
-class ObservationSink(ABC):
+class Sink(ABC):
     @abstractmethod
     def __init__(self, keys: List[str], auto_flush: bool = True):
         self.keys: List[str] = keys
-        self.accumulator: Dict[str, Observation] = {}
+        self.accumulator: Dict[str, Any] = {}
         self.auto_flush: bool = auto_flush
 
-    def push(self, key: str, obs: Observation):
+    def push(self, key: str, data: Any):
         assert key not in self.accumulator
 
-        self.accumulator[key] = obs
+        self.accumulator[key] = data
         if self.auto_flush and len(self.accumulator) == len(self.keys):
             self._dump()
             self.accumulator.clear()
@@ -30,11 +33,32 @@ class ObservationSink(ABC):
         pass
 
 
-class CsvObservationSink(ObservationSink, ABC):
+class PklOocSink(Sink, ABC):
+    def __init__(self, outpath: str):
+        self.only_key: str = str(uuid.uuid4())
+
+        super().__init__([self.only_key], auto_flush=False)
+
+        self.outpath: str = outpath
+        self.filehandle = open(outpath, 'wb')
+
+        self.accumulator[self.only_key] = []
+
+    def push(self, key: str, data: OccupancyObservationContainer):
+        cast(List[OccupancyObservationContainer], self.accumulator[self.only_key]).append(data)
+
+    def __del__(self):
+        self.filehandle.close()
+
+    def _dump(self):
+        pickle.dump(self.accumulator[self.only_key], self.filehandle)
+
+
+class CsvObservationSink(Sink, ABC):
     def __init__(self, keys: List[str], outpath: str):
         super().__init__(keys)
         self.outpath: str = outpath
-        self.filehandle = open(outpath, 'a', buffering=1024 * 20)  # buffer 20 kBytes
+        self.filehandle = open(outpath, 'a')  # buffer 20 kBytes
 
     def __del__(self):
         self.filehandle.close()
@@ -58,15 +82,15 @@ class CsvObservationSink(ObservationSink, ABC):
 
 class CsvTrafficSceneSink(CsvObservationSink):
     def _get_property_dict(self) -> typing.Union[typing.OrderedDict[str, Any], None]:
-        if OBS_ACTOR_EGO not in self.accumulator or OBS_GRID_COMBINED not in self.accumulator:
+        if OBS_ACTOR_EGO not in self.accumulator or OBS_GRID_LOCAL not in self.accumulator:
             return None
 
-        grid: OccupancyGridObservation = cast(OccupancyGridObservation, self.accumulator[OBS_GRID_COMBINED])
+        grid: OccupancyGridObservation = cast(OccupancyGridObservation, self.accumulator[OBS_GRID_LOCAL])
         ego: ActorsObservation = cast(ActorsObservation, self.accumulator[OBS_ACTOR_EGO])
 
         assert len(ego.value) == 1
 
-        ego_velo: Tuple[float, float, float] = ego.value[0].dynamics.velocity.value.components()
+        ego_velo: typing.Tuple[float, float, float] = ego.value[0].dynamics.velocity.value.components()
         ego_velo_conf: float = ego.value[0].dynamics.velocity.confidence
 
         props_dict: OrderedDict[str, Any] = OrderedDict()

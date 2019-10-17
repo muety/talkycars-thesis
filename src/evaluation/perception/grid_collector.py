@@ -11,13 +11,12 @@ import carla
 from client import map_dynamic_actor, get_occupied_cells
 from common.bridge import MqttBridge
 from common.constants import *
+from common.constants import EVAL2_BASE_KEY, EVAL2_DATA_DIR
 from common.model import DynamicActor
 from common.quadkey import QuadKey
 from common.util import GracefulKiller
 from evaluation.perception import OccupancyObservationContainer, OccupancyGroundTruthContainer
 
-BASE_KEY = '120203233231202'  # Town01
-DATA_DIR = '../../../data/evaluation/perception'
 FLUSH_AFTER = 1e4
 
 logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.DEBUG)
@@ -180,12 +179,13 @@ class GridCollector:
 
         return key_map
 
+
 def run(args=sys.argv[1:]):
     argparser = argparse.ArgumentParser(description='TalkyCars Grid Collector')
     argparser.add_argument('--rate', '-r', default=10, type=int, help='Tick Rate')
     argparser.add_argument('--host', default='127.0.0.1', help='IP of the host server (default: 127.0.0.1)')
     argparser.add_argument('-p', '--port', default=2000, type=int, help='TCP port to listen to (default: 2000)')
-    argparser.add_argument('-o', '--out_dir', default=DATA_DIR, type=str, help='Directory to dump data to')
+    argparser.add_argument('-o', '--out_dir', default=EVAL2_DATA_DIR, type=str, help='Directory to dump data to')
 
     args, _ = argparser.parse_known_args(args)
 
@@ -195,7 +195,7 @@ def run(args=sys.argv[1:]):
 
     GridCollector(
         carla_client=client,
-        base_tile=QuadKey(BASE_KEY),
+        base_tile=QuadKey(EVAL2_BASE_KEY),
         rate=args.rate,
         data_dir=os.path.normpath(
             os.path.join(os.path.dirname(__file__), args.out_dir)
