@@ -9,17 +9,21 @@ from common.observation import Observation, OccupancyGridObservation, ActorsObse
 
 class ObservationSink(ABC):
     @abstractmethod
-    def __init__(self, keys: List[str]):
+    def __init__(self, keys: List[str], auto_flush: bool = True):
         self.keys: List[str] = keys
         self.accumulator: Dict[str, Observation] = {}
+        self.auto_flush: bool = auto_flush
 
     def push(self, key: str, obs: Observation):
         assert key not in self.accumulator
 
         self.accumulator[key] = obs
-        if len(self.accumulator) == len(self.keys):
+        if self.auto_flush and len(self.accumulator) == len(self.keys):
             self._dump()
             self.accumulator.clear()
+
+    def force_flush(self):
+        self._dump()
 
     @abstractmethod
     def _dump(self):
@@ -53,7 +57,7 @@ class CsvObservationSink(ObservationSink, ABC):
 
 
 class CsvTrafficSceneSink(CsvObservationSink):
-    def _get_property_dict(self) -> typing.OrderedDict[str, Any]:
+    def _get_property_dict(self) -> typing.Union[typing.OrderedDict[str, Any], None]:
         if OBS_ACTOR_EGO not in self.accumulator or OBS_GRID_COMBINED not in self.accumulator:
             return None
 
