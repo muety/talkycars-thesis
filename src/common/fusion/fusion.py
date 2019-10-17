@@ -119,6 +119,7 @@ class PEMFusionService(FusionService[PEMTrafficScene]):
 
         return cell_matrix
 
+    # TODO: Make consistent with fusion.go::fuseCell()
     def _fuse_scenes(self, scenes: List[PEMTrafficScene], states: List[np.ndarray]) -> Dict[str, PEMTrafficScene]:
         fused_scenes: Dict[str, PEMTrafficScene] = dict()
 

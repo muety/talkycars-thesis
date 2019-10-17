@@ -4,7 +4,7 @@ from collections import deque
 from datetime import datetime
 from enum import Enum
 from threading import Thread
-from typing import cast, Dict, Optional, Deque, List
+from typing import cast, Dict, Optional, Deque
 
 import numpy as np
 
@@ -13,13 +13,10 @@ from client.observation.sink import CsvTrafficSceneSink, ObservationSink
 from client.subscription import TileSubscriptionService
 from client.utils import map_pem_actor, get_occupied_cells_multi
 from common.constants import *
-from common.fusion import FusionService, FusionServiceFactory
-from common.fusion.util import FusionUtils
 from common.model import DynamicActor
 from common.observation import CameraRGBObservation, ActorsObservation, EmptyObservation
 from common.observation import OccupancyGridObservation, LidarObservation, PositionObservation, \
     GnssObservation
-from common.occupancy import Grid
 from common.quadkey import QuadKey
 from common.serialization.schema import GridCellState
 from common.serialization.schema.actor import PEMDynamicActor
@@ -27,7 +24,7 @@ from common.serialization.schema.base import PEMTrafficScene
 from common.serialization.schema.occupancy import PEMOccupancyGrid, PEMGridCell
 from common.serialization.schema.relation import PEMRelation
 from .inbound import InboundController
-from .occupancy import OccupancyGridManager, convert_coords
+from .occupancy import OccupancyGridManager
 from .outbound import OutboundController
 
 
@@ -49,11 +46,6 @@ class TalkyClient:
         self.tss: TileSubscriptionService = TileSubscriptionService(self._on_remote_grid, rate_limit=.1)
         self.tracker: LinearObservationTracker = LinearObservationTracker(n=6)
         self.sink: ObservationSink = None
-        self.fs: FusionService[PEMTrafficScene] = FusionServiceFactory.get(
-            PEMTrafficScene,
-            '0' * EDGE_DISTRIBUTION_TILE_LEVEL,
-            keep=2
-        )
         self.alive: bool = True
         self.recording: bool = False
         self.ego_id = str(for_subject_id)
@@ -83,7 +75,6 @@ class TalkyClient:
         self.outbound.subscribe(OBS_GNSS_PREFIX + ALIAS_EGO, self._on_gnss)
         self.outbound.subscribe(OBS_LIDAR_POINTS, self._on_lidar)
         self.outbound.subscribe(OBS_GRID_LOCAL, self._on_grid)
-        self.outbound.subscribe(OBS_GRAPH_LOCAL, self._on_local_graph)
 
         # Debugging stuff
         self.last_publish: float = time.monotonic()
@@ -94,7 +85,6 @@ class TalkyClient:
     def tear_down(self):
         self.alive = False
         self.recording = False
-        self.fs.tear_down()
         self.tss.tear_down()
         self.om.tear_down()
         self.gm.tear_down()
@@ -144,7 +134,6 @@ class TalkyClient:
         qk: QuadKey = obs.to_quadkey(level=REMOTE_GRID_TILE_LEVEL)
         if qk != self.tss.current_position:
             self.tss.update_position(qk)
-            self.fs.set_sector(QuadKey(qk.key[:EDGE_DISTRIBUTION_TILE_LEVEL]))
 
     def _on_grid(self, obs: OccupancyGridObservation):
         _ts = time.monotonic()
@@ -203,31 +192,19 @@ class TalkyClient:
 
         contained_tiles = frozenset(map(lambda c: c.quad_key.key, grid.cells))
         self.tss.publish_graph(encoded_msg, contained_tiles)
-        self.inbound.publish(OBS_GRAPH_LOCAL, EmptyObservation(time.time()))
+        self.inbound.publish(OBS_GRAPH_LOCAL, obs)
 
         # Debug logging
         self.tsdiffhistory3.append(time.monotonic() - self.last_publish)
         self.last_publish = time.monotonic()
         logging.debug(f'PUBLISH: {np.mean(self.tsdiffhistory3)}')
 
-        self.fs.push(int(self.ego_id), graph)
-
         self.tsdiffhistory2.append(time.monotonic() - _ts)
         logging.debug(f'GRID: {np.mean(self.tsdiffhistory2)}')
-
-    def _on_local_graph(self, *args, **kwargs):
-        # Performance: This call takes most of the time
-        f = self.fs.get(max_age=GRID_TTL_SEC)
-        fused_scenes: List[PEMTrafficScene] = list(f.values())  # Performance: ~ 0.08 sec
-        fused_grid: Grid = FusionUtils.scenes_to_single_grid(fused_scenes, convert_coords, self.gm.get_cell_base_z())  # Performance: ~ 0.07 sec
-
-        self.inbound.publish(OBS_GRID_COMBINED, OccupancyGridObservation(time.time(), fused_grid))  # TODO: time ?
 
     def _on_remote_grid(self, msg: bytes):
         # TODO: Maybe do asynchronously?
         decoded_msg = PEMTrafficScene.from_bytes(msg)
-        # logging.debug(f'Decoded remote fused state representation from {len(msg) / 1024} kBytes')
-        self.fs.push(REMOTE_PSEUDO_ID, decoded_msg)
 
     def _record(self):
         while True:
