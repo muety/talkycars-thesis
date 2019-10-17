@@ -201,6 +201,7 @@ def run(args=sys.argv[1:]):
     argparser.add_argument('--rolename', default='hero', help='actor role name (default: "hero")')
     argparser.add_argument('--debug', default='true', help='whether or not to show debug information (default: true)')
     argparser.add_argument('--render', default='true', help='whether or not to render the actor\'s camera view (default: true)')
+    argparser.add_argument('--record', default='false', help='whether or not to record data (default: false)')
     args, additional_args = argparser.parse_known_args(args)
 
     logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.DEBUG)
@@ -246,6 +247,7 @@ def run(args=sys.argv[1:]):
                   name=args.rolename,
                   render=args.render.lower() == 'true',
                   debug=args.debug.lower() == 'true',
+                  record=args.record.lower() == 'true',
                   strategy=strat,
                   is_standalone=True)
 
