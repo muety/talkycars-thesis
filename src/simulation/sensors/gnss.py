@@ -29,8 +29,12 @@ class GnssSensor(Sensor):
         self = weak_self()
         if not self:
             return
-        self.lat = event.latitude
-        self.lon = event.longitude
+
+        try:
+            self.lat = event.latitude
+            self.lon = event.longitude
+        except AttributeError:
+            return
 
         obs = GnssObservation(event.timestamp, (event.latitude, event.longitude, event.altitude - (self.offset_z / 2)))
         self.client.inbound.publish(self._topic_key, obs)

@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Tuple, List, Any
+from typing import Tuple, List, Any, Dict, Union
 
 import numpy as np
 
@@ -12,18 +12,19 @@ _Dynamics = Tuple[_Vec3]
 
 
 class Observation(UncertainProperty[Any]):
-    def __init__(self, local_timestamp: int = 0, confidence: float = 1):
+    def __init__(self, local_timestamp: int = 0, confidence: float = 1, meta: Union[Dict[str, Any], None] = None):
         assert isinstance(local_timestamp, int) or isinstance(local_timestamp, float)
 
-        self.local_timestamp = local_timestamp
+        self.local_timestamp: float = local_timestamp
         # Caution: Uses local platform time!
-        self.timestamp = datetime.now().timestamp()
+        self.timestamp: float = datetime.now().timestamp()
+        self.meta: Union[Dict[str, Any], None] = meta
 
         super(Observation, self).__init__(confidence=confidence, value=None)
 
 
 class EmptyObservation(Observation):
-    def __init__(self, timestamp):
+    def __init__(self, timestamp, meta: Union[Dict[str, Any], None] = None):
         super().__init__(timestamp)
 
     def __str__(self):
@@ -35,7 +36,7 @@ class EgoObservation(Observation):
 
 
 class GnssObservation(EgoObservation):
-    def __init__(self, timestamp, coords: _Vec3):
+    def __init__(self, timestamp, coords: _Vec3, meta: Union[Dict[str, Any], None] = None):
         assert isinstance(coords, tuple)
 
         super().__init__(timestamp)
@@ -52,7 +53,7 @@ class GnssObservation(EgoObservation):
 
 
 class LidarObservation(EgoObservation):
-    def __init__(self, timestamp, points: np.ndarray):
+    def __init__(self, timestamp, points: np.ndarray, meta: Union[Dict[str, Any], None] = None):
         super().__init__(timestamp)
         self.value: np.ndarray = points
 
@@ -61,7 +62,7 @@ class LidarObservation(EgoObservation):
 
 
 class CameraRGBObservation(EgoObservation):
-    def __init__(self, timestamp, image: np.ndarray):
+    def __init__(self, timestamp, image: np.ndarray, meta: Union[Dict[str, Any], None] = None):
         assert isinstance(image, np.ndarray)
 
         super().__init__(timestamp)
@@ -72,7 +73,7 @@ class CameraRGBObservation(EgoObservation):
 
 
 class PositionObservation(Observation):
-    def __init__(self, timestamp, coords: _Vec3):
+    def __init__(self, timestamp, coords: _Vec3, meta: Union[Dict[str, Any], None] = None):
         assert isinstance(coords, tuple)
 
         super().__init__(timestamp)
@@ -83,7 +84,7 @@ class PositionObservation(Observation):
 
 
 class ActorsObservation(Observation):
-    def __init__(self, timestamp, actors: List[DynamicActor]):
+    def __init__(self, timestamp, actors: List[DynamicActor], meta: Union[Dict[str, Any], None] = None):
         assert isinstance(actors, list)
 
         super().__init__(timestamp)
@@ -94,7 +95,7 @@ class ActorsObservation(Observation):
 
 
 class OccupancyGridObservation(Observation):
-    def __init__(self, timestamp, grid: Grid):
+    def __init__(self, timestamp, grid: Grid, meta: Union[Dict[str, Any], None] = None):
         assert isinstance(grid, Grid)
 
         super().__init__(timestamp)
