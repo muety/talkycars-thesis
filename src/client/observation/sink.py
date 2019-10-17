@@ -22,10 +22,6 @@ class ObservationSink(ABC):
             self.accumulator.clear()
 
     @abstractmethod
-    def _get_property_dict(self) -> Dict[str, Any]:
-        pass
-
-    @abstractmethod
     def _dump(self):
         pass
 
@@ -38,6 +34,10 @@ class CsvObservationSink(ObservationSink, ABC):
 
     def __del__(self):
         self.filehandle.close()
+
+    @abstractmethod
+    def _get_property_dict(self) -> Dict[str, Any]:
+        pass
 
     def _dump(self):
         data: Dict[str, Any] = self._get_property_dict()
