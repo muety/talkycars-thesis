@@ -1,31 +1,31 @@
 import pickle
 import typing
-import uuid
 from abc import ABC, abstractmethod
 from collections import OrderedDict
 from typing import Dict, List, Any, cast
 
 from common.constants import *
 from common.observation import OccupancyGridObservation, ActorsObservation
-from evaluation.perception import OccupancyObservationContainer
 
 
 class Sink(ABC):
     @abstractmethod
-    def __init__(self, keys: List[str], auto_flush: bool = True):
+    def __init__(self, keys: List[str]):
         self.keys: List[str] = keys
         self.accumulator: Dict[str, Any] = {}
-        self.auto_flush: bool = auto_flush
+        self.appendable: bool = False
 
     def push(self, key: str, data: Any):
         assert key not in self.accumulator
 
         self.accumulator[key] = data
-        if self.auto_flush and len(self.accumulator) == len(self.keys):
+        if self.appendable and len(self.accumulator) == len(self.keys):
             self._dump()
             self.accumulator.clear()
 
-    def force_flush(self):
+    # Needs to be called manually, if sink is handling non-appendable streams of data,
+    # e.g. data that is dumped to a binary file all at once in the end.
+    def flush(self):
         self._dump()
 
     @abstractmethod
@@ -33,32 +33,12 @@ class Sink(ABC):
         pass
 
 
-class PklOocSink(Sink, ABC):
-    def __init__(self, outpath: str):
-        self.only_key: str = str(uuid.uuid4())
-
-        super().__init__([self.only_key], auto_flush=False)
-
-        self.outpath: str = outpath
-        self.filehandle = open(outpath, 'wb')
-
-        self.accumulator[self.only_key] = []
-
-    def push(self, key: str, data: OccupancyObservationContainer):
-        cast(List[OccupancyObservationContainer], self.accumulator[self.only_key]).append(data)
-
-    def __del__(self):
-        self.filehandle.close()
-
-    def _dump(self):
-        pickle.dump(self.accumulator[self.only_key], self.filehandle)
-
-
 class CsvObservationSink(Sink, ABC):
     def __init__(self, keys: List[str], outpath: str):
         super().__init__(keys)
         self.outpath: str = outpath
         self.filehandle = open(outpath, 'a')  # buffer 20 kBytes
+        self.appendable = True
 
     def __del__(self):
         self.filehandle.close()
@@ -82,10 +62,10 @@ class CsvObservationSink(Sink, ABC):
 
 class CsvTrafficSceneSink(CsvObservationSink):
     def _get_property_dict(self) -> typing.Union[typing.OrderedDict[str, Any], None]:
-        if OBS_ACTOR_EGO not in self.accumulator or OBS_GRID_LOCAL not in self.accumulator:
+        if OBS_ACTOR_EGO not in self.accumulator or OBS_GRID_COMBINED not in self.accumulator:
             return None
 
-        grid: OccupancyGridObservation = cast(OccupancyGridObservation, self.accumulator[OBS_GRID_LOCAL])
+        grid: OccupancyGridObservation = cast(OccupancyGridObservation, self.accumulator[OBS_GRID_COMBINED])
         ego: ActorsObservation = cast(ActorsObservation, self.accumulator[OBS_ACTOR_EGO])
 
         assert len(ego.value) == 1
@@ -105,3 +85,22 @@ class CsvTrafficSceneSink(CsvObservationSink):
             props_dict[f'cell_state_conf_{i}'] = '{:.3f}'.format(cell.state.confidence)
 
         return props_dict
+
+
+# Supports a single key only
+class PickleObservationSink(Sink, ABC):
+    def __init__(self, key: str, outpath: str):
+        super().__init__([key])
+        self.outpath: str = outpath
+        self.filehandle = open(outpath, 'wb')
+        self.appendable = False
+        self.key: str = key
+
+    def __del__(self):
+        self.filehandle.close()
+
+    def _dump(self):
+        if len(self.accumulator) < 1:
+            return
+
+        pickle.dump(self.accumulator[self.key], self.filehandle)

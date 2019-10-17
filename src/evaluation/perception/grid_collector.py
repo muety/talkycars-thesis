@@ -36,8 +36,6 @@ class GridCollector:
         self.data_dir: str = data_dir
         self.data_dir_actual: str = os.path.join(data_dir, 'actual')
         self.data_dir_observed: str = os.path.join(data_dir, 'observed')
-        self.data_dir_observed_local: str = os.path.join(self.data_dir_observed, 'local')
-        self.data_dir_observed_remote: str = os.path.join(self.data_dir_observed, 'remote')
         self.base_tile: QuadKey = base_tile
         self.tiles: List[QuadKey] = base_tile.children(at_level=REMOTE_GRID_TILE_LEVEL)
 
@@ -59,7 +57,7 @@ class GridCollector:
         self.occupancy_observations: List[OccupancyObservationContainer] = []
         self.occupancy_ground_truth: List[OccupancyGroundTruthContainer] = []
 
-        for d in [self.data_dir, self.data_dir_observed, self.data_dir_actual, self.data_dir_observed_local, self.data_dir_observed_remote]:
+        for d in [self.data_dir, self.data_dir_observed, self.data_dir_actual]:
             if not os.path.exists(d):
                 os.makedirs(d)
 
@@ -130,7 +128,7 @@ class GridCollector:
         tpl = f'{self.base_tile.key}_%Y-%m-%d_%H-%M-%S_part-{self.flush_count + 1}.pkl'
 
         logging.info('Flushing observations ...')
-        with open(os.path.join(self.data_dir_observed_remote, self.start_time.strftime(tpl)), 'wb') as f:
+        with open(os.path.join(self.data_dir_observed, self.start_time.strftime(tpl)), 'wb') as f:
             pickle.dump(self.occupancy_observations, f)
         self.occupancy_observations.clear()
 

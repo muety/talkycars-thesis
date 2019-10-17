@@ -9,15 +9,19 @@ from typing import cast, Dict, Optional, Deque, List
 import numpy as np
 
 from client.observation import ObservationManager, LinearObservationTracker
-from client.observation.sink import PklOocSink, Sink, CsvTrafficSceneSink
+from client.observation.sink import Sink, CsvTrafficSceneSink, PickleObservationSink
+from client.occupancy import convert_coords
 from client.subscription import TileSubscriptionService
 from client.utils import map_pem_actor, get_occupied_cells_multi
 from common.constants import *
 from common.constants import EVAL2_BASE_KEY
+from common.fusion import FusionService, FusionServiceFactory
+from common.fusion.util import FusionUtils
 from common.model import DynamicActor
-from common.observation import CameraRGBObservation, ActorsObservation, EmptyObservation
+from common.observation import CameraRGBObservation, ActorsObservation, EmptyObservation, PEMTrafficSceneObservation
 from common.observation import OccupancyGridObservation, LidarObservation, PositionObservation, \
     GnssObservation
+from common.occupancy import Grid
 from common.quadkey import QuadKey
 from common.serialization.schema import GridCellState
 from common.serialization.schema.actor import PEMDynamicActor
@@ -45,10 +49,11 @@ class TalkyClient:
         self.gm: OccupancyGridManager = OccupancyGridManager(OCCUPANCY_TILE_LEVEL, grid_radius)
         self.inbound: InboundController = InboundController(self.om, self.gm)
         self.outbound: OutboundController = OutboundController(self.om, self.gm)
-        self.tss: TileSubscriptionService = TileSubscriptionService(self._on_remote_grid, rate_limit=.1)
+        self.tss: TileSubscriptionService = TileSubscriptionService(self._on_remote_graph, rate_limit=.1)
         self.tracker: LinearObservationTracker = LinearObservationTracker(n=6)
-        self.sink_ooc: Sink = None
-        self.sink_graph_csv: Sink = None
+        self.fs: FusionService[PEMTrafficScene] = FusionServiceFactory.get(PEMTrafficScene, '0' * EDGE_DISTRIBUTION_TILE_LEVEL, keep=1)
+        self.sink_grid_pkl: Sink = None
+        self.sink_grid_csv: Sink = None
         self.alive: bool = True
         self.recording: bool = False
         self.ego_id = str(for_subject_id)
@@ -64,6 +69,7 @@ class TalkyClient:
         self.om.register_key(OBS_CAMERA_RGB_IMAGE, CameraRGBObservation)
         self.om.register_key(OBS_GRID_LOCAL, OccupancyGridObservation)
         self.om.register_key(OBS_GRID_COMBINED, OccupancyGridObservation)
+        self.om.register_key(OBS_FUSED_SCENE, PEMTrafficSceneObservation)
         self.om.register_key(OBS_GRAPH_LOCAL, EmptyObservation)
         self.om.register_key(OBS_ACTOR_EGO, ActorsObservation)
         self.om.register_key(OBS_ACTORS_RAW, ActorsObservation)
@@ -78,6 +84,7 @@ class TalkyClient:
         self.outbound.subscribe(OBS_GNSS_PREFIX + ALIAS_EGO, self._on_gnss)
         self.outbound.subscribe(OBS_LIDAR_POINTS, self._on_lidar)
         self.outbound.subscribe(OBS_GRID_LOCAL, self._on_grid)
+        self.outbound.subscribe(OBS_GRAPH_LOCAL, self._on_local_graph)
 
         # Evaluation-related stff
         self.local_observation_buffer: List[Ooc] = []
@@ -91,27 +98,28 @@ class TalkyClient:
     def tear_down(self):
         self.alive = False
         self.recording = False
+        self.sink_grid_pkl.flush()
         self.tss.tear_down()
         self.om.tear_down()
         self.gm.tear_down()
 
-        self.sink_ooc.force_flush()
-
     def toggle_recording(self):
         if not self.recording:
-            self.sink_ooc = PklOocSink(
+            self.sink_grid_pkl = PickleObservationSink(
+                key=OBS_FUSED_SCENE,
                 outpath=os.path.join(os.path.normpath(
                         os.path.join(
                             os.path.dirname(__file__),
-                            '../../data/evaluation/perception/observed/local',
+                            '../../data/evaluation/perception/observed',
                         )),
                     datetime.now()
-                        .strftime(f'{EVAL2_BASE_KEY}-local_%Y-%m-%d_%H-%M-%S_part-1.pkl')  # Dirty Hack!
+                        # Dirty Hack!
+                        .strftime(f'{EVAL2_BASE_KEY}_%Y-%m-%d_%H-%M-%S_part-1.pkl')
                 )
             )
 
-            self.sink_graph_csv = CsvTrafficSceneSink(
-                keys=[OBS_GRID_LOCAL, OBS_ACTOR_EGO],
+            self.sink_grid_csv = CsvTrafficSceneSink(
+                keys=[OBS_GRID_COMBINED, OBS_ACTOR_EGO],
                 outpath=os.path.join(
                     os.path.normpath(
                         os.path.join(
@@ -153,6 +161,7 @@ class TalkyClient:
         qk: QuadKey = obs.to_quadkey(level=REMOTE_GRID_TILE_LEVEL)
         if qk != self.tss.current_position:
             self.tss.update_position(qk)
+            self.fs.set_sector(QuadKey(qk.key[:EDGE_DISTRIBUTION_TILE_LEVEL]))
 
     def _on_grid(self, obs: OccupancyGridObservation):
         _ts = time.monotonic()
@@ -211,26 +220,32 @@ class TalkyClient:
 
         contained_tiles = frozenset(map(lambda c: c.quad_key.key, grid.cells))
         self.tss.publish_graph(encoded_msg, contained_tiles)
-        self.inbound.publish(OBS_GRAPH_LOCAL, obs)
-
-        if self.recording and self.sink_ooc:
-            for parent in set(map(lambda k: k[:REMOTE_GRID_TILE_LEVEL], contained_tiles)):
-                self.local_observation_buffer.append(Ooc(
-                    msg=encoded_msg,
-                    tile=QuadKey(parent),
-                    ts=ts
-                ))
+        self.inbound.publish(OBS_GRAPH_LOCAL, EmptyObservation(time.time()))
 
         # Debug logging
         self.tsdiffhistory3.append(time.monotonic() - self.last_publish)
         self.last_publish = time.monotonic()
         logging.debug(f'PUBLISH: {np.mean(self.tsdiffhistory3)}')
 
+        self.fs.push(int(self.ego_id), graph)
+
         self.tsdiffhistory2.append(time.monotonic() - _ts)
         logging.debug(f'GRID: {np.mean(self.tsdiffhistory2)}')
 
-    def _on_remote_grid(self, msg: bytes):
-        pass
+    def _on_local_graph(self, *args, **kwargs):
+        fused_scenes: Dict[str, PEMTrafficScene] = self.fs.get(max_age=GRID_TTL_SEC)
+
+        for parent, scene in fused_scenes.items():
+            self.inbound.publish(OBS_FUSED_SCENE, PEMTrafficSceneObservation(scene.timestamp, scene, meta={'parent': parent}))
+
+        fused_grid: Grid = FusionUtils.scenes_to_single_grid(list(fused_scenes.values()), convert_coords, self.gm.get_cell_base_z())  # Performance: ~ 0.07 sec
+        self.inbound.publish(OBS_GRID_COMBINED, OccupancyGridObservation(time.time(), fused_grid))
+
+    def _on_remote_graph(self, msg: bytes):
+        # TODO: Maybe do asynchronously?
+        decoded_msg = PEMTrafficScene.from_bytes(msg)
+        # logging.debug(f'Decoded remote fused state representation from {len(msg) / 1024} kBytes')
+        self.fs.push(REMOTE_PSEUDO_ID, decoded_msg)
 
     def _record(self):
         while True:
@@ -242,14 +257,19 @@ class TalkyClient:
             if not self.recording:
                 continue
 
-            if self.sink_graph_csv:
-                obs1 = self.inbound.om.latest(OBS_GRID_LOCAL)
-                obs2 = self.inbound.om.latest(OBS_ACTOR_EGO)
+            if self.sink_grid_csv:
+                obs1: OccupancyGridObservation = cast(OccupancyGridObservation, self.inbound.om.latest(OBS_GRID_COMBINED))
+                obs2: ActorsObservation = cast(ActorsObservation, self.inbound.om.latest(OBS_ACTOR_EGO))
 
                 if obs1 and obs2:
-                    self.sink_graph_csv.push(OBS_GRID_LOCAL, obs1)
-                    self.sink_graph_csv.push(OBS_ACTOR_EGO, obs2)
+                    self.sink_grid_csv.push(OBS_GRID_COMBINED, obs1)
+                    self.sink_grid_csv.push(OBS_ACTOR_EGO, obs2)
 
-            if self.sink_ooc:
-                for obs in self.local_observation_buffer:
-                    self.sink_ooc.push('', obs)
+            if self.sink_grid_pkl:
+                obs1: PEMTrafficSceneObservation = cast(PEMTrafficSceneObservation, self.inbound.om.latest(OBS_FUSED_SCENE))
+
+                if obs1:
+                    if OBS_FUSED_SCENE not in self.sink_grid_pkl.accumulator:
+                        self.sink_grid_pkl.push(OBS_FUSED_SCENE, [obs1])
+                    else:
+                        self.sink_grid_pkl.accumulator[OBS_FUSED_SCENE].append(obs1)

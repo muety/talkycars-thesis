@@ -6,6 +6,7 @@ import numpy as np
 from common import quadkey
 from common.model import DynamicActor, UncertainProperty
 from common.occupancy import Grid, GridCellState
+from common.serialization.schema.base import PEMTrafficScene
 
 _Vec3 = Tuple[float, float, float]
 _Dynamics = Tuple[_Vec3]
@@ -104,3 +105,14 @@ class OccupancyGridObservation(Observation):
     def __str__(self):
         n_occupied = len(list(filter(lambda c: c.state.value == GridCellState.OCCUPIED, self.value.cells)))
         return f'[{self.timestamp}] Occupancy grid with {len(self.value.cells)} cells ({n_occupied} occupied)'
+
+
+class PEMTrafficSceneObservation(Observation):
+    def __init__(self, timestamp, scene: PEMTrafficScene, meta: Union[Dict[str, Any], None] = None):
+        assert isinstance(scene, PEMTrafficScene)
+
+        super().__init__(timestamp)
+        self.value: PEMTrafficScene = scene
+
+    def __str__(self):
+        return f'[{self.timestamp}] PEM traffic scene measured at {self.value.timestamp}'

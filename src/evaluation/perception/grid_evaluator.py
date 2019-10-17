@@ -33,8 +33,6 @@ class GridEvaluator:
         self.data_dir: str = data_dir
         self.data_dir_actual: str = os.path.join(data_dir, 'actual')
         self.data_dir_observed: str = os.path.join(data_dir, 'observed')
-        self.data_dir_observed_local: str = os.path.join(self.data_dir_observed, 'local')
-        self.data_dir_observed_remote: str = os.path.join(self.data_dir_observed, 'remote')
 
     def run(self):
         occupancy_observations: List[Ouoc] = None
@@ -55,7 +53,7 @@ class GridEvaluator:
 
         logging.info('Reading directory info.')
 
-        files_observed: List[str] = list(filter(lambda s: s.startswith(self.file_prefix), os.listdir(self.data_dir_observed_remote)))
+        files_observed: List[str] = list(filter(lambda s: s.startswith(self.file_prefix), os.listdir(self.data_dir_observed)))
         files_actual: List[str] = list(filter(lambda s: s.startswith(self.file_prefix), os.listdir(self.data_dir_actual)))
 
         occupancy_observations: List[Ouoc] = []
@@ -72,7 +70,7 @@ class GridEvaluator:
         with tqdm(total=len(files_observed)) as pbar:
             for file_name in files_observed:
                 encoded_observations: List[Ooc] = []
-                with open(os.path.join(self.data_dir_observed_remote, file_name), 'rb') as f:
+                with open(os.path.join(self.data_dir_observed, file_name), 'rb') as f:
                     encoded_observations += pickle.load(f)
 
                 batch_size: int = len(encoded_observations) // os.cpu_count()
