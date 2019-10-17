@@ -203,8 +203,7 @@ class TalkyClient:
         logging.debug(f'GRID: {np.mean(self.tsdiffhistory2)}')
 
     def _on_remote_grid(self, msg: bytes):
-        # TODO: Maybe do asynchronously?
-        decoded_msg = PEMTrafficScene.from_bytes(msg)
+        pass
 
     def _record(self):
         while True:
