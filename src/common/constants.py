@@ -40,7 +40,7 @@ FUSION_DECAY_LAMBDA = .05
 REMOTE_PSEUDO_ID = -1
 
 RECORDING_RATE = 10  # Hz
-RECORDING_FILE_TPL = 'data/recordings/<id>_%Y-%m-%d_%H-%M-%S.csv'
+RECORDING_FILE_TPL = 'recordings/<id>_%Y-%m-%d_%H-%M-%S.csv'
 
 NPC_TARGET_SPEED = 30  # km/h
 EGO_TARGET_SPEED = 30  # km/h
@@ -59,4 +59,4 @@ SCENE2_MIN_REMAINING_EGOS = SCENE2_N_EGOS // 2
 MQTT_BASE_HOSTNAME = os.getenv('MQTT_BASE_HOSTNAME', 'localhost')
 
 EVAL2_BASE_KEY = '120203233231202'  # Town01
-EVAL2_DATA_DIR = '../../../data/evaluation/perception'
+EVAL2_DATA_DIR = 'evaluation/perception'

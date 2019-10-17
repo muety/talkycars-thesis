@@ -107,32 +107,26 @@ class TalkyClient:
         if not self.recording:
             self.sink_grid_pkl = PickleObservationSink(
                 key=OBS_FUSED_SCENE,
-                outpath=os.path.join(os.path.normpath(
-                        os.path.join(
-                            os.path.dirname(__file__),
-                            '../../data/evaluation/perception/observed',
-                        )),
-                    datetime.now()
-                        # Dirty Hack!
-                        .strftime(f'{EVAL2_BASE_KEY}_%Y-%m-%d_%H-%M-%S_part-1.pkl')
+                outpath=os.path.join(
+                    self.data_dir, EVAL2_DATA_DIR, 'observed',
+                    datetime.now().strftime(f'{EVAL2_BASE_KEY}_%Y-%m-%d_%H-%M-%S_part-1.pkl')  # Dirty Hack!
                 )
             )
 
             self.sink_grid_csv = CsvTrafficSceneSink(
                 keys=[OBS_GRID_COMBINED, OBS_ACTOR_EGO],
                 outpath=os.path.join(
-                    os.path.normpath(
-                        os.path.join(
-                            os.path.dirname(__file__),
-                            '../../'
-                        )
-                    ),
+                    self.data_dir,
                     datetime.now()
                         .strftime(RECORDING_FILE_TPL)
                         .replace('<id>', self.ego_id)
                 )
             )
         self.recording = not self.recording
+
+    @property
+    def data_dir(self):
+        return os.path.normpath(os.path.join(os.path.dirname(__file__), '../../data'))
 
     def _on_lidar(self, obs: LidarObservation):
         _ts = time.monotonic()

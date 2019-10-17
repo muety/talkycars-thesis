@@ -22,6 +22,10 @@ FLUSH_AFTER = 1e4
 logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.DEBUG)
 
 
+def data_dir():
+    return os.path.normpath(os.path.join(os.path.dirname(__file__), '../../../data'))
+
+
 class GridCollector:
     def __init__(
             self,
@@ -183,7 +187,7 @@ def run(args=sys.argv[1:]):
     argparser.add_argument('--rate', '-r', default=10, type=int, help='Tick Rate')
     argparser.add_argument('--host', default='127.0.0.1', help='IP of the host server (default: 127.0.0.1)')
     argparser.add_argument('-p', '--port', default=2000, type=int, help='TCP port to listen to (default: 2000)')
-    argparser.add_argument('-o', '--out_dir', default=EVAL2_DATA_DIR, type=str, help='Directory to dump data to')
+    argparser.add_argument('-o', '--out_dir', default=os.path.join(data_dir(), EVAL2_DATA_DIR), type=str, help='Directory to dump data to')
 
     args, _ = argparser.parse_known_args(args)
 

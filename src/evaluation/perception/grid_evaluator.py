@@ -27,6 +27,11 @@ logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.DEBUG)
 
 StateTriple = Tuple[QuadKey, float, GridCellState]
 
+
+def data_dir():
+    return os.path.normpath(os.path.join(os.path.dirname(__file__), '../../../data'))
+
+
 class GridEvaluator:
     def __init__(self, file_prefix: str, data_dir: str = '/tmp'):
         self.file_prefix: str = file_prefix
@@ -156,7 +161,7 @@ class GridEvaluator:
 def run(args=sys.argv[1:]):
     argparser = argparse.ArgumentParser(description='TalkyCars Grid Evaluator')
     argparser.add_argument('-p', '--file_prefix', required=True, type=str, help='File prefix of the data collection to be read (e.g. "120203233231202_2019-10-15_15-46-00")')
-    argparser.add_argument('-d', '--in_dir', default=EVAL2_DATA_DIR, type=str, help='Directory to read data from')
+    argparser.add_argument('-d', '--in_dir', default=os.path.join(data_dir(), EVAL2_DATA_DIR), type=str, help='Directory to read data from')
 
     args, _ = argparser.parse_known_args(args)
 
