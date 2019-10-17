@@ -4,12 +4,12 @@ from collections import deque
 from datetime import datetime
 from enum import Enum
 from threading import Thread
-from typing import cast, Dict, Optional, Deque
+from typing import cast, Dict, Optional, Deque, List
 
 import numpy as np
 
 from client.observation import ObservationManager, LinearObservationTracker
-from client.observation.sink import PklOocSink, Sink
+from client.observation.sink import PklOocSink, Sink, CsvTrafficSceneSink
 from client.subscription import TileSubscriptionService
 from client.utils import map_pem_actor, get_occupied_cells_multi
 from common.constants import *
@@ -24,7 +24,7 @@ from common.serialization.schema.actor import PEMDynamicActor
 from common.serialization.schema.base import PEMTrafficScene
 from common.serialization.schema.occupancy import PEMOccupancyGrid, PEMGridCell
 from common.serialization.schema.relation import PEMRelation
-from evaluation.perception import OccupancyObservationContainer
+from evaluation.perception import OccupancyObservationContainer as Ooc
 from .inbound import InboundController
 from .occupancy import OccupancyGridManager
 from .outbound import OutboundController
@@ -47,7 +47,8 @@ class TalkyClient:
         self.outbound: OutboundController = OutboundController(self.om, self.gm)
         self.tss: TileSubscriptionService = TileSubscriptionService(self._on_remote_grid, rate_limit=.1)
         self.tracker: LinearObservationTracker = LinearObservationTracker(n=6)
-        self.sink: Sink = None
+        self.sink_ooc: Sink = None
+        self.sink_graph_csv: Sink = None
         self.alive: bool = True
         self.recording: bool = False
         self.ego_id = str(for_subject_id)
@@ -78,6 +79,9 @@ class TalkyClient:
         self.outbound.subscribe(OBS_LIDAR_POINTS, self._on_lidar)
         self.outbound.subscribe(OBS_GRID_LOCAL, self._on_grid)
 
+        # Evaluation-related stff
+        self.local_observation_buffer: List[Ooc] = []
+
         # Debugging stuff
         self.last_publish: float = time.monotonic()
         self.tsdiffhistory1: Deque[float] = deque(maxlen=100)
@@ -91,20 +95,33 @@ class TalkyClient:
         self.om.tear_down()
         self.gm.tear_down()
 
-        self.sink.force_flush()
+        self.sink_ooc.force_flush()
 
     def toggle_recording(self):
         if not self.recording:
-            self.sink = PklOocSink(
+            self.sink_ooc = PklOocSink(
+                outpath=os.path.join(os.path.normpath(
+                        os.path.join(
+                            os.path.dirname(__file__),
+                            '../../data/evaluation/perception/observed/local',
+                        )),
+                    datetime.now()
+                        .strftime(f'{EVAL2_BASE_KEY}-local_%Y-%m-%d_%H-%M-%S_part-1.pkl')  # Dirty Hack!
+                )
+            )
+
+            self.sink_graph_csv = CsvTrafficSceneSink(
+                keys=[OBS_GRID_LOCAL, OBS_ACTOR_EGO],
                 outpath=os.path.join(
                     os.path.normpath(
                         os.path.join(
                             os.path.dirname(__file__),
-                            '../../data/evaluation/perception/observed/local',
+                            '../../'
                         )
                     ),
                     datetime.now()
-                        .strftime(f'{EVAL2_BASE_KEY}-local_%Y-%m-%d_%H-%M-%S_part-1.pkl')  # Dirty Hack!
+                        .strftime(RECORDING_FILE_TPL)
+                        .replace('<id>', self.ego_id)
                 )
             )
         self.recording = not self.recording
@@ -196,9 +213,9 @@ class TalkyClient:
         self.tss.publish_graph(encoded_msg, contained_tiles)
         self.inbound.publish(OBS_GRAPH_LOCAL, obs)
 
-        if self.recording and self.sink:
+        if self.recording and self.sink_ooc:
             for parent in set(map(lambda k: k[:REMOTE_GRID_TILE_LEVEL], contained_tiles)):
-                self.sink.push('', OccupancyObservationContainer(
+                self.local_observation_buffer.append(Ooc(
                     msg=encoded_msg,
                     tile=QuadKey(parent),
                     ts=ts
@@ -216,4 +233,23 @@ class TalkyClient:
         pass
 
     def _record(self):
-        pass
+        while True:
+            time.sleep(1 / RECORDING_RATE)
+
+            if not self.alive:
+                return
+
+            if not self.recording:
+                continue
+
+            if self.sink_graph_csv:
+                obs1 = self.inbound.om.latest(OBS_GRID_LOCAL)
+                obs2 = self.inbound.om.latest(OBS_ACTOR_EGO)
+
+                if obs1 and obs2:
+                    self.sink_graph_csv.push(OBS_GRID_LOCAL, obs1)
+                    self.sink_graph_csv.push(OBS_ACTOR_EGO, obs2)
+
+            if self.sink_ooc:
+                for obs in self.local_observation_buffer:
+                    self.sink_ooc.push('', obs)
