@@ -13,6 +13,7 @@ from client.observation.sink import PklOocSink, Sink
 from client.subscription import TileSubscriptionService
 from client.utils import map_pem_actor, get_occupied_cells_multi
 from common.constants import *
+from common.constants import EVAL2_BASE_KEY
 from common.model import DynamicActor
 from common.observation import CameraRGBObservation, ActorsObservation, EmptyObservation
 from common.observation import OccupancyGridObservation, LidarObservation, PositionObservation, \
@@ -24,7 +25,6 @@ from common.serialization.schema.base import PEMTrafficScene
 from common.serialization.schema.occupancy import PEMOccupancyGrid, PEMGridCell
 from common.serialization.schema.relation import PEMRelation
 from evaluation.perception import OccupancyObservationContainer
-from evaluation.perception.grid_collector import BASE_KEY
 from .inbound import InboundController
 from .occupancy import OccupancyGridManager
 from .outbound import OutboundController
@@ -104,7 +104,7 @@ class TalkyClient:
                         )
                     ),
                     datetime.now()
-                        .strftime(f'{BASE_KEY}-local_%Y-%m-%d_%H-%M-%S_part-1.pkl')  # Dirty Hack!
+                        .strftime(f'{EVAL2_BASE_KEY}-local_%Y-%m-%d_%H-%M-%S_part-1.pkl')  # Dirty Hack!
                 )
             )
         self.recording = not self.recording

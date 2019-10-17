@@ -57,3 +57,6 @@ SCENE2_CENTER_DIST = 95.
 SCENE2_MIN_REMAINING_EGOS = SCENE2_N_EGOS // 2
 
 MQTT_BASE_HOSTNAME = os.getenv('MQTT_BASE_HOSTNAME', 'localhost')
+
+EVAL2_BASE_KEY = '120203233231202'  # Town01
+EVAL2_DATA_DIR = '../../../data/evaluation/perception'
