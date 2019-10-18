@@ -4,7 +4,7 @@ from collections import deque
 from datetime import datetime
 from enum import Enum
 from threading import Thread
-from typing import cast, Dict, Optional, Deque, List
+from typing import cast, Dict, Optional, Deque
 
 import numpy as np
 
@@ -28,7 +28,6 @@ from common.serialization.schema.actor import PEMDynamicActor
 from common.serialization.schema.base import PEMTrafficScene
 from common.serialization.schema.occupancy import PEMOccupancyGrid, PEMGridCell
 from common.serialization.schema.relation import PEMRelation
-from evaluation.perception import OccupancyObservationContainer as Ooc
 from .inbound import InboundController
 from .occupancy import OccupancyGridManager
 from .outbound import OutboundController
@@ -85,9 +84,6 @@ class TalkyClient:
         self.outbound.subscribe(OBS_LIDAR_POINTS, self._on_lidar)
         self.outbound.subscribe(OBS_GRID_LOCAL, self._on_grid)
         self.outbound.subscribe(OBS_GRAPH_LOCAL, self._on_local_graph)
-
-        # Evaluation-related stff
-        self.local_observation_buffer: List[Ooc] = []
 
         # Debugging stuff
         self.last_publish: float = time.monotonic()
@@ -230,7 +226,7 @@ class TalkyClient:
         fused_scenes: Dict[str, PEMTrafficScene] = self.fs.get(max_age=GRID_TTL_SEC)
 
         for parent, scene in fused_scenes.items():
-            self.inbound.publish(OBS_FUSED_SCENE, PEMTrafficSceneObservation(scene.timestamp, scene, meta={'parent': parent}))
+            self.inbound.publish(OBS_FUSED_SCENE, PEMTrafficSceneObservation(scene.timestamp, scene, meta={'parent': parent, 'sender': self.ego_id}))
 
         fused_grid: Grid = FusionUtils.scenes_to_single_grid(list(fused_scenes.values()), convert_coords, self.gm.get_cell_base_z())  # Performance: ~ 0.07 sec
         self.inbound.publish(OBS_GRID_COMBINED, OccupancyGridObservation(time.time(), fused_grid))

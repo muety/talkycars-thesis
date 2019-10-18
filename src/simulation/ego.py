@@ -127,7 +127,11 @@ class Ego:
                     finally:
                         return
 
-                self.world.wait_for_tick()
+                try:
+                    self.world.wait_for_tick()
+                except RuntimeError:
+                    self.killer.kill_now = True
+                    continue
 
     def tick(self, clock: pygame.time.Clock) -> bool:
         if not self.alive:
