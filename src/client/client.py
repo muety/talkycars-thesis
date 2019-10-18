@@ -50,7 +50,11 @@ class TalkyClient:
         self.outbound: OutboundController = OutboundController(self.om, self.gm)
         self.tss: TileSubscriptionService = TileSubscriptionService(self._on_remote_graph, rate_limit=.1)
         self.tracker: LinearObservationTracker = LinearObservationTracker(n=6)
-        self.fs: FusionService[PEMTrafficScene] = FusionServiceFactory.get(PEMTrafficScene, '0' * EDGE_DISTRIBUTION_TILE_LEVEL, keep=1)
+        # This is a hack. FusionService is supposed to be initialized to handle EDGE_DISTRIBUTION_TILE_LEVEL.
+        # However, that's way too slow in Python and not yet fixed. To get at least something working on the client-side,
+        # the fusion scope will always be only exactly my current parent tile.
+        # Please note that this will result in slightly faulty results for position where my grid overlaps multiple parent tiles.
+        self.fs: FusionService[PEMTrafficScene] = FusionServiceFactory.get(PEMTrafficScene, '0' * REMOTE_GRID_TILE_LEVEL, keep=1)
         self.sink_grid_pkl: Sink = None
         self.sink_grid_csv: Sink = None
         self.alive: bool = True
@@ -104,8 +108,8 @@ class TalkyClient:
             self.sink_grid_pkl = PickleObservationSink(
                 key=OBS_FUSED_SCENE,
                 outpath=os.path.join(
-                    self.data_dir, EVAL2_DATA_DIR, 'observed',
-                    datetime.now().strftime(f'{EVAL2_BASE_KEY}_%Y-%m-%d_%H-%M-%S_part-1.pkl')  # Dirty Hack!
+                    self.data_dir, EVAL2_DATA_DIR, 'observed',  # No evaluation-related code is supposed to be here
+                    datetime.now().strftime(f'{EVAL2_BASE_KEY}_ego-{self.ego_id}_%Y-%m-%d_%H-%M-%S_part-1.pkl')
                 )
             )
 
@@ -151,7 +155,7 @@ class TalkyClient:
         qk: QuadKey = obs.to_quadkey(level=REMOTE_GRID_TILE_LEVEL)
         if qk != self.tss.current_position:
             self.tss.update_position(qk)
-            self.fs.set_sector(QuadKey(qk.key[:EDGE_DISTRIBUTION_TILE_LEVEL]))
+            self.fs.set_sector(qk)  # Dirty, dirty hack! See comment above ...
 
     def _on_grid(self, obs: OccupancyGridObservation):
         _ts = time.monotonic()
