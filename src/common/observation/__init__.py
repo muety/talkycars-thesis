@@ -26,7 +26,7 @@ class Observation(UncertainProperty[Any]):
 
 class EmptyObservation(Observation):
     def __init__(self, timestamp, meta: Union[Dict[str, Any], None] = None):
-        super().__init__(timestamp)
+        super().__init__(timestamp, meta=meta)
 
     def __str__(self):
         return f'[{self.timestamp}] Empty Observation'
@@ -40,7 +40,7 @@ class GnssObservation(EgoObservation):
     def __init__(self, timestamp, coords: _Vec3, meta: Union[Dict[str, Any], None] = None):
         assert isinstance(coords, tuple)
 
-        super().__init__(timestamp)
+        super().__init__(timestamp, meta=meta)
         self.value: _Vec3 = coords
 
     def to_quadkey(self, level=20) -> quadkey.QuadKey:
@@ -55,7 +55,7 @@ class GnssObservation(EgoObservation):
 
 class LidarObservation(EgoObservation):
     def __init__(self, timestamp, points: np.ndarray, meta: Union[Dict[str, Any], None] = None):
-        super().__init__(timestamp)
+        super().__init__(timestamp, meta=meta)
         self.value: np.ndarray = points
 
     def __str__(self):
@@ -66,7 +66,7 @@ class CameraRGBObservation(EgoObservation):
     def __init__(self, timestamp, image: np.ndarray, meta: Union[Dict[str, Any], None] = None):
         assert isinstance(image, np.ndarray)
 
-        super().__init__(timestamp)
+        super().__init__(timestamp, meta=meta)
         self.value: np.ndarray = image
 
     def __str__(self):
@@ -77,7 +77,7 @@ class PositionObservation(Observation):
     def __init__(self, timestamp, coords: _Vec3, meta: Union[Dict[str, Any], None] = None):
         assert isinstance(coords, tuple)
 
-        super().__init__(timestamp)
+        super().__init__(timestamp, meta=meta)
         self.value: _Vec3 = coords
 
     def __str__(self):
@@ -88,7 +88,7 @@ class ActorsObservation(Observation):
     def __init__(self, timestamp, actors: List[DynamicActor], meta: Union[Dict[str, Any], None] = None):
         assert isinstance(actors, list)
 
-        super().__init__(timestamp)
+        super().__init__(timestamp, meta=meta)
         self.value: List[DynamicActor] = actors
 
     def __str__(self):
@@ -99,7 +99,7 @@ class OccupancyGridObservation(Observation):
     def __init__(self, timestamp, grid: Grid, meta: Union[Dict[str, Any], None] = None):
         assert isinstance(grid, Grid)
 
-        super().__init__(timestamp)
+        super().__init__(timestamp, meta=meta)
         self.value: Grid = grid
 
     def __str__(self):
@@ -111,7 +111,7 @@ class PEMTrafficSceneObservation(Observation):
     def __init__(self, timestamp, scene: PEMTrafficScene, meta: Union[Dict[str, Any], None] = None):
         assert isinstance(scene, PEMTrafficScene)
 
-        super().__init__(timestamp)
+        super().__init__(timestamp, meta=meta)
         self.value: PEMTrafficScene = scene
 
     def __str__(self):
