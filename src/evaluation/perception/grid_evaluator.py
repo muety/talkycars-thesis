@@ -65,13 +65,19 @@ class GridEvaluator:
 
         for file_name in files_actual:
             with open(os.path.join(self.data_dir_actual, file_name), 'rb') as f:
-                occupancy_ground_truth += pickle.load(f)
+                try:
+                    occupancy_ground_truth += pickle.load(f)
+                except EOFError:
+                    logging.warning(f'File {file_name} corrupt.')
 
         logging.info(f'Reading observations.')
 
         for file_name in files_observed:
             with open(os.path.join(self.data_dir_observed, file_name), 'rb') as f:
-                occupancy_observations += pickle.load(f)
+                try:
+                    occupancy_observations += pickle.load(f)
+                except EOFError:
+                    logging.warning(f'File {file_name} corrupt.')
 
         min_obs_ts: float = min(occupancy_observations, key=lambda o: o.timestamp).timestamp
         max_obs_ts: float = max(occupancy_observations, key=lambda o: o.timestamp).timestamp
