@@ -11,6 +11,7 @@ def run():
     if sys.argv[1] in {'edgenode', 'edge'}:
         from edgenode_v1 import edgenode
         edgenode.run(sys.argv[2:])
+
     elif sys.argv[1] in {'edgenode-v2', 'edge2'}:
         import subprocess
 
@@ -33,15 +34,19 @@ def run():
         if exit_code != 0:
             logging.error(f'Command exited with code {exit_code}.')
             return
+
     elif sys.argv[1] in {'simulation', 'sim'}:
         from simulation import simulation
         simulation.run(sys.argv[2:])
+
     elif sys.argv[1] in {'ego'}:
         from simulation import ego
         ego.run(sys.argv[2:])
+
     elif sys.argv[1] in {'generator'}:
         from evaluation.performance import message_generator
         message_generator.run(sys.argv[2:])
+
     elif sys.argv[1] in {'generators'}:
         from evaluation.performance import message_generator
         from multiprocessing import Process
@@ -58,16 +63,26 @@ def run():
 
         for p in processes:
             p.join()
+
     elif sys.argv[1] in {'web'}:
         import uvicorn
         from web.server import app
         uvicorn.run(app, port=8080)
+
     elif sys.argv[1] in {'collector'}:
         from evaluation.perception import grid_collector
         grid_collector.run(sys.argv[2:])
+
     elif sys.argv[1] in {'evaluator'}:
         from evaluation.perception import grid_evaluator
         grid_evaluator.run(sys.argv[2:])
+
+    elif sys.argv[1] in {'clean'}:
+        import glob
+        list(map(os.remove, glob.glob('../data/recordings/*.csv')))
+        list(map(os.remove, glob.glob('../data/evaluation/perception/actual/*.pkl')))
+        list(map(os.remove, glob.glob('../data/evaluation/perception/observed/*.pkl')))
+
 
 if __name__ == '__main__':
     run()
