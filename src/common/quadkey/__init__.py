@@ -1,7 +1,7 @@
 import itertools
 import re
 from enum import IntEnum
-from typing import Tuple, Iterable, List, TypeVar, Generator, Dict
+from typing import Tuple, Iterable, List, Generator, Dict
 
 from .tilesystem import tilesystem
 from .util import precondition
@@ -11,8 +11,6 @@ LON_STR = 'lon'
 LATITUDE_RANGE = (-85.05112878, 85.05112878)
 LONGITUDE_RANGE = (-180., 180.)
 KEY_PATTERN = re.compile("^[0-3]+$")
-
-IntOrNone = TypeVar('IntOrNone', int, None)
 
 
 def valid_level(level):
@@ -65,17 +63,15 @@ class QuadKey:
     def nearby(self, n: int = 1) -> List[str]:
         return self.nearby_custom((range(-n, n + 1), range(-n, n + 1)))
 
-    def is_ancestor(self, node: 'QuadKey') -> IntOrNone:
+    def is_ancestor(self, node: 'QuadKey') -> bool:
         """
                 If node is ancestor of self
                 Get the difference in level
                 If not, None
         """
-        if self.level <= node.level or self.key[:len(node.key)] != node.key:
-            return None
-        return self.level - node.level
+        return not (self.level <= node.level or self.key[:len(node.key)] != node.key)
 
-    def is_descendent(self, node: 'QuadKey') -> IntOrNone:
+    def is_descendent(self, node: 'QuadKey') -> bool:
         """
                 If node is descendent of self
                 Get the difference in level
