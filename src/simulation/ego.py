@@ -101,7 +101,7 @@ class Ego:
         def on_grid(grid: OccupancyGridObservation):
             self.grid = grid.value
 
-        self.client.outbound.subscribe(OBS_GRAPH_LOCAL, on_grid)
+        self.client.outbound.subscribe(OBS_GRID_COMBINED, on_grid)
 
         if is_standalone:
             lock = Lock()
