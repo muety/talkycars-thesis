@@ -98,7 +98,10 @@ class TalkyClient:
     def tear_down(self):
         self.alive = False
         self.recording = False
-        self.sink_grid_pkl.flush()
+
+        if self.sink_grid_pkl:
+            self.sink_grid_pkl.flush()
+
         self.tss.tear_down()
         self.om.tear_down()
         self.gm.tear_down()
