@@ -9,10 +9,6 @@ def run():
         return
 
     if sys.argv[1] in {'edgenode', 'edge'}:
-        from edgenode_v1 import edgenode
-        edgenode.run(sys.argv[2:])
-
-    elif sys.argv[1] in {'edgenode-v2', 'edge2'}:
         import subprocess
 
         current_dir = os.path.dirname(os.path.realpath(__file__))
