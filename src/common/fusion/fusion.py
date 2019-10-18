@@ -47,7 +47,6 @@ class FusionService(Generic[T], ABC):
 class PEMFusionService(FusionService[PEMTrafficScene]):
     def __init__(self, sector: Union[QuadKey, str], keep=3):
         self.sector: QuadKey = None
-        self.sector_keys: Set[QuadKey] = None
         self.grid_keys: Set[QuadKey] = None
 
         self.keep: int = keep
@@ -61,10 +60,8 @@ class PEMFusionService(FusionService[PEMTrafficScene]):
     def set_sector(self, sector: Union[QuadKey, str]):
         if isinstance(sector, str):
             sector = quadkey.from_str(sector)
-        assert sector.level == EDGE_DISTRIBUTION_TILE_LEVEL
 
         self.sector = sector
-        self.sector_keys = set(sector.children(at_level=REMOTE_GRID_TILE_LEVEL))
         self.grid_keys = set(sector.children(at_level=OCCUPANCY_TILE_LEVEL))
 
         if len(self.reverse_indices) != len(self.grid_keys):
@@ -144,12 +141,17 @@ class PEMFusionService(FusionService[PEMTrafficScene]):
         if len(timestamps) != len(states):
             return dict()
 
-        states: List[np.ndarray] = [np.array(states[i]) * self._decay(timestamps[i]) for i in range(len(timestamps))]
+        now: float = time.time()
+        weights: np.ndarray = np.array([self._decay(t, now) for t in timestamps], dtype=np.float32)
+        max_weight: Union[float, np.ndarray] = np.max(weights)
+        total_weights: Union[float, np.ndarray] = np.sum(weights)
+
+        states: List[np.ndarray] = [np.array(states[i]) * w for i, w in enumerate(weights)]
         fused_grids: Dict[str, PEMOccupancyGrid] = {}
         fused_cells: Dict[str, List[PEMGridCell]] = {}  # REMOTE_GRID_TILE_LEVEL keys to cells
 
         # Step 1: Fuse states
-        fused_states: np.ndarray = np.nanmean(states, axis=0)
+        fused_states: np.ndarray = (np.nansum(states, axis=0) / total_weights) * max_weight
         mask: np.ndarray = np.isnan(fused_states).sum(axis=1) == 0
         fused_states_masked: np.ndarray = fused_states[mask]
         idx_lookup: np.ndarray = np.searchsorted(mask.cumsum(), range(fused_states_masked.shape[0]))
@@ -177,6 +179,6 @@ class PEMFusionService(FusionService[PEMTrafficScene]):
         return fused_grids
 
     @staticmethod
-    def _decay(timestamp: float) -> float:
-        t = int((time.time() - timestamp) * 10)  # t in 100ms
+    def _decay(timestamp: float, ref_time: float = time.time()) -> float:
+        t = int((ref_time - timestamp) * 10)  # t in 100ms
         return math.exp(-t * FUSION_DECAY_LAMBDA)
