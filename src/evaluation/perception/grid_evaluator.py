@@ -1,4 +1,5 @@
 import argparse
+import itertools
 import logging
 import pickle
 import sys
@@ -7,10 +8,13 @@ from typing import List, Tuple, Dict, Set
 
 from tqdm import tqdm
 
+from common import quadkey
 from common.constants import *
 from common.observation import PEMTrafficSceneObservation
 from common.occupancy import GridCellState
 from common.quadkey import QuadKey
+from common.serialization.schema.base import PEMTrafficScene
+from common.serialization.schema.occupancy import PEMOccupancyGrid
 from common.serialization.schema.relation import PEMRelation
 from evaluation.perception import OccupancyGroundTruthContainer as Ogtc
 
@@ -21,7 +25,7 @@ logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.DEBUG)
 # TODO: Multi-threading
 # TODO: Optimize Big-O complexity
 
-StateQuad = Tuple[QuadKey, float, GridCellState, int]  # Cell, Confidence, State, SenderId
+State5Tuple = Tuple[QuadKey, float, GridCellState, int, float]  # Cell, Confidence, State, SenderId, Timestamp
 
 
 def data_dir():
@@ -41,7 +45,7 @@ class GridEvaluator:
         occupancy_observations, occupancy_ground_truth = self.read_data()
 
         logging.info('Computing closest matches between ground truth and observations.')
-        matching: Set[Tuple[StateQuad, StateQuad]] = self.compute_matching(occupancy_observations, occupancy_ground_truth)
+        matching: Set[Tuple[State5Tuple, State5Tuple]] = self.compute_matching(occupancy_observations, occupancy_ground_truth)
 
         if len(matching) < 1:
             logging.warning('Did not find any match.')
@@ -81,6 +85,9 @@ class GridEvaluator:
                 except EOFError:
                     logging.warning(f'File {file_name} corrupt.')
 
+        logging.info(f'Re-arranging observations.')
+        occupancy_observations = self.split_by_level(occupancy_observations)
+
         min_obs_ts: float = min(occupancy_observations, key=lambda o: o.value.min_timestamp).value.min_timestamp
         max_obs_ts: float = max(occupancy_observations, key=lambda o: o.value.min_timestamp).value.min_timestamp
         occupancy_ground_truth = list(filter(lambda o: max_obs_ts >= o.ts >= min_obs_ts, occupancy_ground_truth))
@@ -88,30 +95,65 @@ class GridEvaluator:
         return occupancy_observations, occupancy_ground_truth
 
     @staticmethod
-    def compute_mse(matching: Set[Tuple[StateQuad, StateQuad]]) -> float:
+    def split_by_level(observations: List[PEMTrafficSceneObservation]) -> List[PEMTrafficSceneObservation]:
+        scenes: Dict[str, List[PEMTrafficSceneObservation]] = {}  # parent tile to scene
+        quad_str_lookup: Dict[int, str] = {}
+
+        for o in observations:
+            contained_parents: Set[str] = set()
+
+            for cell in o.value.occupancy_grid.cells:
+                parent_int: int = cell.hash
+                if parent_int not in quad_str_lookup:
+                    quad_str_lookup[parent_int] = quadkey.from_int(parent_int).key[:REMOTE_GRID_TILE_LEVEL]
+                parent_str: str = quad_str_lookup[parent_int]
+
+                contained_parents.add(parent_str)
+
+                if parent_str not in scenes:
+                    scenes[parent_str] = []
+
+            for parent in contained_parents:
+                scenes[parent].append(PEMTrafficSceneObservation(
+                    timestamp=o.timestamp,
+                    scene=PEMTrafficScene(**{
+                        'timestamp': o.value.timestamp,
+                        'min_timestamp': o.value.min_timestamp,
+                        'measured_by': o.value.measured_by,
+                        'occupancy_grid': PEMOccupancyGrid(**{
+                            'cells': [c for c in o.value.occupancy_grid.cells if quad_str_lookup[c.hash].startswith(parent)]
+                        })
+                    }),
+                    meta={'parent': QuadKey(parent), **o.meta}
+                ))
+
+        return list(itertools.chain(*list(scenes.values())))
+
+    @staticmethod
+    def compute_mse(matching: Set[Tuple[State5Tuple, State5Tuple]]) -> float:
         error_sum: float = 0
         for m in matching:
             error_sum += (m[0][1] - m[1][1]) ** 2 if m[0][2] == m[1][2] else 1
         return error_sum / len(matching) if len(matching) > 0 else 1
 
     @staticmethod
-    def compute_mae(matching: Set[Tuple[StateQuad, StateQuad]]) -> float:
+    def compute_mae(matching: Set[Tuple[State5Tuple, State5Tuple]]) -> float:
         error_sum: float = 0
         for m in matching:
             error_sum += abs(m[0][1] - m[1][1]) if m[0][2] == m[1][2] else 1
         return error_sum / len(matching) if len(matching) > 0 else 1
 
     @staticmethod
-    def compute_accuracy(matching: Set[Tuple[StateQuad, StateQuad]]) -> float:
+    def compute_accuracy(matching: Set[Tuple[State5Tuple, State5Tuple]]) -> float:
         count: int = 0
         for m in matching:
             count += m[0][2] == m[1][2]
         return count / len(matching) if len(matching) > 0 else 0
 
     @staticmethod
-    def compute_matching(occupancy_observations: List[PEMTrafficSceneObservation], occupancy_ground_truth: List[Ogtc]) -> Set[Tuple[StateQuad, StateQuad]]:
+    def compute_matching(occupancy_observations: List[PEMTrafficSceneObservation], occupancy_ground_truth: List[Ogtc]) -> Set[Tuple[State5Tuple, State5Tuple]]:
         sender_ids: Set[int] = set()
-        matches: Set[Tuple[StateQuad, StateQuad]] = set()
+        matches: Set[Tuple[State5Tuple, State5Tuple]] = set()
 
         actual: Dict[QuadKey, List[Ogtc]] = dict.fromkeys(map(attrgetter('tile'), occupancy_ground_truth), [])  # Parent tile keys -> Ogtc
         observed: Dict[QuadKey, Dict[int, List[PEMTrafficSceneObservation]]] = dict.fromkeys(actual.keys(), {})  # Parent tile keys -> (ego ids -> observation)
@@ -119,7 +161,7 @@ class GridEvaluator:
         quadint_map: Dict[QuadKey, int] = {}
 
         def find_closest_match(item: Ogtc, sender_id: int):
-            if item.tile not in observed or sender_id not in observed[item.tile]:
+            if item.tile not in observed or sender_id not in observed[item.tile] or len(observed[item.tile][sender_id]) < 1:
                 return None
             return min(observed[item.tile][sender_id], key=lambda o: abs(o.value.min_timestamp - item.ts))
 
@@ -130,7 +172,7 @@ class GridEvaluator:
         # Populate per-vehicle observation maps
         for obs in occupancy_observations:
             sender_id: int = obs.meta['sender']
-            parent: QuadKey = QuadKey(obs.meta['parent'])
+            parent: QuadKey = obs.meta['parent']
 
             if parent not in observed:
                 continue
@@ -144,7 +186,7 @@ class GridEvaluator:
         # Compute match for every cell
         parent_quads: Set[QuadKey] = set(actual.keys()).intersection(set(observed.keys()))
         for parent in tqdm(parent_quads):
-            items_actual: List[Ogtc] = actual[parent]
+            items_actual: List[Ogtc] = sorted(actual[parent], key=attrgetter('ts'))
 
             # Iterate over ground truth grids at parent tile level
             for i, item_actual in enumerate(items_actual):
@@ -161,7 +203,7 @@ class GridEvaluator:
 
                     # Thin out: we want to avoid having the exact same match multiple times. Therefore, if two ground-truth
                     # items are time-wise closer than the next observation, skip.
-                    if i > 0 and item_actual.ts - items_actual[i - 1].ts < abs(item_actual.ts - item_observed.value.min_timestamp):
+                    if i > 0 and abs(item_actual.ts - items_actual[i - 1].ts) < abs(item_actual.ts - item_observed.value.min_timestamp):
                         continue
 
                     # For each truly occupied cell, first, check if it was even observed by some vehicle and, second, get its state.
@@ -187,12 +229,14 @@ class GridEvaluator:
                             # Cell was not observed, e.g. because not in any vehicle's field of view -> ignore
                             continue
 
-                        c1: StateQuad = (qk, s1[0], s1[1], sid)
-                        c2: StateQuad = (qk, s2[0], s2[1], sid)
+                        c1: State5Tuple = (qk, s1[0], s1[1], sid, item_actual.ts)
+                        c2: State5Tuple = (qk, s2[0], s2[1], sid, item_actual.ts)
 
                         # A match corresponds to one cell that is (a) actually occupied and (b) contained in the current sender's observed grid
                         # with some state and some confidence
                         matches.add((c1, c2))
+
+        logging.debug(f'Matching has {len(matches)} entries.')
 
         return matches
 

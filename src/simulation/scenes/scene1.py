@@ -30,11 +30,13 @@ class Scene(AbstractScene):
         # Create egos
         main_hero = Ego(self._sim,
                         # TODO: Make this configurable through a command-line argument
-                        strategy=ManualEgoStrategy(config=0),
+                        strategy=ManualEgoStrategy(config=1),
                         name='main_hero',
                         render=True,
                         debug=False,
-                        record=False)
+                        record=False,
+                        is_talky=True,
+                        remote_only=False)
 
         self.egos.append(main_hero)
 

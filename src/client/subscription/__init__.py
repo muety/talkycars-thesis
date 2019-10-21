@@ -2,7 +2,7 @@ import logging
 import time
 from multiprocessing.pool import ThreadPool
 from threading import Lock
-from typing import Iterable, Dict, Tuple, Callable, Set, FrozenSet
+from typing import Dict, Tuple, Callable, Set, FrozenSet
 
 from common import quadkey
 from common.bridge import MqttBridge
@@ -120,7 +120,7 @@ class TileSubscriptionService:
         return True
 
     # Maybe move graph generation logic into here?
-    def publish_graph(self, encoded_msg: bytes, contained_tiles: Iterable[str]):
+    def publish_graph(self, encoded_msg: bytes):
         if not self.current_parent:
             return
 
