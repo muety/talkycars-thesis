@@ -112,7 +112,7 @@ class PEMFusionService(FusionService[PEMTrafficScene]):
             for i in range(n_states):
                 s: int = cell.state.object.value
                 c: float = cell.state.confidence
-                cell_matrix[self.indices[qk.key], i] = c if s == i else (1 - c) / n_states
+                cell_matrix[self.indices[qk.key], i] = c if s == i else 0
 
         return cell_matrix
 
