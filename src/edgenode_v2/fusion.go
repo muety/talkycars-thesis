@@ -274,7 +274,7 @@ func (s *GraphFusionService) Get(maxAge time.Duration) map[tiles.Quadkey][]byte 
 }
 
 func fuseCell(hash tiles.Quadkey, cellCount *uint32, obs *list.List, outGrid *schema.OccupancyGrid) (*CellObservation, error) {
-	var totalWeights, normalizationFactor float32
+	var totalWeights float32
 
 	now := time.Now()
 	minTimestamp := now
@@ -294,9 +294,6 @@ func fuseCell(hash tiles.Quadkey, cellCount *uint32, obs *list.List, outGrid *sc
 		weight := decay(1, o.Timestamp, now)
 
 		totalWeights += weight
-		if weight > normalizationFactor {
-			normalizationFactor = weight
-		}
 
 		stateVector[int(state)] += conf * weight
 
@@ -337,7 +334,7 @@ func fuseCell(hash tiles.Quadkey, cellCount *uint32, obs *list.List, outGrid *sc
 		return nil, err
 	}
 
-	meanStateVector := meanCellState(stateVector, totalWeights, normalizationFactor)
+	meanStateVector := meanCellState(stateVector, totalWeights, 1.0)
 	maxConf, maxState := getMaxState(meanStateVector)
 	newStateRelation.SetConfidence(maxConf)
 	newStateRelation.SetObject(maxState)
