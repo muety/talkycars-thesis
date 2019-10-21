@@ -25,7 +25,7 @@ class Scene(scene2_partial.Scene):
             logging.info(f'Creating ego {i + 1} of {common.constants.SCENE2_N_EGOS}.')
             ego: Ego = Ego(self._sim,
                            strategy=RandomPathEgoStrategy(i, self._waypoint_provider),
-                           name=f'{SCENE2_ROLE_NAME_PREFIX}_{i}',
+                           name=f'{SCENE2_EGO_PREFIX}_{i}',
                            render=i == 0,
                            debug=False,
                            record=False)

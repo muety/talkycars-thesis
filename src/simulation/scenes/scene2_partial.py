@@ -49,11 +49,11 @@ class Scene(AbstractScene):
     def create_and_spawn(self):
         self.init()
 
-        n_present: int = simulation.count_present_vehicles(SCENE2_ROLE_NAME_PREFIX, self._world)
+        n_present: int = simulation.count_present_vehicles(SCENE2_EGO_PREFIX, self._world)
         while n_present < SCENE2_N_EGOS:
             logging.info(f'Waiting for {SCENE2_N_EGOS - n_present} / {SCENE2_N_EGOS} to join the simulation.')
             time.sleep(1)
-            n_present = simulation.count_present_vehicles(SCENE2_ROLE_NAME_PREFIX, self._world)
+            n_present = simulation.count_present_vehicles(SCENE2_EGO_PREFIX, self._world)
         self._start_time = time.time()
 
         self._waypoint_provider.update(free_only=True, anywhere=True)
@@ -64,11 +64,11 @@ class Scene(AbstractScene):
 
         # Create static vehicles
         logging.info(f'Attempting to spawn {SCENE2_N_STATIC} static vehicles.')
-        self._static = simulation.spawn_static_vehicles(self._sim, SCENE2_N_STATIC)
+        self._static = simulation.spawn_static_vehicles(self._sim, SCENE2_N_STATIC, role_name_prefix=SCENE2_STATIC_PREFIX)
 
         # Create moving vehicles
         logging.info(f'Attempting to spawn {SCENE2_N_VEHICLES} NPC vehicles.')
-        self._agents = simulation.spawn_npcs(self._sim, self._waypoint_provider, SCENE2_N_VEHICLES)
+        self._agents = simulation.spawn_npcs(self._sim, self._waypoint_provider, SCENE2_N_VEHICLES, SCENE2_NPC_PREFIX)
 
     def tick(self, clock: pygame.time.Clock) -> bool:
         self._tick_count += 1
@@ -92,7 +92,7 @@ class Scene(AbstractScene):
         return False
 
     def done(self, n_remaining: int = 0):
-        return simulation.count_present_vehicles(SCENE2_ROLE_NAME_PREFIX, self._world) <= n_remaining
+        return simulation.count_present_vehicles(SCENE2_EGO_PREFIX, self._world) <= n_remaining
 
     @property
     def egos(self) -> List[Ego]:

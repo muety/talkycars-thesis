@@ -48,7 +48,7 @@ class RandomPathEgoStrategy(EgoStrategy):
         self.agent.set_location_destination(self.point_end.location)
 
     def step(self, clock=None) -> bool:
-        if self.ego is None or not self.ready and simulation.count_present_vehicles(SCENE2_ROLE_NAME_PREFIX, self.ego.world) < self.wait_for:
+        if self.ego is None or not self.ready and simulation.count_present_vehicles(SCENE2_EGO_PREFIX, self.ego.world) < self.wait_for:
             return False
 
         self.ready = True

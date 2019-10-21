@@ -5,6 +5,8 @@ import sys
 from operator import attrgetter
 from typing import List, Tuple, Dict, Set
 
+from tqdm import tqdm
+
 from common.constants import *
 from common.observation import PEMTrafficSceneObservation
 from common.occupancy import GridCellState
@@ -114,6 +116,8 @@ class GridEvaluator:
         actual: Dict[QuadKey, List[Ogtc]] = dict.fromkeys(map(attrgetter('tile'), occupancy_ground_truth), [])  # Parent tile keys -> Ogtc
         observed: Dict[QuadKey, Dict[int, List[PEMTrafficSceneObservation]]] = dict.fromkeys(actual.keys(), {})  # Parent tile keys -> (ego ids -> observation)
 
+        quadint_map: Dict[QuadKey, int] = {}
+
         def find_closest_match(item: Ogtc, sender_id: int):
             if item.tile not in observed or sender_id not in observed[item.tile]:
                 return None
@@ -138,7 +142,8 @@ class GridEvaluator:
             sender_ids.add(sender_id)
 
         # Compute match for every cell
-        for parent in set(actual.keys()).intersection(set(observed.keys())):
+        parent_quads: Set[QuadKey] = set(actual.keys()).intersection(set(observed.keys()))
+        for parent in tqdm(parent_quads):
             items_actual: List[Ogtc] = actual[parent]
 
             # Iterate over ground truth grids at parent tile level
@@ -167,7 +172,10 @@ class GridEvaluator:
                         if not qk.is_ancestor(parent):
                             continue
 
-                        inthash: int = qk.to_quadint()
+                        if qk not in quadint_map:
+                            quadint_map[qk] = qk.to_quadint()
+
+                        inthash: int = quadint_map[qk]
 
                         # True state is occupied with 100 % confidence, because only occupied cells were even recorded by the ground truth data collector
                         s1: Tuple[float, GridCellState] = (1., GridCellState.OCCUPIED)

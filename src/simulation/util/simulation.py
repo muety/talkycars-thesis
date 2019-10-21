@@ -84,7 +84,7 @@ def try_spawn_pedestrians(carla_client: carla.Client, n=10) -> List[carla.Actor]
     return [a for a in all_actors]
 
 
-def spawn_npcs(carla_client: carla.Client, wpp: WaypointProvider = None, n=10) -> List[BasicAgent]:
+def spawn_npcs(carla_client: carla.Client, wpp: WaypointProvider = None, n=10, role_name_prefix='npc') -> List[BasicAgent]:
     world: carla.World = carla_client.get_world()
     vehicle_blueprints = world.get_blueprint_library().filter('vehicle.*')
 
@@ -101,7 +101,7 @@ def spawn_npcs(carla_client: carla.Client, wpp: WaypointProvider = None, n=10) -
     batch: List[carla.command.SpawnActor] = []
     for i in range(n):
         blueprint = random.choice(vehicle_blueprints)
-        blueprint.set_attribute('role_name', f'{SCENE2_NPC_PREFIX}_{i}')
+        blueprint.set_attribute('role_name', f'{role_name_prefix}_{i}')
         if blueprint.has_attribute('color'):
             color = random.choice(blueprint.get_attribute('color').recommended_values)
             blueprint.set_attribute('color', color)
@@ -133,7 +133,7 @@ def spawn_npcs(carla_client: carla.Client, wpp: WaypointProvider = None, n=10) -
     return agents
 
 
-def spawn_static_vehicles(carla_client: carla.Client, n=10) -> List[carla.Actor]:
+def spawn_static_vehicles(carla_client: carla.Client, n=10, role_name_prefix='static') -> List[carla.Actor]:
     world: carla.World = carla_client.get_world()
     map: carla.Map = world.get_map()
 
@@ -148,7 +148,7 @@ def spawn_static_vehicles(carla_client: carla.Client, n=10) -> List[carla.Actor]
 
     for i in range(len(spawn_points)):
         bp: carla.Blueprint = random.choice(vehicle_blueprints)
-        bp.set_attribute('role_name', f'{SCENE2_NPC_PREFIX}_{i * 100}')
+        bp.set_attribute('role_name', f'{role_name_prefix}_{i * 100}')
         batch.append(carla.command.SpawnActor(bp, spawn_points[i]))
 
     results = carla_client.apply_batch_sync(batch, True)

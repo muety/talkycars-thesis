@@ -112,7 +112,7 @@ class TalkyClient:
                 key=OBS_FUSED_SCENE,
                 outpath=os.path.join(
                     self.data_dir, EVAL2_DATA_DIR, 'observed',  # No evaluation-related code is supposed to be here
-                    datetime.now().strftime(f'{EVAL2_BASE_KEY}_ego-{self.ego_id}_%Y-%m-%d_%H-%M-%S_part-1.pkl')
+                    datetime.now().strftime(f'{EVAL2_BASE_KEY}_%Y-%m-%d_%H-%M-%S_ego-{self.ego_id}_part-1.pkl')
                 )
             )
 
@@ -233,8 +233,9 @@ class TalkyClient:
         fused_scenes: Dict[str, PEMTrafficScene] = self.fs.get(max_age=GRID_TTL_SEC)
 
         for parent, scene in fused_scenes.items():
-            self.inbound.publish(OBS_FUSED_SCENE, PEMTrafficSceneObservation(scene.timestamp, scene, meta={'parent': parent, 'sender': self.ego_id}))
+            self.inbound.publish(OBS_FUSED_SCENE, PEMTrafficSceneObservation(scene.timestamp, scene, meta={'parent': parent, 'sender': int(self.ego_id)}))
 
+        # Currently only used for rendering 3D debug bounding boxes in Ego class
         fused_grid: Grid = FusionUtils.scenes_to_single_grid(list(fused_scenes.values()), convert_coords, self.gm.get_cell_base_z())  # Performance: ~ 0.07 sec
         self.inbound.publish(OBS_GRID_COMBINED, OccupancyGridObservation(time.time(), fused_grid))
 

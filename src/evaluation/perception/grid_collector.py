@@ -29,6 +29,7 @@ class GridCollector:
     def __init__(
             self,
             base_tile: QuadKey,
+            ego_prefix: str,
             carla_client: carla.Client,
             rate: int = 10,
             data_dir: str = '/tmp'
@@ -39,7 +40,7 @@ class GridCollector:
         self.data_dir: str = data_dir
         self.data_dir_actual: str = os.path.join(data_dir, 'actual')
         self.base_tile: QuadKey = base_tile
-        self.tiles: List[QuadKey] = base_tile.children(at_level=REMOTE_GRID_TILE_LEVEL)
+        self.ego_prefix: str = ego_prefix
 
         self.client: carla.Client = carla_client
         self.world: carla.World = carla_client.get_world()
@@ -125,6 +126,7 @@ class GridCollector:
         carla_actors: List[carla.Actor] = []
         carla_actors += list(self.world.get_actors().filter('vehicle.*'))
         carla_actors += list(self.world.get_actors().filter('walker.*'))
+        carla_actors = list(filter(lambda a: 'role_name' not in a.attributes or not a.attributes['role_name'].startswith(self.ego_prefix), carla_actors))  # Don't consider egos
         all_actors: Iterator[DynamicActor] = map(lambda a: map_dynamic_actor(a, self.map), carla_actors)
 
         occupied_cells: Iterator[FrozenSet[QuadKey]] = map(get_occupied_cells, all_actors)
@@ -160,6 +162,7 @@ def run(args=sys.argv[1:]):
     GridCollector(
         carla_client=client,
         base_tile=QuadKey(EVAL2_BASE_KEY),
+        ego_prefix=SCENE2_EGO_PREFIX,
         rate=args.rate,
         data_dir=os.path.normpath(
             os.path.join(os.path.dirname(__file__), args.out_dir)

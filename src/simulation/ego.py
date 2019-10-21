@@ -234,7 +234,7 @@ def run(args=sys.argv[1:]):
         elif args.strategy == 'random_path':
             arg_id: int = random.randint(0, 9999)
             arg_seed: int = 0
-            args.rolename = f'{SCENE2_ROLE_NAME_PREFIX}_{arg_id}'
+            args.rolename = f'{SCENE2_EGO_PREFIX}_{arg_id}'
             for i, a in enumerate(additional_args):
                 if a == f'{ADD_ARGS_PREFIX}seed' and len(additional_args) > i:
                     arg_seed = int(additional_args[i + 1])
