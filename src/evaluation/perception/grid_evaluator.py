@@ -81,8 +81,8 @@ class GridEvaluator:
                 except EOFError:
                     logging.warning(f'File {file_name} corrupt.')
 
-        min_obs_ts: float = min(occupancy_observations, key=lambda o: o.timestamp).timestamp
-        max_obs_ts: float = max(occupancy_observations, key=lambda o: o.timestamp).timestamp
+        min_obs_ts: float = min(occupancy_observations, key=lambda o: o.value.min_timestamp).value.min_timestamp
+        max_obs_ts: float = max(occupancy_observations, key=lambda o: o.value.min_timestamp).value.min_timestamp
         occupancy_ground_truth = list(filter(lambda o: max_obs_ts >= o.ts >= min_obs_ts, occupancy_ground_truth))
 
         return occupancy_observations, occupancy_ground_truth
@@ -121,7 +121,7 @@ class GridEvaluator:
         def find_closest_match(item: Ogtc, sender_id: int):
             if item.tile not in observed or sender_id not in observed[item.tile]:
                 return None
-            return min(observed[item.tile][sender_id], key=lambda o: abs(o.timestamp - item.ts))
+            return min(observed[item.tile][sender_id], key=lambda o: abs(o.value.min_timestamp - item.ts))
 
         # Populate ground truth map
         for k in actual.keys():
@@ -161,7 +161,7 @@ class GridEvaluator:
 
                     # Thin out: we want to avoid having the exact same match multiple times. Therefore, if two ground-truth
                     # items are time-wise closer than the next observation, skip.
-                    if i > 0 and item_actual.ts - items_actual[i - 1].ts < abs(item_actual.ts - item_observed.timestamp):
+                    if i > 0 and item_actual.ts - items_actual[i - 1].ts < abs(item_actual.ts - item_observed.value.min_timestamp):
                         continue
 
                     # For each truly occupied cell, first, check if it was even observed by some vehicle and, second, get its state.
