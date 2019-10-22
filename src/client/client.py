@@ -97,15 +97,19 @@ class TalkyClient:
         self.tsdiffhistory3: Deque[float] = deque(maxlen=100)
 
     def tear_down(self):
+        logging.debug(f'Stopping client in {GRID_TTL_SEC} seconds.')
+        time.sleep(GRID_TTL_SEC)
+
         self.alive = False
         self.recording = False
         self.om.tear_down()
         self.gm.tear_down()
 
-        if self.sink_grid_pkl:
-            self.sink_grid_pkl.flush()
         if self.tss:
             self.tss.tear_down()
+
+        if self.sink_grid_pkl:
+            self.sink_grid_pkl.flush()
 
     def toggle_recording(self):
         if not self.recording:

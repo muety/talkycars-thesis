@@ -169,9 +169,14 @@ class GridEvaluator:
         quadint_map: Dict[QuadKey, int] = {}
 
         def find_closest_match(item: Ogtc, sender_id: int):
-            if item.tile not in observed or sender_id not in observed[item.tile] or len(observed[item.tile][sender_id]) < 1:
+            if item.tile not in observed or sender_id not in observed[item.tile]:
                 return None
-            return min(observed[item.tile][sender_id], key=lambda o: abs(o.timestamp - item.ts))
+
+            candidates: List[PEMTrafficSceneObservation] = list(filter(lambda o: abs(o.timestamp - item.ts) < GRID_TTL_SEC, observed[item.tile][sender_id]))
+            if len(candidates) < 1:
+                return None
+
+            return min(candidates, key=lambda o: abs(o.timestamp - item.ts))
 
         # Populate ground truth map
         for k in actual.keys():
