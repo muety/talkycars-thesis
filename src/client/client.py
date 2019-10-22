@@ -110,7 +110,7 @@ class TalkyClient:
                 key=OBS_FUSED_SCENE,
                 outpath=os.path.join(
                     self.data_dir, EVAL2_DATA_DIR, 'observed',  # No evaluation-related code is supposed to be here
-                    datetime.now().strftime(f'{EVAL2_BASE_KEY}_%Y-%m-%d_%H-%M-%S_{"talky" if self.is_talky else "non-talky"}_{"remoteonly" if self.remote_only else ""}_ego-{self.ego_id}_part-1.pkl')
+                    datetime.now().strftime(f'{EVAL2_BASE_KEY}_%Y-%m-%d_%H-%M-%S_{"talky" if self.is_talky else "non-talky"}{"_remoteonly" if self.remote_only else ""}_ego-{self.ego_id}_part-1.pkl')
                 )
             )
 

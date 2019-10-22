@@ -85,11 +85,18 @@ class GridEvaluator:
                 except EOFError:
                     logging.warning(f'File {file_name} corrupt.')
 
+        logging.info(f'Got {len(occupancy_observations)} observations.')
+
         logging.info(f'Re-arranging observations.')
         occupancy_observations = self.split_by_level(occupancy_observations)
+        logging.info(f'Got {len(occupancy_observations)} observations after re-arranging.')
+
+        for obs in occupancy_observations:
+            # Compute average timestamp
+            obs.timestamp = obs.value.min_timestamp + (obs.value.max_timestamp - obs.value.min_timestamp) / 2
 
         min_obs_ts: float = min(occupancy_observations, key=lambda o: o.value.min_timestamp).value.min_timestamp
-        max_obs_ts: float = max(occupancy_observations, key=lambda o: o.value.min_timestamp).value.min_timestamp
+        max_obs_ts: float = max(occupancy_observations, key=lambda o: o.value.max_timestamp).value.max_timestamp
         occupancy_ground_truth = list(filter(lambda o: max_obs_ts >= o.ts >= min_obs_ts, occupancy_ground_truth))
 
         return occupancy_observations, occupancy_ground_truth
@@ -99,17 +106,17 @@ class GridEvaluator:
         scenes: Dict[str, List[PEMTrafficSceneObservation]] = {}  # parent tile to scene
         quad_str_lookup: Dict[int, str] = {}
 
+        def cache_get(quadint: int) -> str:
+            if quadint not in quad_str_lookup:
+                quad_str_lookup[quadint] = quadkey.from_int(quadint).key
+            return quad_str_lookup[quadint]
+
         for o in observations:
             contained_parents: Set[str] = set()
 
             for cell in o.value.occupancy_grid.cells:
-                parent_int: int = cell.hash
-                if parent_int not in quad_str_lookup:
-                    quad_str_lookup[parent_int] = quadkey.from_int(parent_int).key[:REMOTE_GRID_TILE_LEVEL]
-                parent_str: str = quad_str_lookup[parent_int]
-
+                parent_str: str = cache_get(cell.hash)[:REMOTE_GRID_TILE_LEVEL]
                 contained_parents.add(parent_str)
-
                 if parent_str not in scenes:
                     scenes[parent_str] = []
 
@@ -119,9 +126,10 @@ class GridEvaluator:
                     scene=PEMTrafficScene(**{
                         'timestamp': o.value.timestamp,
                         'min_timestamp': o.value.min_timestamp,
+                        'max_timestamp': o.value.max_timestamp,
                         'measured_by': o.value.measured_by,
                         'occupancy_grid': PEMOccupancyGrid(**{
-                            'cells': [c for c in o.value.occupancy_grid.cells if quad_str_lookup[c.hash].startswith(parent)]
+                            'cells': [c for c in o.value.occupancy_grid.cells if cache_get(c.hash).startswith(parent)]
                         })
                     }),
                     meta={'parent': QuadKey(parent), **o.meta}
@@ -163,7 +171,7 @@ class GridEvaluator:
         def find_closest_match(item: Ogtc, sender_id: int):
             if item.tile not in observed or sender_id not in observed[item.tile] or len(observed[item.tile][sender_id]) < 1:
                 return None
-            return min(observed[item.tile][sender_id], key=lambda o: abs(o.value.min_timestamp - item.ts))
+            return min(observed[item.tile][sender_id], key=lambda o: abs(o.timestamp - item.ts))
 
         # Populate ground truth map
         for k in actual.keys():
@@ -203,7 +211,7 @@ class GridEvaluator:
 
                     # Thin out: we want to avoid having the exact same match multiple times. Therefore, if two ground-truth
                     # items are time-wise closer than the next observation, skip.
-                    if i > 0 and abs(item_actual.ts - items_actual[i - 1].ts) < abs(item_actual.ts - item_observed.value.min_timestamp):
+                    if i > 0 and abs(item_actual.ts - items_actual[i - 1].ts) < abs(item_actual.ts - item_observed.timestamp):
                         continue
 
                     # For each truly occupied cell, first, check if it was even observed by some vehicle and, second, get its state.
@@ -236,7 +244,7 @@ class GridEvaluator:
                         # with some state and some confidence
                         matches.add((c1, c2))
 
-        logging.debug(f'Matching has {len(matches)} entries.')
+        logging.info(f'Matching has {len(matches)} entries.')
 
         return matches
 

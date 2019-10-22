@@ -20,6 +20,7 @@ import (
 type CellObservation struct {
 	Timestamp    time.Time
 	MinTimestamp time.Time
+	MaxTimestamp time.Time
 	Hash         tiles.Quadkey
 	Cell         *schema.GridCell
 }
@@ -116,7 +117,7 @@ func (s *GraphFusionService) Push(msg []byte) {
 			s.presentCells.Store(hash, ts)
 		}
 
-		s.observations.Store(getKey(hash, senderId), &CellObservation{
+		s.observations.Store(getKey(hash, senderId, ts), &CellObservation{
 			Timestamp: ts,
 			Hash:      hash,
 			Cell:      &cell,
@@ -128,6 +129,7 @@ func (s *GraphFusionService) Get(maxAge time.Duration) map[tiles.Quadkey][]byte 
 	now := time.Now()
 	nowFloat := timeToFloat(now)
 	minTs := now
+	maxTs := now.Add(-24 * time.Hour)
 	cellCount := make(map[tiles.Quadkey]*uint32)
 	messages := make(map[tiles.Quadkey]*capnp.Message)
 	scenes := make(map[tiles.Quadkey]schema.TrafficScene)
@@ -154,6 +156,9 @@ func (s *GraphFusionService) Get(maxAge time.Duration) map[tiles.Quadkey][]byte 
 				if l, ok := cells.Load(parent); ok {
 					if obs.MinTimestamp.Before(minTs) {
 						minTs = obs.MinTimestamp
+					}
+					if obs.MaxTimestamp.After(maxTs) {
+						maxTs = obs.MaxTimestamp
 					}
 					l.(*list.List).PushBack(obs.Cell)
 				}
@@ -259,6 +264,7 @@ func (s *GraphFusionService) Get(maxAge time.Duration) map[tiles.Quadkey][]byte 
 		}
 
 		scenes[parent].SetMinTimestamp(timeToFloat(minTs))
+		scenes[parent].SetMaxTimestamp(timeToFloat(maxTs))
 
 		encodedMessage, err := messages[parent].MarshalPacked()
 		if err != nil {
@@ -274,11 +280,11 @@ func (s *GraphFusionService) Get(maxAge time.Duration) map[tiles.Quadkey][]byte 
 }
 
 func fuseCell(hash tiles.Quadkey, cellCount *uint32, obs *list.List, outGrid *schema.OccupancyGrid) (*CellObservation, error) {
-	var totalWeights float32
-
 	now := time.Now()
 	minTimestamp := now
-	stateVector := []float32{0, 0, 0}
+	maxTimestamp := now.Add(-24 * time.Hour)
+	states := []float32{0, 0, 0}
+	stateWeights := []float32{0, 0, 0}
 
 	listItem := obs.Front()
 	for listItem != nil {
@@ -293,12 +299,14 @@ func fuseCell(hash tiles.Quadkey, cellCount *uint32, obs *list.List, outGrid *sc
 		conf, state := stateRelation.Confidence(), stateRelation.Object()
 		weight := decay(1, o.Timestamp, now)
 
-		totalWeights += weight
-
-		stateVector[int(state)] += conf * weight
+		states[int(state)] += conf * weight
+		stateWeights[int(state)] += weight
 
 		if o.Timestamp.Before(minTimestamp) {
 			minTimestamp = o.Timestamp
+		}
+		if o.Timestamp.After(maxTimestamp) {
+			maxTimestamp = o.Timestamp
 		}
 
 		listItem = listItem.Next()
@@ -334,7 +342,13 @@ func fuseCell(hash tiles.Quadkey, cellCount *uint32, obs *list.List, outGrid *sc
 		return nil, err
 	}
 
-	meanStateVector := meanCellState(stateVector, totalWeights, 1.0)
+	// TODO: Also fix timestamp in case unknown-observations are discarded
+	if states[schema.GridCellState_free] > 0 || states[schema.GridCellState_occupied] > 0 {
+		states[schema.GridCellState_unknown] = 0
+		stateWeights[schema.GridCellState_unknown] = 0
+	}
+
+	meanStateVector := meanCellState(states, vectorSum(stateWeights), 1.0)
 	maxConf, maxState := getMaxState(meanStateVector)
 	newStateRelation.SetConfidence(maxConf)
 	newStateRelation.SetObject(maxState)
@@ -346,6 +360,7 @@ func fuseCell(hash tiles.Quadkey, cellCount *uint32, obs *list.List, outGrid *sc
 	fusedObs := &CellObservation{
 		Timestamp:    time.Now(), // shouldn't matter ever, could be anything
 		MinTimestamp: minTimestamp,
+		MaxTimestamp: maxTimestamp,
 		Hash:         hash,
 		Cell:         &newCell,
 	}
@@ -413,11 +428,11 @@ func runFuseJob(job *CellFuseJob) *CellObservation {
 	return result
 }
 
-func getMaxState(stateVector []float32) (float32, schema.GridCellState) {
+func getMaxState(states []float32) (float32, schema.GridCellState) {
 	state := schema.GridCellState_unknown
 	maxConf := float32(0.0)
 
-	for i, conf := range stateVector {
+	for i, conf := range states {
 		if conf > maxConf {
 			maxConf = conf
 			state = schema.GridCellState(i)
@@ -434,6 +449,14 @@ func meanCellState(stateSumVector []float32, weightSum, normalizeTo float32) []f
 	}
 }
 
+func vectorSum(vec []float32) float32 {
+	var sum float32
+	for _, v := range vec {
+		sum += v
+	}
+	return sum
+}
+
 func timeToFloat(t time.Time) float64 {
 	return float64(t.UnixNano()) / math.Pow(10, 9)
 }
@@ -448,7 +471,7 @@ func decay(val float32, t, now time.Time) float32 {
 	return val * float32(factor)
 }
 
-func getKey(qk tiles.Quadkey, senderId int) string {
+func getKey(qk tiles.Quadkey, senderId int, ts time.Time) string {
 	// https://hermanschaaf.com/efficient-string-concatenation-in-go/
 	var buffer bytes.Buffer
 	buffer.WriteString(string(qk))
