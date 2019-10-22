@@ -91,9 +91,10 @@ class GridEvaluator:
         occupancy_observations = self.split_by_level(occupancy_observations)
         logging.info(f'Got {len(occupancy_observations)} observations after re-arranging.')
 
-        for obs in occupancy_observations:
-            # Compute average timestamp
-            obs.timestamp = obs.value.min_timestamp + (obs.value.max_timestamp - obs.value.min_timestamp) / 2
+        if 'remoteonly' in files_observed[0]:
+            for obs in occupancy_observations:
+                # Compute average timestamp
+                obs.timestamp = obs.value.min_timestamp + (obs.value.max_timestamp - obs.value.min_timestamp) / 2
 
         min_obs_ts: float = min(occupancy_observations, key=lambda o: o.value.min_timestamp).value.min_timestamp
         max_obs_ts: float = max(occupancy_observations, key=lambda o: o.value.max_timestamp).value.max_timestamp
