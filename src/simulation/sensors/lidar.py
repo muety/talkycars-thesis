@@ -1,4 +1,5 @@
 import logging
+import time
 import weakref
 
 import numpy as np
@@ -56,7 +57,7 @@ class LidarSensor(Sensor):
         points = map(lambda p: (p.x, p.y, p.z - image.transform.location.z), points)
         points = np.array(list(filter(lambda p: 0 <= p[2] < 30, points)), dtype=np.float32)
 
-        obs = LidarObservation(image.timestamp, points)
+        obs = LidarObservation(time.time(), points)
         self.client.inbound.publish(OBS_LIDAR_POINTS, obs)
 
         if self.recording:

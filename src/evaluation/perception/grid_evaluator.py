@@ -124,10 +124,9 @@ class GridEvaluator:
                 scenes[parent].append(PEMTrafficSceneObservation(
                     timestamp=o.timestamp,
                     scene=PEMTrafficScene(**{
-                        'timestamp': o.value.timestamp,
+                        # Unneeded information like timestamp and observer is omitted for simplicity
                         'min_timestamp': o.value.min_timestamp,
                         'max_timestamp': o.value.max_timestamp,
-                        'measured_by': o.value.measured_by,
                         'occupancy_grid': PEMOccupancyGrid(**{
                             'cells': [c for c in o.value.occupancy_grid.cells if cache_get(c.hash).startswith(parent)]
                         })

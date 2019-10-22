@@ -1,3 +1,5 @@
+import time
+
 import carla
 from client.client import TalkyClient
 from common.constants import *
@@ -21,4 +23,4 @@ class PositionSensor(Sensor):
 
     def _on_event(self, event):
         location: carla.Location = self._parent.get_location()
-        self.client.inbound.publish(OBS_POSITION, PositionObservation(event.ts, coords=(location.x, location.y, location.z)))
+        self.client.inbound.publish(OBS_POSITION, PositionObservation(time.time(), coords=(location.x, location.y, location.z)))

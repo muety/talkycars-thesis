@@ -1,3 +1,4 @@
+import time
 import weakref
 
 import carla
@@ -36,5 +37,5 @@ class GnssSensor(Sensor):
         except AttributeError:
             return
 
-        obs = GnssObservation(event.timestamp, (event.latitude, event.longitude, event.altitude - (self.offset_z / 2)))
+        obs = GnssObservation(time.time(), (event.latitude, event.longitude, event.altitude - (self.offset_z / 2)))
         self.client.inbound.publish(self._topic_key, obs)

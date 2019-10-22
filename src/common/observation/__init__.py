@@ -16,9 +16,8 @@ class Observation(UncertainProperty[Any]):
     def __init__(self, local_timestamp: int = 0, confidence: float = 1, meta: Union[Dict[str, Any], None] = None):
         assert isinstance(local_timestamp, int) or isinstance(local_timestamp, float)
 
-        self.local_timestamp: float = local_timestamp
         # Caution: Uses local platform time!
-        self.timestamp: float = datetime.now().timestamp()
+        self.timestamp: float = datetime.now().timestamp() if local_timestamp == 0 else local_timestamp
         self.meta: Union[Dict[str, Any], None] = meta
 
         super(Observation, self).__init__(confidence=confidence, value=None)

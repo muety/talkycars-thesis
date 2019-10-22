@@ -1,3 +1,4 @@
+import time
 from typing import List
 
 import carla
@@ -26,7 +27,7 @@ class ActorsSensor(Sensor):
         super().__init__(client)
 
     def tick(self, timestamp):
-        self._on_event(ActorsEvent(timestamp))
+        self._on_event(ActorsEvent(time.time()))
         self._tick_count += 1
 
     def _on_event(self, event):

@@ -229,7 +229,7 @@ class TalkyClient:
             self.last_publish = time.monotonic()
             logging.debug(f'PUBLISH: {np.mean(self.tsdiffhistory3)}')
 
-        self.inbound.publish(OBS_GRAPH_LOCAL, PEMTrafficSceneObservation(graph.timestamp, graph, meta={'sender': int(self.ego_id)}))
+        self.inbound.publish(OBS_GRAPH_LOCAL, PEMTrafficSceneObservation(time.time(), graph, meta={'sender': int(self.ego_id)}))
 
         self.tsdiffhistory2.append(time.monotonic() - _ts)
         logging.debug(f'GRID: {np.mean(self.tsdiffhistory2)}')
@@ -241,7 +241,7 @@ class TalkyClient:
     def _on_remote_graph(self, msg: bytes):
         def _pub(payload):
             decoded_msg: PEMTrafficScene = cast(PEMTrafficScene, payload)
-            self.inbound.publish(OBS_FUSED_SCENE, PEMTrafficSceneObservation(decoded_msg.timestamp, decoded_msg, meta={'sender': int(self.ego_id)}))
+            self.inbound.publish(OBS_FUSED_SCENE, PEMTrafficSceneObservation(time.time(), decoded_msg, meta={'sender': int(self.ego_id)}))
 
         self.decode_pool.apply_async(PEMTrafficScene.from_bytes, (msg,), callback=_pub)
 
