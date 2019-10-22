@@ -3,6 +3,7 @@ import time
 from collections import deque
 from datetime import datetime
 from enum import Enum
+from multiprocessing.pool import Pool
 from threading import Thread
 from typing import cast, Dict, Optional, Deque
 
@@ -63,6 +64,8 @@ class TalkyClient:
 
         self.recording_thread: Thread = Thread(target=self._record, daemon=True)
         self.recording_thread.start()
+
+        self.decode_pool: Pool = Pool()
 
         # Type registrations
         self.om.register_key(OBS_POSITION, PositionObservation)
@@ -232,8 +235,11 @@ class TalkyClient:
             self.inbound.publish(OBS_FUSED_SCENE, obs)
 
     def _on_remote_graph(self, msg: bytes):
-        decoded_msg = PEMTrafficScene.from_bytes(msg)
-        self.inbound.publish(OBS_FUSED_SCENE, PEMTrafficSceneObservation(decoded_msg.timestamp, decoded_msg, meta={'sender': int(self.ego_id)}))
+        def _pub(payload):
+            decoded_msg: PEMTrafficScene = cast(PEMTrafficScene, payload)
+            self.inbound.publish(OBS_FUSED_SCENE, PEMTrafficSceneObservation(decoded_msg.timestamp, decoded_msg, meta={'sender': int(self.ego_id)}))
+
+        self.decode_pool.apply_async(PEMTrafficScene.from_bytes, (msg,), callback=_pub)
 
     def _record(self):
         while True:
