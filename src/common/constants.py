@@ -7,8 +7,7 @@ OBS_CAMERA_RGB_IMAGE = 'camera_image'
 OBS_POSITION = 'player_pos'
 OBS_ACTOR_EGO, OBS_ACTORS_RAW = 'ego_actor', 'all_dynamic_actors'
 OBS_GRID_LOCAL, OBS_GRID_COMBINED = 'local_occupancy_grid', 'fused_combined_occupancy_grid'
-OBS_FUSED_SCENE = 'fused_traffic_scene'
-OBS_GRAPH_LOCAL = 'local_graph'
+OBS_GRAPH_LOCAL, OBS_GRAPH_REMOTE = 'local_graph', 'remote_graph'
 OBS_GNSS_PREFIX = 'pos_gnss_'
 
 ALIAS_EGO = 'ego'
@@ -35,7 +34,7 @@ EDGE_DISTRIBUTION_TILE_LEVEL = 15
 REMOTE_GRID_TILE_LEVEL = 19
 OCCUPANCY_TILE_LEVEL = 24
 
-FUSION_DECAY_LAMBDA = 0.0
+FUSION_DECAY_LAMBDA = .1
 
 REMOTE_PSEUDO_ID = -1
 

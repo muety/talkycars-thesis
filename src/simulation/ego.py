@@ -33,8 +33,6 @@ class Ego:
                  render: bool = False,
                  debug: bool = False,
                  record: bool = False,
-                 is_talky: bool = True,
-                 remote_only: bool = False,
                  is_standalone: bool = False,
                  grid_radius: float = OCCUPANCY_RADIUS_DEFAULT,
                  lidar_angle: float = LIDAR_ANGLE_DEFAULT
@@ -84,7 +82,7 @@ class Ego:
         self.player = self.vehicle
 
         # Initialize Talky Client
-        self.client = TalkyClient(for_subject_id=self.vehicle.id, dialect=ClientDialect.CARLA, is_talky=is_talky, remote_only=remote_only)
+        self.client = TalkyClient(for_subject_id=self.vehicle.id, dialect=ClientDialect.CARLA)
         self.client.gm.radius = grid_radius
 
         # Initialize sensors
@@ -103,6 +101,7 @@ class Ego:
         def on_grid(grid: OccupancyGridObservation):
             self.grid = grid.value
 
+        # Currently unused -> nothing publishes to that topic
         self.client.outbound.subscribe(OBS_GRID_COMBINED, on_grid)
 
         if is_standalone:
@@ -208,8 +207,6 @@ def run(args=sys.argv[1:]):
     argparser.add_argument('--debug', default='true', help='whether or not to show debug information (default: true)')
     argparser.add_argument('--render', default='true', help='whether or not to render the actor\'s camera view (default: true)')
     argparser.add_argument('--record', default='false', help='whether or not to record data (default: false)')
-    argparser.add_argument('--remote_only', default='false', help='whether to only rely on remote observations (default: false)')
-    argparser.add_argument('-t', '--talky', default='true', help='whether or not to produce and consume observations from / to remote edge node (default: true)')
     args, additional_args = argparser.parse_known_args(args)
 
     logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.DEBUG)
@@ -256,8 +253,6 @@ def run(args=sys.argv[1:]):
                   render=args.render.lower() == 'true',
                   debug=args.debug.lower() == 'true',
                   record=args.record.lower() == 'true',
-                  is_talky=args.talky.lower() == 'true',
-                  remote_only=args.remote_only.lower() == 'true',
                   strategy=strat,
                   is_standalone=True)
 

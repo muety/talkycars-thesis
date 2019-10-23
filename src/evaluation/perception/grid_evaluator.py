@@ -1,20 +1,24 @@
 import argparse
 import itertools
 import logging
+import math
 import pickle
 import sys
+import time
+from multiprocessing.pool import Pool, AsyncResult
 from operator import attrgetter
-from typing import List, Tuple, Dict, Set
+from typing import List, Tuple, Dict, Set, Any, Union
 
 from tqdm import tqdm
 
 from common import quadkey
 from common.constants import *
 from common.observation import PEMTrafficSceneObservation
-from common.occupancy import GridCellState
+from common.occupancy import GridCellState as Gss
 from common.quadkey import QuadKey
+from common.serialization.schema import GridCellState
 from common.serialization.schema.base import PEMTrafficScene
-from common.serialization.schema.occupancy import PEMOccupancyGrid
+from common.serialization.schema.occupancy import PEMOccupancyGrid, PEMGridCell
 from common.serialization.schema.relation import PEMRelation
 from evaluation.perception import OccupancyGroundTruthContainer as Ogtc
 
@@ -25,7 +29,9 @@ logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.DEBUG)
 # TODO: Multi-threading
 # TODO: Optimize Big-O complexity
 
-State5Tuple = Tuple[QuadKey, float, GridCellState, int, float]  # Cell, Confidence, State, SenderId, Timestamp
+State5Tuple = Tuple[QuadKey, float, Gss, int, float]  # Cell, Confidence, State, SenderId, Timestamp
+
+quad_str_lookup: Dict[int, str] = {}
 
 
 def data_dir():
@@ -41,31 +47,141 @@ class GridEvaluator:
 
     def run(self):
         occupancy_ground_truth: List[Ogtc] = None
-        occupancy_observations: List[PEMTrafficSceneObservation] = None
-        occupancy_observations, occupancy_ground_truth = self.read_data()
+        occupancy_observations_local: List[PEMTrafficSceneObservation] = None
+        occupancy_observations_remote: List[PEMTrafficSceneObservation] = None
+        occupancy_observations_fused: List[PEMTrafficSceneObservation] = None
 
-        logging.info('Computing closest matches between ground truth and observations.')
-        matching: Set[Tuple[State5Tuple, State5Tuple]] = self.compute_matching(occupancy_observations, occupancy_ground_truth)
+        occupancy_observations_local, occupancy_observations_remote, occupancy_ground_truth = self.read_data()
+
+        if len(occupancy_observations_remote) > 0:
+            logging.info('Fusing local and remote observations.')
+            occupancy_observations_fused = self.fuse_observations(occupancy_observations_local, occupancy_observations_remote)
+            logging.info(f'Got {len(occupancy_observations_fused)} observations after fusion.')
+
+            logging.info('[FUSED] Computing closest matches between ground truth and observations.')
+            matching: Set[Tuple[State5Tuple, State5Tuple]] = self.compute_matching(occupancy_observations_fused, occupancy_ground_truth)
+
+            if len(matching) < 1:
+                logging.warning('Did not find any match.')
+            else:
+                logging.info('[FUSED] Computing score.')
+                mse: float = self.compute_mse(matching)
+                acc: float = self.compute_accuracy(matching)
+                logging.info(f'[FUSED] MSE: {mse}, ACC: {acc}')
+
+        logging.info('[LOCAL ONLY] Computing closest matches between ground truth and observations.')
+        matching: Set[Tuple[State5Tuple, State5Tuple]] = self.compute_matching(occupancy_observations_local, occupancy_ground_truth)
 
         if len(matching) < 1:
             logging.warning('Did not find any match.')
-            return
+        else:
+            logging.info('[LOCAL ONLY] Computing score.')
+            mse: float = self.compute_mse(matching)
+            acc: float = self.compute_accuracy(matching)
+            logging.info(f'[LOCAL ONLY] MSE: {mse}, ACC: {acc}')
 
-        logging.info('Computing score.')
-        mse: float = self.compute_mse(matching)
-        mae: float = self.compute_mae(matching)
-        acc: float = self.compute_accuracy(matching)
+    @classmethod
+    def fuse_observations(cls, local_observations: List[PEMTrafficSceneObservation], remote_observations: List[PEMTrafficSceneObservation]) -> List[PEMTrafficSceneObservation]:
+        if len(remote_observations) < 1:
+            return local_observations
 
-        logging.info(f'MSE: {mse}, MAE: {mae}, ACC: {acc}')
+        n_threads: int = 5
+        fuse_pool: Pool = Pool(processes=n_threads)
+        mapping_result1 = cls.map_by_parent_and_sender(remote_observations)
+        mapping_result2 = cls.map_by_parent_and_sender(local_observations)
 
-    def read_data(self) -> Tuple[List[PEMTrafficSceneObservation], List[Ogtc]]:
+        mapping1: Dict[QuadKey, Dict[int, List[PEMTrafficSceneObservation]]] = mapping_result1[0]
+        mapping2: Dict[QuadKey, Dict[int, List[PEMTrafficSceneObservation]]] = mapping_result2[0]
+
+        fuse_jobs: List[Tuple[PEMTrafficSceneObservation, PEMTrafficSceneObservation]] = []
+        fused_observations: List[PEMTrafficSceneObservation] = []
+
+        for lo in local_observations:
+            # TODO: binary search tree
+            sid: int = lo.meta['sender']
+            parent: QuadKey = lo.meta['parent']
+
+            if parent in mapping1 and sid in mapping1[parent]:
+                # A remote observation, that has just arrived at the ego, can be combined with a local
+                # observation from either direction of time.
+                # fuse() will later take care of that a data point won't be available ahead of time.
+                ro1 = cls.find_closest_match(lo, 'timestamp', mapping1[parent][sid], op='-')
+                ro2 = cls.find_closest_match(lo, 'timestamp', mapping1[parent][sid], op='+')
+                fuse_jobs.extend([(lo, ro) for ro in [ro1, ro2] if ro is not None])
+
+        batch_size: int = len(fuse_jobs) // n_threads + 1
+        jobs: List[AsyncResult] = []
+
+        for i in range(n_threads):
+            jobs.append(fuse_pool.starmap_async(cls.fuse, fuse_jobs[i * batch_size:(i + 1) * batch_size], callback=fused_observations.extend, error_callback=logging.warning))
+
+        for j in jobs:
+            j.wait()
+
+        fuse_pool.close()
+
+        return fused_observations
+
+    @classmethod
+    def fuse(cls, local_observation: PEMTrafficSceneObservation, remote_observation: PEMTrafficSceneObservation) -> PEMTrafficSceneObservation:
+        assert local_observation.meta['parent'] == remote_observation.meta['parent']
+
+        cells: List[PEMGridCell] = []
+
+        t1, t2 = min([local_observation.timestamp, remote_observation.timestamp]), max([local_observation.timestamp, remote_observation.timestamp])
+        weight: float = cls._decay(t1, t2)
+        states: List[GridCellState] = GridCellState.options()
+        local_cells: Dict[QuadKey, PEMGridCell] = {QuadKey(cls.cache_get(c.hash)): c for c in local_observation.value.occupancy_grid.cells}
+        remote_cells: Dict[QuadKey, PEMGridCell] = {QuadKey(cls.cache_get(c.hash)): c for c in remote_observation.value.occupancy_grid.cells}
+        keys: Set[QuadKey] = set().union(set(local_cells.keys()), set(remote_cells.keys()))
+
+        for qk in keys:
+            if qk in local_cells and qk not in remote_cells:
+                cells.append(local_cells[qk])
+            elif qk in local_cells and qk in remote_cells:
+                weight_sum: float = 1 + weight
+                new_cell: PEMGridCell = PEMGridCell(hash=local_cells[qk].hash)
+                state_vec: List[float] = [0] * GridCellState.N
+
+                for i in range(len(state_vec)):
+                    v1: float = local_cells[qk].state.confidence * 1 if local_cells[qk].state.object == states[i] else 0
+                    v2: float = remote_cells[qk].state.confidence * weight if remote_cells[qk].state.object == states[i] else 0
+
+                    # Override unknown
+                    if i == Gss.UNKNOWN and sum(state_vec[:Gss.UNKNOWN]) > 0:
+                        if v1 > 0:
+                            v1 = 0
+                            weight_sum -= 1
+                        elif v2 > 0:
+                            v2 = 0
+                            weight_sum -= weight
+
+                    state_vec[i] = v1 + v2
+
+                state_vec = [c / weight_sum for c in state_vec]
+                max_conf: float = max(state_vec)
+                max_state: int = state_vec.index(max_conf)
+                new_cell.state = PEMRelation(object=GridCellState(value=Gss(max_state)), confidence=max_conf)
+
+                cells.append(new_cell)
+
+        return PEMTrafficSceneObservation(
+            timestamp=t2,
+            scene=PEMTrafficScene(**{
+                'occupancy_grid': PEMOccupancyGrid(cells=cells)
+            }),
+            meta=local_observation.meta
+        )
+
+    def read_data(self) -> Tuple[List[PEMTrafficSceneObservation], List[PEMTrafficSceneObservation], List[Ogtc]]:
         logging.info('Reading directory info.')
 
         files_actual: List[str] = list(filter(lambda s: s.startswith(self.file_prefix), os.listdir(self.data_dir_actual)))
         files_observed: List[str] = list(filter(lambda s: s.startswith(self.file_prefix), os.listdir(self.data_dir_observed)))
 
         occupancy_ground_truth: List[Ogtc] = []
-        occupancy_observations: List[PEMTrafficSceneObservation] = []
+        occupancy_observations_local: List[PEMTrafficSceneObservation] = []
+        occupancy_observations_remote: List[PEMTrafficSceneObservation] = []
 
         logging.info('Reading ground truth.')
 
@@ -76,47 +192,41 @@ class GridEvaluator:
                 except EOFError:
                     logging.warning(f'File {file_name} corrupt.')
 
+        logging.info(f'Got {len(occupancy_ground_truth)} ground truth data points.')
         logging.info(f'Reading observations.')
 
         for file_name in files_observed:
             with open(os.path.join(self.data_dir_observed, file_name), 'rb') as f:
                 try:
-                    occupancy_observations += pickle.load(f)
+                    if 'remote' in file_name:
+                        occupancy_observations_remote += pickle.load(f)
+                    else:
+                        occupancy_observations_local += pickle.load(f)
                 except EOFError:
                     logging.warning(f'File {file_name} corrupt.')
 
-        logging.info(f'Got {len(occupancy_observations)} observations.')
+        logging.info(f'Got {len(occupancy_observations_local)} local and {len(occupancy_observations_remote)} remote observations.')
 
         logging.info(f'Re-arranging observations.')
-        occupancy_observations = self.split_by_level(occupancy_observations)
-        logging.info(f'Got {len(occupancy_observations)} observations after re-arranging.')
+        occupancy_observations_local = self.split_by_level(occupancy_observations_local)
+        occupancy_observations_remote = self.split_by_level(occupancy_observations_remote)
+        logging.info(f'Got {len(occupancy_observations_local)} local and {len(occupancy_observations_remote)} remote observations after re-arranging.')
 
-        if 'remoteonly' in files_observed[0]:
-            for obs in occupancy_observations:
-                # Compute average timestamp
-                obs.timestamp = obs.value.min_timestamp + (obs.value.max_timestamp - obs.value.min_timestamp) / 2
-
-        min_obs_ts: float = min(occupancy_observations, key=lambda o: o.value.min_timestamp).value.min_timestamp
-        max_obs_ts: float = max(occupancy_observations, key=lambda o: o.value.max_timestamp).value.max_timestamp
+        min_obs_ts: float = min(occupancy_observations_local, key=lambda o: o.value.min_timestamp).value.min_timestamp
+        max_obs_ts: float = max(occupancy_observations_local, key=lambda o: o.value.max_timestamp).value.max_timestamp
         occupancy_ground_truth = list(filter(lambda o: max_obs_ts >= o.ts >= min_obs_ts, occupancy_ground_truth))
 
-        return occupancy_observations, occupancy_ground_truth
+        return occupancy_observations_local, occupancy_observations_remote, occupancy_ground_truth
 
-    @staticmethod
-    def split_by_level(observations: List[PEMTrafficSceneObservation]) -> List[PEMTrafficSceneObservation]:
+    @classmethod
+    def split_by_level(cls, observations: List[PEMTrafficSceneObservation]) -> List[PEMTrafficSceneObservation]:
         scenes: Dict[str, List[PEMTrafficSceneObservation]] = {}  # parent tile to scene
-        quad_str_lookup: Dict[int, str] = {}
-
-        def cache_get(quadint: int) -> str:
-            if quadint not in quad_str_lookup:
-                quad_str_lookup[quadint] = quadkey.from_int(quadint).key
-            return quad_str_lookup[quadint]
 
         for o in observations:
             contained_parents: Set[str] = set()
 
             for cell in o.value.occupancy_grid.cells:
-                parent_str: str = cache_get(cell.hash)[:REMOTE_GRID_TILE_LEVEL]
+                parent_str: str = cls.cache_get(cell.hash)[:REMOTE_GRID_TILE_LEVEL]
                 contained_parents.add(parent_str)
                 if parent_str not in scenes:
                     scenes[parent_str] = []
@@ -129,7 +239,7 @@ class GridEvaluator:
                         'min_timestamp': o.value.min_timestamp,
                         'max_timestamp': o.value.max_timestamp,
                         'occupancy_grid': PEMOccupancyGrid(**{
-                            'cells': [c for c in o.value.occupancy_grid.cells if cache_get(c.hash).startswith(parent)]
+                            'cells': [c for c in o.value.occupancy_grid.cells if cls.cache_get(c.hash).startswith(parent)]
                         })
                     }),
                     meta={'parent': QuadKey(parent), **o.meta}
@@ -158,43 +268,19 @@ class GridEvaluator:
             count += m[0][2] == m[1][2]
         return count / len(matching) if len(matching) > 0 else 0
 
-    @staticmethod
-    def compute_matching(occupancy_observations: List[PEMTrafficSceneObservation], occupancy_ground_truth: List[Ogtc]) -> Set[Tuple[State5Tuple, State5Tuple]]:
-        sender_ids: Set[int] = set()
+    @classmethod
+    def compute_matching(cls, occupancy_observations: List[PEMTrafficSceneObservation], occupancy_ground_truth: List[Ogtc]) -> Set[Tuple[State5Tuple, State5Tuple]]:
         matches: Set[Tuple[State5Tuple, State5Tuple]] = set()
-
+        mapping_result = cls.map_by_parent_and_sender(occupancy_observations)
+        sender_ids: Set[int] = mapping_result[1]
         actual: Dict[QuadKey, List[Ogtc]] = dict.fromkeys(map(attrgetter('tile'), occupancy_ground_truth), [])  # Parent tile keys -> Ogtc
-        observed: Dict[QuadKey, Dict[int, List[PEMTrafficSceneObservation]]] = dict.fromkeys(actual.keys(), {})  # Parent tile keys -> (ego ids -> observation)
+        observed: Dict[QuadKey, Dict[int, List[PEMTrafficSceneObservation]]] = mapping_result[0]  # Parent tile keys -> (ego ids -> observation)
 
         quadint_map: Dict[QuadKey, int] = {}
-
-        def find_closest_match(item: Ogtc, sender_id: int):
-            if item.tile not in observed or sender_id not in observed[item.tile]:
-                return None
-
-            candidates: List[PEMTrafficSceneObservation] = list(filter(lambda o: abs(o.timestamp - item.ts) < GRID_TTL_SEC, observed[item.tile][sender_id]))
-            if len(candidates) < 1:
-                return None
-
-            return min(candidates, key=lambda o: abs(o.timestamp - item.ts))
 
         # Populate ground truth map
         for k in actual.keys():
             actual[k] = list(filter(lambda o: o.tile == k, occupancy_ground_truth))
-
-        # Populate per-vehicle observation maps
-        for obs in occupancy_observations:
-            sender_id: int = obs.meta['sender']
-            parent: QuadKey = obs.meta['parent']
-
-            if parent not in observed:
-                continue
-
-            if sender_id not in observed[parent]:
-                observed[parent][sender_id] = []
-
-            observed[parent][sender_id].append(obs)
-            sender_ids.add(sender_id)
 
         # Compute match for every cell
         parent_quads: Set[QuadKey] = set(actual.keys()).intersection(set(observed.keys()))
@@ -208,7 +294,10 @@ class GridEvaluator:
                 for sid in sender_ids:
 
                     # Find grid (PEMTrafficSceneObservation) for current sender and current parent tile of interest
-                    item_observed: PEMTrafficSceneObservation = find_closest_match(item_actual, sid)
+                    if item_actual.tile in observed and sid in observed[item_actual.tile]:
+                        item_observed: Union[PEMTrafficSceneObservation, None] = cls.find_closest_match(item_actual, 'ts', observed[item_actual.tile][sid])
+                    else:
+                        item_observed: Union[PEMTrafficSceneObservation, None] = None
 
                     # Parent tile was not in this vehicle's range
                     if not item_observed:
@@ -233,11 +322,11 @@ class GridEvaluator:
                         inthash: int = quadint_map[qk]
 
                         # True state is occupied with 100 % confidence, because only occupied cells were even recorded by the ground truth data collector
-                        s1: Tuple[float, GridCellState] = (1., GridCellState.OCCUPIED)
+                        s1: Tuple[float, Gss] = (1., Gss.OCCUPIED)
 
                         try:
                             tmp_state: PEMRelation = next(filter(lambda c: c.hash == inthash, item_observed.value.occupancy_grid.cells)).state
-                            s2: Tuple[float, GridCellState] = (tmp_state.confidence, tmp_state.object.value)
+                            s2: Tuple[float, Gss] = (tmp_state.confidence, tmp_state.object.value)
                         except StopIteration:
                             # Cell was not observed, e.g. because not in any vehicle's field of view -> ignore
                             continue
@@ -252,6 +341,51 @@ class GridEvaluator:
         logging.info(f'Matching has {len(matches)} entries.')
 
         return matches
+
+    @staticmethod
+    def map_by_parent_and_sender(observations: List[PEMTrafficSceneObservation]) -> Tuple[Dict[QuadKey, Dict[int, List[PEMTrafficSceneObservation]]], Set[int]]:
+        mapping: Dict[QuadKey, Dict[int, List[PEMTrafficSceneObservation]]] = {}
+        sender_ids: Set[int] = set()
+
+        for obs in observations:
+            sender_id: int = obs.meta['sender']
+            parent: QuadKey = obs.meta['parent']
+
+            if parent not in mapping:
+                mapping[parent] = {}
+
+            if sender_id not in mapping[parent]:
+                mapping[parent][sender_id] = []
+
+            mapping[parent][sender_id].append(obs)
+            sender_ids.add(sender_id)
+
+        return mapping, sender_ids
+
+    @staticmethod
+    def find_closest_match(needle: Any, needle_attr: str, haystack: List[PEMTrafficSceneObservation], op: str = 'o'):
+        if op == '-':
+            candidates: List[PEMTrafficSceneObservation] = list(filter(lambda o: 0 < getattr(needle, needle_attr) - o.timestamp < GRID_TTL_SEC, haystack))
+        elif op == '+':
+            candidates: List[PEMTrafficSceneObservation] = list(filter(lambda o: 0 > getattr(needle, needle_attr) - o.timestamp > -GRID_TTL_SEC, haystack))
+        else:
+            candidates: List[PEMTrafficSceneObservation] = list(filter(lambda o: abs(getattr(needle, needle_attr) - o.timestamp) < GRID_TTL_SEC, haystack))
+
+        if len(candidates) < 1:
+            return None
+
+        return min(candidates, key=lambda o: abs(getattr(needle, needle_attr) - o.timestamp))
+
+    @staticmethod
+    def cache_get(quadint: int) -> str:
+        if quadint not in quad_str_lookup:
+            quad_str_lookup[quadint] = quadkey.from_int(quadint).key
+        return quad_str_lookup[quadint]
+
+    @staticmethod
+    def _decay(timestamp: float, ref_time: float = time.time()) -> float:
+        t = int((ref_time - timestamp) * 10)  # t in 100ms
+        return math.exp(-t * FUSION_DECAY_LAMBDA)
 
 
 def run(args=sys.argv[1:]):

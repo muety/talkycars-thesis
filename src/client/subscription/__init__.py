@@ -133,6 +133,7 @@ class TileSubscriptionService:
 
         bridge.publish(TOPIC_GRAPH_RAW_IN, encoded_msg)
 
+    @property
     def active(self) -> bool:
         return len(self.active_bridges) > 0 and all(list(map(lambda b: b.connected, self.active_bridges.values())))
 

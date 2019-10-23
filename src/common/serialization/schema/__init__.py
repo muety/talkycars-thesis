@@ -145,7 +145,7 @@ class GridCellState(CapnpObject):
         return str(self.value)
 
     def __eq__(self, other):
-        return isinstance(other, GridCellState) and other.value == self.value
+        return isinstance(other, GridCellState) and other.value == self.value or isinstance(other, int) and other == self.value
 
     def __ne__(self, other):
         return not self.__eq__(other)
