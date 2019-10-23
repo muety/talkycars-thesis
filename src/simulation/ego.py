@@ -20,7 +20,7 @@ from common.constants import *
 from common.observation import OccupancyGridObservation
 from common.occupancy import Grid
 from common.quadkey import QuadKey
-from common.util import GracefulKiller, proc_wrap
+from common.util.process import GracefulKiller, proc_wrap
 
 ADD_ARGS_PREFIX = '--strat-'
 

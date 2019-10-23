@@ -34,7 +34,7 @@ class Scene(AbstractScene):
                         name='main_hero',
                         render=True,
                         debug=False,
-                        record=False)
+                        record=True)
 
         self.egos.append(main_hero)
 

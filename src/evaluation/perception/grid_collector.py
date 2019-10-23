@@ -13,7 +13,7 @@ from common.constants import *
 from common.constants import EVAL2_BASE_KEY, EVAL2_DATA_DIR
 from common.model import DynamicActor
 from common.quadkey import QuadKey
-from common.util import GracefulKiller
+from common.util.process import GracefulKiller
 from evaluation.perception import OccupancyGroundTruthContainer
 
 FLUSH_AFTER = 1e4

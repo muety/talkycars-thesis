@@ -13,7 +13,7 @@ from util import simulation
 
 import carla
 from common.constants import FRAMERATE
-from common.util import GracefulKiller
+from common.util.process import GracefulKiller
 
 
 class World(object):

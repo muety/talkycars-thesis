@@ -9,3 +9,4 @@ class OccupancyGroundTruthContainer:
         self.occupied_cells = occupied_cells
         self.tile = tile  # parent
         self.ts = ts
+

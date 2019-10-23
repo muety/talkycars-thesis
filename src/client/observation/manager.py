@@ -6,7 +6,7 @@ from threading import Lock
 from typing import Callable, Dict, List, Type
 
 from common.observation import Observation
-from common.util import proc_wrap
+from common.util.process import proc_wrap
 
 
 class ObservationManager:

@@ -6,19 +6,21 @@ import pickle
 import sys
 import time
 from operator import attrgetter
-from typing import List, Tuple, Dict, Set, Any, Union
+from typing import List, Tuple, Dict, Set, Any, Union, cast
 
 from tqdm import tqdm
 
 from common import quadkey
+from common.bst.rb_tree import RedBlackTree
 from common.constants import *
-from common.observation import PEMTrafficSceneObservation
+from common.observation import PEMTrafficSceneObservation, Observation
 from common.occupancy import GridCellState as Gss
 from common.quadkey import QuadKey
 from common.serialization.schema import GridCellState
 from common.serialization.schema.base import PEMTrafficScene
 from common.serialization.schema.occupancy import PEMOccupancyGrid, PEMGridCell
 from common.serialization.schema.relation import PEMRelation
+from common.util.misc import multi_getattr
 from evaluation.perception import OccupancyGroundTruthContainer as Ogtc
 
 DATA_DIR = '../../../data/evaluation/perception'
@@ -36,6 +38,40 @@ quad_str_lookup: Dict[int, str] = {}
 def data_dir():
     return os.path.normpath(os.path.join(os.path.dirname(__file__), '../../../data'))
 
+
+class ObservationTree:
+    def __init__(self, key_attr: str, items: List[Observation] = None):
+        self.mapping: Dict[float, Observation] = {}
+        self.tree: RedBlackTree = RedBlackTree()
+        self.key_attr: str = key_attr
+
+        self.extend(items if items else [])
+
+    def add(self, obj: Observation):
+        key: float = multi_getattr(obj, self.key_attr)
+        self.mapping[key] = obj
+        self.tree.add(key)
+
+    def delete(self, obj: Observation):
+        key: float = multi_getattr(obj, self.key_attr)
+        del self.mapping[key]
+        self.tree.remove(key)
+
+    def extend(self, objs: List[Observation]):
+        for obj in objs:
+            self.add(obj)
+
+    def find_ceil(self, val: float) -> Observation:
+        match: float = self.tree.ceil(val)
+        return self.mapping[match] if match else None
+
+    def find_floor(self, val: float) -> Observation:
+        match: float = self.tree.floor(val)
+        return self.mapping[match] if match else None
+
+    @property
+    def size(self) -> int:
+        return self.tree.count
 
 class GridEvaluator:
     def __init__(self, file_prefix: str, data_dir: str = '/tmp'):
@@ -162,8 +198,8 @@ class GridEvaluator:
 
         min_obs_ts_local: float = min(occupancy_observations_local, key=lambda o: o.value.min_timestamp).value.min_timestamp
         max_obs_ts_local: float = max(occupancy_observations_local, key=lambda o: o.value.max_timestamp).value.max_timestamp
-        min_obs_ts_remote: float = min(occupancy_observations_local, key=lambda o: o.value.min_timestamp).value.min_timestamp if len(occupancy_observations_remote) else time.time()
-        max_obs_ts_remote: float = max(occupancy_observations_local, key=lambda o: o.value.max_timestamp).value.max_timestamp if len(occupancy_observations_remote) else 0
+        min_obs_ts_remote: float = min(occupancy_observations_remote, key=lambda o: o.value.min_timestamp).value.min_timestamp if len(occupancy_observations_remote) else time.time()
+        max_obs_ts_remote: float = max(occupancy_observations_remote, key=lambda o: o.value.max_timestamp).value.max_timestamp if len(occupancy_observations_remote) else 0
         min_obs_ts: float = min([min_obs_ts_local, min_obs_ts_remote])
         max_obs_ts: float = max([max_obs_ts_local, max_obs_ts_remote])
         occupancy_ground_truth = list(filter(lambda o: max_obs_ts >= o.ts >= min_obs_ts, occupancy_ground_truth))
@@ -228,11 +264,11 @@ class GridEvaluator:
 
         mapping_result = cls.map_by_parent_and_sender(local_observations)
         sender_ids = sender_ids.union(mapping_result[1])
-        observed_local: Dict[QuadKey, Dict[int, List[PEMTrafficSceneObservation]]] = mapping_result[0]  # Parent tile keys -> (ego ids -> observation)
+        observed_local: Dict[QuadKey, Dict[int, ObservationTree]] = mapping_result[0]  # Parent tile keys -> (ego ids -> observation)
 
         mapping_result = cls.map_by_parent_and_sender(remote_observations)
         sender_ids = sender_ids.union(mapping_result[1])
-        observed_remote: Dict[QuadKey, Dict[int, List[PEMTrafficSceneObservation]]] = mapping_result[0]
+        observed_remote: Dict[QuadKey, Dict[int, ObservationTree]] = mapping_result[0]
 
         quadint_map: Dict[QuadKey, int] = {}
 
@@ -257,9 +293,9 @@ class GridEvaluator:
                     # Find grid (PEMTrafficSceneObservation) for current sender and current parent tile of interest
                     # For every ground truth data point, get closest local- and remote observations and fuse them (later)
                     if item_actual.tile in observed_local and sid in observed_local[item_actual.tile]:
-                        item_local: Union[PEMTrafficSceneObservation, None] = cls.find_closest_match(item_actual, 'ts', observed_local[item_actual.tile][sid])
+                        item_local: Union[PEMTrafficSceneObservation, None] = cls.find_closest_match(item_actual, 'ts', observed_local[item_actual.tile][sid], sign=-1)
                     if item_actual.tile in observed_remote and sid in observed_remote[item_actual.tile]:
-                        item_remote: Union[PEMTrafficSceneObservation, None] = cls.find_closest_match(item_actual, 'ts', observed_remote[item_actual.tile][sid])
+                        item_remote: Union[PEMTrafficSceneObservation, None] = cls.find_closest_match(item_actual, 'ts', observed_remote[item_actual.tile][sid], sign=-1)
 
                     # Parent tile was not in this vehicle's range
                     if not item_local:
@@ -268,7 +304,7 @@ class GridEvaluator:
                     # Thin out: we want to avoid having the exact same match multiple times. Therefore, if two ground-truth
                     # items are time-wise closer than the next observation, skip.
                     d = abs(item_actual.ts - items_actual[i - 1].ts)
-                    if i > 0 and d < abs(item_actual.ts - item_local.timestamp):
+                    if i > 0 and d < abs(item_actual.ts - item_local.timestamp) * .5:
                         continue
 
                     item: PEMTrafficSceneObservation = item_local if not item_remote else cls.fuse(item_local, item_remote, item_actual.ts)
@@ -308,8 +344,8 @@ class GridEvaluator:
         return matches
 
     @staticmethod
-    def map_by_parent_and_sender(observations: List[PEMTrafficSceneObservation]) -> Tuple[Dict[QuadKey, Dict[int, List[PEMTrafficSceneObservation]]], Set[int]]:
-        mapping: Dict[QuadKey, Dict[int, List[PEMTrafficSceneObservation]]] = {}
+    def map_by_parent_and_sender(observations: List[PEMTrafficSceneObservation]) -> Tuple[Dict[QuadKey, Dict[int, ObservationTree]], Set[int]]:
+        mapping: Dict[QuadKey, Dict[int, ObservationTree]] = {}
         sender_ids: Set[int] = set()
 
         for obs in observations:
@@ -320,24 +356,31 @@ class GridEvaluator:
                 mapping[parent] = {}
 
             if sender_id not in mapping[parent]:
-                mapping[parent][sender_id] = []
+                mapping[parent][sender_id] = ObservationTree(key_attr='timestamp')
 
-            mapping[parent][sender_id].append(obs)
+            mapping[parent][sender_id].add(obs)
             sender_ids.add(sender_id)
 
         return mapping, sender_ids
 
     @staticmethod
-    def find_closest_match(needle: Any, needle_attr: str, haystack: List[PEMTrafficSceneObservation], signed=False):
-        if signed:
-            candidates: List[PEMTrafficSceneObservation] = list(filter(lambda o: 0 < getattr(needle, needle_attr) - o.timestamp < GRID_TTL_SEC, haystack))
-        else:
-            candidates: List[PEMTrafficSceneObservation] = list(filter(lambda o: abs(getattr(needle, needle_attr) - o.timestamp) < GRID_TTL_SEC, haystack))
+    def find_closest_match(needle: Any, needle_attr: str, haystack: ObservationTree, sign: int = 0) -> Union[PEMTrafficSceneObservation, None]:
+        match: Union[Observation, None] = None
+        ref_ts: float = getattr(needle, needle_attr)
 
-        if len(candidates) < 1:
+        if sign == 0:
+            match1 = haystack.find_ceil(ref_ts)
+            match2 = haystack.find_floor(ref_ts)
+            match = min([m for m in [match1, match2] if m is not None], key=lambda o: abs(o.timestamp - ref_ts))
+        elif sign > 0:  # greater than needle
+            match = haystack.find_ceil(ref_ts)
+        elif sign < 0:  # less than needle
+            match = haystack.find_floor(ref_ts)
+
+        if match is None or abs(match.timestamp - ref_ts) > GRID_TTL_SEC:
             return None
 
-        return min(candidates, key=lambda o: abs(getattr(needle, needle_attr) - o.timestamp))
+        return cast(PEMTrafficSceneObservation, match)
 
     @staticmethod
     def cache_get(quadint: int) -> str:
