@@ -293,9 +293,9 @@ class GridEvaluator:
                     # Find grid (PEMTrafficSceneObservation) for current sender and current parent tile of interest
                     # For every ground truth data point, get closest local- and remote observations and fuse them (later)
                     if item_actual.tile in observed_local and sid in observed_local[item_actual.tile]:
-                        item_local: Union[PEMTrafficSceneObservation, None] = cls.find_closest_match(item_actual, 'ts', observed_local[item_actual.tile][sid], sign=-1)
+                        item_local: Union[PEMTrafficSceneObservation, None] = cls.find_closest_match(item_actual, 'ts', observed_local[item_actual.tile][sid], sign=+1)
                     if item_actual.tile in observed_remote and sid in observed_remote[item_actual.tile]:
-                        item_remote: Union[PEMTrafficSceneObservation, None] = cls.find_closest_match(item_actual, 'ts', observed_remote[item_actual.tile][sid], sign=-1)
+                        item_remote: Union[PEMTrafficSceneObservation, None] = cls.find_closest_match(item_actual, 'ts', observed_remote[item_actual.tile][sid], sign=+1)
 
                     # Parent tile was not in this vehicle's range
                     if not item_local:
