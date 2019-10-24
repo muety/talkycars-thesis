@@ -2,6 +2,7 @@ import argparse
 import logging
 import os
 import sys
+import time
 
 
 def run():
@@ -39,26 +40,29 @@ def run():
         from simulation import ego
         ego.run(sys.argv[2:])
 
-    elif sys.argv[1] in {'generator'}:
-        from evaluation.performance import message_generator
-        message_generator.run(sys.argv[2:])
+    elif sys.argv[1] in {'egos'}:
+        # E.g. python3 run.py egos -n 5 --render false --debug false --record true --strat-seed 8 --strategy random_path
 
-    elif sys.argv[1] in {'generators'}:
-        from evaluation.performance import message_generator
+        from simulation import ego
         from multiprocessing import Process
 
         argparser = argparse.ArgumentParser()
-        argparser.add_argument('-n', default=1, type=int, help='Number of concurrent generators to spawn')
+        argparser.add_argument('-n', default=1, type=int, help='Number of concurrent egos to spawn')
         args, _ = argparser.parse_known_args(sys.argv[2:])
 
         processes = []
         for i in range(int(args.n)):
-            p = Process(target=message_generator.run, daemon=True, kwargs={'args': sys.argv[2:]})
+            p = Process(target=ego.run, daemon=False, kwargs={'args': sys.argv[2:]})
             p.start()
             processes.append(p)
+            time.sleep(100)
 
         for p in processes:
             p.join()
+
+    elif sys.argv[1] in {'generator'}:
+        from evaluation.performance import message_generator
+        message_generator.run(sys.argv[2:])
 
     elif sys.argv[1] in {'web'}:
         import uvicorn
