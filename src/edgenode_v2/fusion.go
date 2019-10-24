@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"container/list"
+	"fmt"
 	"math"
 	"runtime"
 	"strconv"
@@ -77,6 +78,8 @@ func (s *GraphFusionService) Init() {
 
 // Don't call Push() directly from the outside, but push graphs into s.In channel
 func (s *GraphFusionService) Push(msg []byte) {
+	t0 := time.Now()
+
 	graph, err := decodeGraph(msg)
 	if err != nil {
 		log.Error(err)
@@ -87,6 +90,8 @@ func (s *GraphFusionService) Push(msg []byte) {
 	if time.Since(ts) > GraphMaxAge {
 		return
 	}
+
+	fmt.Println(graph.Timestamp(), t0.Sub(ts), timeToFloat(t0))
 
 	measuredBy, err := graph.MeasuredBy()
 	if err != nil {
@@ -458,11 +463,11 @@ func vectorSum(vec []float32) float32 {
 }
 
 func timeToFloat(t time.Time) float64 {
-	return float64(t.UnixNano()) / math.Pow(10, 9)
+	return float64(t.UnixNano()) / 1e9
 }
 
 func floatToTime(ts float64) time.Time {
-	return time.Unix(int64(ts), int64(math.Remainder(ts, 1)*math.Pow(10, 9)))
+	return time.Unix(0, int64(ts*1e9))
 }
 
 func decay(val float32, t, now time.Time) float32 {
