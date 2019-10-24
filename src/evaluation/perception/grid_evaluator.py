@@ -89,6 +89,16 @@ class GridEvaluator:
 
         occupancy_observations_local, occupancy_observations_remote, occupancy_ground_truth = self.read_data()
 
+        logging.info('Evaluation average observation delays.')
+        d1, d2 = self.eval_mean_delays(occupancy_observations_local, occupancy_observations_remote)
+        logging.info(f'Ø local delay: {d1} sec; Ø remote delay: {d2} sec')
+
+        occupancy_observations_local, occupancy_observations_remote, occupancy_ground_truth = self.preprocess_data(
+            occupancy_observations_local,
+            occupancy_observations_remote,
+            occupancy_ground_truth
+        )
+
         tag = 'LOCAL'
         logging.info(f'[{tag}] Computing closest matches between ground truth and observations.')
         matching: Set[Tuple[State5Tuple, State5Tuple]] = self.compute_matching(occupancy_observations_local, [], occupancy_ground_truth)
@@ -98,6 +108,21 @@ class GridEvaluator:
         logging.info(f'[{tag}] Computing closest matches between ground truth and observations.')
         matching: Set[Tuple[State5Tuple, State5Tuple]] = self.compute_matching(occupancy_observations_local, occupancy_observations_remote, occupancy_ground_truth)
         self.print_scores(matching, tag)
+
+    @staticmethod
+    def eval_mean_delays(local_observations: List[PEMTrafficSceneObservation], remote_observations: List[PEMTrafficSceneObservation]) -> Tuple[float, float]:
+        local_ordered: List[PEMTrafficSceneObservation] = sorted(local_observations, key=attrgetter('timestamp'))
+        remote_ordered: List[PEMTrafficSceneObservation] = sorted(remote_observations, key=attrgetter('timestamp'))
+
+        ts1_local: List[float] = list(map(attrgetter('value.timestamp'), local_ordered))
+        ts2_local: List[float] = list(map(attrgetter('timestamp'), local_ordered))
+        ts1_remote: List[float] = list(map(attrgetter('value.max_timestamp'), remote_ordered))
+        ts2_remote: List[float] = list(map(attrgetter('timestamp'), remote_ordered))
+
+        lag_local: float = sum(map(lambda t: abs(t[0] - t[1]), zip(ts1_local, ts2_local))) / len(ts1_local)
+        lag_remote: float = sum(map(lambda t: abs(t[0] - t[1]), zip(ts1_remote, ts2_remote))) / len(ts1_remote)
+
+        return lag_local, lag_remote
 
     @classmethod
     def print_scores(cls, matching: Set[Tuple[State5Tuple, State5Tuple]], tag: str = ''):
@@ -151,7 +176,7 @@ class GridEvaluator:
                 cells.append(new_cell)
 
         return PEMTrafficSceneObservation(
-            timestamp=ref_time,
+            timestamp=ref_time,  # shouldn't matter
             scene=PEMTrafficScene(**{
                 'occupancy_grid': PEMOccupancyGrid(cells=cells)
             }),
@@ -209,9 +234,13 @@ class GridEvaluator:
 
         logging.info(f'Got {len(occupancy_observations_local)} local and {len(occupancy_observations_remote)} remote observations.')
 
+        return occupancy_observations_local, occupancy_observations_remote, occupancy_ground_truth
+
+    @classmethod
+    def preprocess_data(cls, occupancy_observations_local: List[PEMTrafficSceneObservation], occupancy_observations_remote: List[PEMTrafficSceneObservation], occupancy_ground_truth: List[Ogtc]) -> Tuple[List[PEMTrafficSceneObservation], List[PEMTrafficSceneObservation], List[Ogtc]]:
         logging.info(f'Re-arranging observations.')
-        occupancy_observations_local = self.split_by_level(occupancy_observations_local)
-        occupancy_observations_remote = self.split_by_level(occupancy_observations_remote)
+        occupancy_observations_local = cls.split_by_level(occupancy_observations_local)
+        occupancy_observations_remote = cls.split_by_level(occupancy_observations_remote)
         logging.info(f'Got {len(occupancy_observations_local)} local and {len(occupancy_observations_remote)} remote observations after re-arranging.')
 
         min_obs_ts_local: float = min(occupancy_observations_local, key=lambda o: o.value.min_timestamp).value.min_timestamp
@@ -241,7 +270,7 @@ class GridEvaluator:
                 scenes[parent].append(PEMTrafficSceneObservation(
                     timestamp=o.timestamp,
                     scene=PEMTrafficScene(**{
-                        # Unneeded information like timestamp and observer is omitted for simplicity
+                        'timestamp': o.value.timestamp,
                         'min_timestamp': o.value.min_timestamp,
                         'max_timestamp': o.value.max_timestamp,
                         'occupancy_grid': PEMOccupancyGrid(**{
