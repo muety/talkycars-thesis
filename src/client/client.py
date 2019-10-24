@@ -3,7 +3,6 @@ import time
 from collections import deque
 from datetime import datetime
 from enum import Enum
-from multiprocessing.pool import Pool
 from threading import Thread
 from typing import cast, Dict, Optional, Deque
 
@@ -16,7 +15,7 @@ from client.utils import map_pem_actor, get_occupied_cells_multi
 from common.constants import *
 from common.constants import EVAL2_BASE_KEY
 from common.model import DynamicActor
-from common.observation import CameraRGBObservation, ActorsObservation, PEMTrafficSceneObservation
+from common.observation import CameraRGBObservation, ActorsObservation, PEMTrafficSceneObservation, RawBytesObservation
 from common.observation import OccupancyGridObservation, LidarObservation, PositionObservation, \
     GnssObservation
 from common.quadkey import QuadKey
@@ -56,15 +55,13 @@ class TalkyClient:
         self.recording_thread: Thread = Thread(target=self._record, daemon=True)
         self.recording_thread.start()
 
-        self.decode_pool: Pool = Pool()
-
         # Type registrations
         self.om.register_key(OBS_POSITION, PositionObservation)
         self.om.register_key(OBS_LIDAR_POINTS, LidarObservation)
         self.om.register_key(OBS_CAMERA_RGB_IMAGE, CameraRGBObservation)
         self.om.register_key(OBS_GRID_LOCAL, OccupancyGridObservation)
         self.om.register_key(OBS_GRAPH_LOCAL, PEMTrafficSceneObservation)
-        self.om.register_key(OBS_GRAPH_REMOTE, PEMTrafficSceneObservation)
+        self.om.register_key(OBS_GRAPH_REMOTE, RawBytesObservation)
         self.om.register_key(OBS_ACTOR_EGO, ActorsObservation)
         self.om.register_key(OBS_ACTORS_RAW, ActorsObservation)
         self.om.register_key(OBS_GNSS_PREFIX + self.ego_id, GnssObservation)
@@ -231,16 +228,7 @@ class TalkyClient:
         pass
 
     def _on_remote_graph(self, msg: bytes):
-        def _pub(payload):
-            decoded_msg: PEMTrafficScene = cast(PEMTrafficScene, payload)
-
-            # There are three timestamps of interest.
-            # .timestamp represents the moment, the remote observation is available to ego
-            # .value.timestamp represents the moment, the fused observation was generated in the backend
-            # .value.min_timestamp represents the moment, the oldest contained data point was actually observed on an ego vehicle
-            self.inbound.publish(OBS_GRAPH_REMOTE, PEMTrafficSceneObservation(time.time(), decoded_msg, meta={'sender': int(self.ego_id)}))
-
-        self.decode_pool.apply_async(PEMTrafficScene.from_bytes, (msg,), callback=_pub)
+        self.inbound.publish(OBS_GRAPH_REMOTE, RawBytesObservation(time.time(), msg, meta={'sender': int(self.ego_id)}))
 
     def _record(self):
         while True:

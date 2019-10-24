@@ -13,7 +13,7 @@ from tqdm import tqdm
 from common import quadkey
 from common.bst.rb_tree import RedBlackTree
 from common.constants import *
-from common.observation import PEMTrafficSceneObservation, Observation
+from common.observation import PEMTrafficSceneObservation, Observation, RawBytesObservation
 from common.occupancy import GridCellState as Gss
 from common.quadkey import QuadKey
 from common.serialization.schema import GridCellState
@@ -72,6 +72,7 @@ class ObservationTree:
     @property
     def size(self) -> int:
         return self.tree.count
+
 
 class GridEvaluator:
     def __init__(self, file_prefix: str, data_dir: str = '/tmp'):
@@ -177,15 +178,32 @@ class GridEvaluator:
                     logging.warning(f'File {file_name} corrupt.')
 
         logging.info(f'Got {len(occupancy_ground_truth)} ground truth data points.')
-        logging.info(f'Reading observations.')
+        logging.info(f'Reading and decoding observations.')
 
         for file_name in files_observed:
             with open(os.path.join(self.data_dir_observed, file_name), 'rb') as f:
                 try:
-                    if 'remote' in file_name:
-                        occupancy_observations_remote += pickle.load(f)
+                    if 'remote' not in file_name:
+                        occupancy_observations_local.extend(pickle.load(f))
                     else:
-                        occupancy_observations_local += pickle.load(f)
+                        data = pickle.load(f)
+                        assert isinstance(data, list)
+
+                        if len(data) < 1:
+                            continue
+
+                        if isinstance(data[0], RawBytesObservation):
+                            for obs in data:
+                                try:
+                                    occupancy_observations_remote.append(PEMTrafficSceneObservation(
+                                        timestamp=obs.timestamp,
+                                        scene=PEMTrafficScene.from_bytes(obs.value),
+                                        meta=obs.meta
+                                    ))
+                                except KeyError:
+                                    continue
+                        elif isinstance(data[0], PEMTrafficSceneObservation):
+                            occupancy_observations_remote.extend(data)
                 except EOFError:
                     logging.warning(f'File {file_name} corrupt.')
 

@@ -106,6 +106,17 @@ class OccupancyGridObservation(Observation):
         return f'[{self.timestamp}] Occupancy grid with {len(self.value.cells)} cells ({n_occupied} occupied)'
 
 
+class RawBytesObservation(Observation):
+    def __init__(self, timestamp, data: bytes, meta: Union[Dict[str, Any], None] = None):
+        assert isinstance(data, bytes)
+
+        super().__init__(timestamp, meta=meta)
+        self.value: bytes = data
+
+    def __str__(self):
+        return f'[{self.timestamp}] Bytes of length {len(self.value)}'
+
+
 class PEMTrafficSceneObservation(Observation):
     def __init__(self, timestamp, scene: PEMTrafficScene, meta: Union[Dict[str, Any], None] = None):
         assert isinstance(scene, PEMTrafficScene)
