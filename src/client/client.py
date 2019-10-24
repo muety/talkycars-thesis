@@ -44,7 +44,7 @@ class TalkyClient:
         self.gm: OccupancyGridManager = OccupancyGridManager(OCCUPANCY_TILE_LEVEL, grid_radius)
         self.inbound: InboundController = InboundController(self.om, self.gm)
         self.outbound: OutboundController = OutboundController(self.om, self.gm)
-        self.tss: TileSubscriptionService = TileSubscriptionService(self._on_remote_graph, rate_limit=.1)
+        self.tss: TileSubscriptionService = TileSubscriptionService(self._on_remote_graph, rate_limit=.05)
         self.tracker: LinearObservationTracker = LinearObservationTracker(n=6)
         self.remote_grid_sink: Sink = None
         self.local_grid_sink: Sink = None
