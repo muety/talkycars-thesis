@@ -38,7 +38,7 @@ FUSION_DECAY_LAMBDA = .03
 
 REMOTE_PSEUDO_ID = -1
 
-RECORDING_RATE = 10  # Hz
+RECORDING_RATE = 15  # Hz
 RECORDING_FILE_TPL = 'recordings/<id>_%Y-%m-%d_%H-%M-%S.csv'
 
 NPC_TARGET_SPEED = 30  # km/h
