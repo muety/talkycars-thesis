@@ -111,8 +111,8 @@ class GridEvaluator:
 
     @staticmethod
     def eval_mean_delays(local_observations: List[PEMTrafficSceneObservation], remote_observations: List[PEMTrafficSceneObservation]) -> Tuple[float, float]:
-        local_ordered: List[PEMTrafficSceneObservation] = sorted(local_observations, key=attrgetter('timestamp'))
-        remote_ordered: List[PEMTrafficSceneObservation] = sorted(remote_observations, key=attrgetter('timestamp'))
+        local_ordered: List[PEMTrafficSceneObservation] = sorted(local_observations, key=lambda v: (v.meta['sender'], v.timestamp))
+        remote_ordered: List[PEMTrafficSceneObservation] = sorted(remote_observations, key=lambda v: (v.meta['sender'], v.timestamp))
 
         ts1_local: List[float] = list(map(attrgetter('value.timestamp'), local_ordered))
         ts2_local: List[float] = list(map(attrgetter('timestamp'), local_ordered))

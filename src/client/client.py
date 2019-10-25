@@ -6,8 +6,6 @@ from enum import Enum
 from threading import Thread
 from typing import cast, Dict, Optional, Deque
 
-import numpy as np
-
 from client.observation import ObservationManager, LinearObservationTracker
 from client.observation.sink import Sink, PickleObservationSink
 from client.subscription import TileSubscriptionService
@@ -84,7 +82,7 @@ class TalkyClient:
         self.tsdiffhistory3: Deque[float] = deque(maxlen=100)
 
     def tear_down(self):
-        logging.debug(f'Stopping client in {GRID_TTL_SEC} seconds.')
+        logging.info(f'Stopping client in {GRID_TTL_SEC} seconds.')
         time.sleep(GRID_TTL_SEC)
 
         self.alive = False
@@ -146,7 +144,7 @@ class TalkyClient:
         self.inbound.publish(OBS_GRID_LOCAL, obs)
 
         self.tsdiffhistory1.append(time.monotonic() - _ts)
-        logging.debug(f'LIDAR: {np.mean(self.tsdiffhistory1)}')
+        # logging.debug(f'LIDAR: {np.mean(self.tsdiffhistory1)}')
 
     def _on_gnss(self, obs: GnssObservation):
         qk: QuadKey = obs.to_quadkey(level=REMOTE_GRID_TILE_LEVEL)
@@ -217,12 +215,12 @@ class TalkyClient:
             # Debug logging
             self.tsdiffhistory3.append(time.monotonic() - self.last_publish)
             self.last_publish = time.monotonic()
-            logging.debug(f'PUBLISH: {np.mean(self.tsdiffhistory3)}')
+            # logging.debug(f'PUBLISH: {np.mean(self.tsdiffhistory3)}')
 
         self.inbound.publish(OBS_GRAPH_LOCAL, PEMTrafficSceneObservation(time.time(), graph, meta={'sender': int(self.ego_id)}))
 
         self.tsdiffhistory2.append(time.monotonic() - _ts)
-        logging.debug(f'GRID: {np.mean(self.tsdiffhistory2)}')
+        # logging.debug(f'GRID: {np.mean(self.tsdiffhistory2)}')
 
     def _on_local_graph(self, obs: PEMTrafficSceneObservation):
         pass
