@@ -116,13 +116,13 @@ class GridEvaluator:
 
         ts1_local: List[float] = list(map(attrgetter('value.timestamp'), local_ordered))
         ts2_local: List[float] = list(map(attrgetter('timestamp'), local_ordered))
-        ts1_remote: List[float] = list(map(attrgetter('value.max_timestamp'), remote_ordered))
+        ts1_remote: List[float] = list(map(attrgetter('value.timestamp'), remote_ordered))
         ts2_remote: List[float] = list(map(attrgetter('timestamp'), remote_ordered))
 
         lag_local: float = sum(map(lambda t: abs(t[0] - t[1]), zip(ts1_local, ts2_local))) / len(ts1_local)
         lag_remote: float = sum(map(lambda t: abs(t[0] - t[1]), zip(ts1_remote, ts2_remote))) / len(ts1_remote)
 
-        return lag_local, lag_remote
+        return lag_local, lag_local + lag_remote
 
     @classmethod
     def print_scores(cls, matching: Set[Tuple[State5Tuple, State5Tuple]], tag: str = ''):
