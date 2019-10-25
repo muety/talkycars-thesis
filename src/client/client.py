@@ -201,8 +201,6 @@ class TalkyClient:
 
         # Generate PEM graph
         graph = PEMTrafficScene(timestamp=ts,
-                                min_timestamp=ts,
-                                max_timestamp=ts,
                                 measured_by=pem_ego,
                                 occupancy_grid=pem_grid)
 

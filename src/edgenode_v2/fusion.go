@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"container/list"
-	"fmt"
 	"math"
 	"runtime"
 	"strconv"
@@ -78,8 +77,6 @@ func (s *GraphFusionService) Init() {
 
 // Don't call Push() directly from the outside, but push graphs into s.In channel
 func (s *GraphFusionService) Push(msg []byte) {
-	t0 := time.Now()
-
 	graph, err := decodeGraph(msg)
 	if err != nil {
 		log.Error(err)
@@ -90,8 +87,6 @@ func (s *GraphFusionService) Push(msg []byte) {
 	if time.Since(ts) > GraphMaxAge {
 		return
 	}
-
-	fmt.Println(graph.Timestamp(), t0.Sub(ts), timeToFloat(t0))
 
 	measuredBy, err := graph.MeasuredBy()
 	if err != nil {
