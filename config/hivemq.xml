@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<hivemq>
+
+    <listeners>
+        <tcp-listener>
+            <port>1883</port>
+            <bind-address>0.0.0.0</bind-address>
+        </tcp-listener>
+    </listeners>
+
+    <persistence>
+        <client-session>
+            <queued-messages>
+                <max-queue-size>10</max-queue-size>
+                <strategy>discard</strategy>
+            </queued-messages>
+        </client-session>
+    </persistence>
+
+    <anonymous-usage-statistics>
+        <enabled>false</enabled>
+    </anonymous-usage-statistics>
+
+    <mqtt>
+        <publish-ttl>2</publish-ttl>
+    </mqtt>
+</hivemq>
