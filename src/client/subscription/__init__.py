@@ -1,7 +1,4 @@
 import logging
-import time
-from multiprocessing.pool import ThreadPool
-from threading import Lock
 from typing import Dict, Tuple, Callable, Set, FrozenSet
 
 from common import quadkey
@@ -32,25 +29,21 @@ class TileSubscriptionService:
     def __init__(
             self,
             on_graph_cb: Callable,
-            rate_limit: float = 0.0,
             manual_mode: bool = False,
+            client_id: str = '',
             topic_prefix: str = TOPIC_PREFIX_GRAPH_FUSED_OUT,
             edge_node_level: int = EDGE_DISTRIBUTION_TILE_LEVEL,
             remote_tile_level: int = REMOTE_GRID_TILE_LEVEL,
     ):
+        self.client_id: str = client_id
         self.active_bridges: Dict[str, MqttBridge] = {}
         self.active_subscriptions: Set[str] = set()
-        self.current_position: QuadKey = None
         self.current_parent: QuadKey = None
-        self.on_graph_cb = self._wrap_graph_callback(on_graph_cb)
-        self.rate_limit: float = rate_limit
+        self.on_graph_cb = on_graph_cb
         self.manual_mode: bool = manual_mode
         self.edge_node_level: int = edge_node_level
         self.remote_tile_level: int = remote_tile_level
         self.topic_prefix: int = topic_prefix
-        self.locks: Dict[str, Lock] = {'graph': Lock()}
-
-        self.pool: ThreadPool = ThreadPool(1)
 
     def update_position(self, qk: QuadKey) -> bool:
         parent = quadkey.from_str(qk.key[:self.remote_tile_level])
@@ -61,13 +54,14 @@ class TileSubscriptionService:
         logging.debug(f'Subscription-relevant tile changed from {self.current_parent} to {parent}.')
 
         sub_tiles = frozenset(parent.nearby(1))
+        # sub_tiles = frozenset([parent.key])
         node_tiles = frozenset([key[:self.edge_node_level] for key in sub_tiles])
 
         if self.update_subscriptions(sub_tiles, node_tiles):
-            self.current_position = qk
             self.current_parent = parent
             return True
 
+        logging.warning(f'Failed to update position to {qk}.')
         return False
 
     def update_subscriptions(self, tiles: FrozenSet[str], node_tiles: FrozenSet[str]) -> bool:
@@ -82,7 +76,11 @@ class TileSubscriptionService:
         for node_key in node_tiles.difference(set(self.active_bridges.keys())):
             logging.debug(f'Connecting to {node_key}')
 
-            bridge = MqttBridge(*self._resolve_mqtt_geodns(quadkey.from_str(node_key)))
+            bridge = MqttBridge(
+                *self._resolve_mqtt_geodns(quadkey.from_str(node_key)),
+                client_id=f'{self.client_id}_{node_key}',
+                discard_when_busy=True
+            )
             try:
                 bridge.listen(block=False)
             except:
@@ -122,6 +120,7 @@ class TileSubscriptionService:
     # Maybe move graph generation logic into here?
     def publish_graph(self, encoded_msg: bytes):
         if not self.current_parent:
+            logging.warning('Tried to publish graph, but no current parent is set')
             return
 
         # TODO: Publish to multiple bridges in case my observed grid stretches
@@ -129,6 +128,7 @@ class TileSubscriptionService:
         bridge = self._try_get_bridge(self.current_parent.key)
 
         if not bridge:
+            logging.warning('Tried to publish graph, but no bridge was found')
             return
 
         bridge.publish(TOPIC_GRAPH_RAW_IN, encoded_msg)
@@ -147,27 +147,6 @@ class TileSubscriptionService:
             logging.warning(f'No active bridge responsible for {for_key} found.')
             return None
         return self.active_bridges[for_key]
-
-    def _wrap_graph_callback(self, cb: Callable) -> Callable:
-        def wcb(args):
-            lock = self.locks['graph']
-            if lock.locked():
-                return
-
-            lock.acquire()
-
-            cb(args)
-
-            if self.rate_limit > 0:
-                def unlock():
-                    time.sleep(self.rate_limit)
-                    lock.release()
-
-                self.pool.apply_async(unlock)
-            else:
-                lock.release()
-
-        return wcb
 
     '''
         Mocks an actual DNS-like type of system to resolve quad keys of node tiles to broker addresses.

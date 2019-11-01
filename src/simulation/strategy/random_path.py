@@ -1,5 +1,6 @@
 import logging
 import random
+import time
 from typing import cast
 
 from agents.navigation.basic_agent import BasicAgent
@@ -29,6 +30,7 @@ class RandomPathEgoStrategy(EgoStrategy):
 
         self._player: carla.Vehicle = None
         self._step_count: int = 0
+        self._start_time: float = 0
 
     def init(self, ego):
         super().init(ego)
@@ -51,7 +53,14 @@ class RandomPathEgoStrategy(EgoStrategy):
         if self.ego is None or not self.ready and simulation.count_present_vehicles(SCENE2_EGO_PREFIX, self.ego.world) < self.wait_for:
             return False
 
+        if self._start_time == 0:
+            self._start_time = time.monotonic()
+
         self.ready = True
+
+        # Wait some time before starting
+        if time.monotonic() - self._start_time < 3.0:
+            return False
 
         control: carla.VehicleControl = self.agent.run_step(debug=False)
         self._step_count += 1

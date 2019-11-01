@@ -1,12 +1,9 @@
 import time
 from collections import deque
-from multiprocessing.dummy import Pool
-from multiprocessing.pool import AsyncResult
 from threading import Lock
 from typing import Callable, Dict, List, Type
 
 from common.observation import Observation
-from common.util.process import proc_wrap
 
 
 class ObservationManager:
@@ -18,7 +15,6 @@ class ObservationManager:
         self.subscribers: Dict[str, List[Callable]] = {}
         self.locks: Dict[str, Lock] = {}
         self.aliases: Dict[str, str] = {}
-        self.pool: Pool = Pool(processes=4)
 
     '''
     Optional method to explicitly initialize an observation queue for a specific key upfront.
@@ -69,15 +65,11 @@ class ObservationManager:
             return
 
         with lock:
-            async_results: List[AsyncResult] = []
             self.observations[key].append(observation)
             self.last_update[key] = observation.timestamp
 
             for f in self.subscribers[key]:
-                async_results.append(self.pool.apply_async(proc_wrap, (f, observation,)))
-
-            for r in async_results:
-                r.wait()
+                f(observation)
 
     def has(self, key: str, max_age: float = float('inf')) -> bool:
         if key in self.aliases:
@@ -102,6 +94,4 @@ class ObservationManager:
         return self.get(key, -1, max_age)
 
     def tear_down(self):
-        self.pool.close()
-        self.pool.join()
-        self.pool.terminate()
+        pass

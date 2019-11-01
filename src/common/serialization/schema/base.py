@@ -23,6 +23,7 @@ class PEMTrafficScene(CapnpObject):
         self.timestamp: float = time.time()  # UTC Unix timestamp
         self.min_timestamp: float = time.time()  # UTC Unix timestamp
         self.max_timestamp: float = time.time()  # UTC Unix timestamp
+        self.last_timestamp: float = time.time()  # UTC Unix timestamp
         self.measured_by: PEMDynamicActor = None
         self.occupancy_grid: PEMOccupancyGrid = None
 
@@ -38,6 +39,8 @@ class PEMTrafficScene(CapnpObject):
             scene.minTimestamp = self.min_timestamp
         if self.max_timestamp:
             scene.maxTimestamp = self.max_timestamp
+        if self.last_timestamp:
+            scene.lastTimestamp = self.last_timestamp
         if self.measured_by:
             scene.measuredBy = self.measured_by.to_message()
         if self.occupancy_grid:
@@ -50,12 +53,14 @@ class PEMTrafficScene(CapnpObject):
         timestamp = object_dict['timestamp'] if 'timestamp' in object_dict else None
         min_timestamp = object_dict['minTimestamp'] if 'minTimestamp' in object_dict else None
         max_timestamp = object_dict['maxTimestamp'] if 'maxTimestamp' in object_dict else None
+        last_timestamp = object_dict['lastTimestamp'] if 'lastTimestamp' in object_dict else None
         ego = PEMDynamicActor.from_message_dict(object_dict['measuredBy']) if 'measuredBy' in object_dict else None
         grid = PEMOccupancyGrid.from_message_dict(object_dict['occupancyGrid']) if 'occupancyGrid' in object_dict else None
         return cls(
             timestamp=timestamp,
             min_timestamp=min_timestamp,
             max_timestamp=max_timestamp,
+            last_timestamp=last_timestamp,
             measured_by=ego,
             occupancy_grid=grid
         )

@@ -15,7 +15,7 @@ logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.DEBUG)
 def main():
     try:
         _client = carla.Client('localhost', 2000)
-        _client.set_timeout(2.0)
+        _client.set_timeout(CARLA_CONNECT_TIMEOUT)
 
         for m in MAPS:
             _world = _client.load_world(m)

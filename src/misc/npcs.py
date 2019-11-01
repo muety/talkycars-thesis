@@ -4,6 +4,7 @@ import time
 from util import simulation
 
 import carla
+from common.constants import CARLA_CONNECT_TIMEOUT
 from common.util.waypoint import WaypointProvider
 
 logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.DEBUG)
@@ -14,11 +15,11 @@ logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.DEBUG)
 def main():
     try:
         client = carla.Client('localhost', 2000)
-        client.set_timeout(2.0)
+        client.set_timeout(CARLA_CONNECT_TIMEOUT)
         world = client.get_world()
 
         wpp = WaypointProvider(world.get_map().get_spawn_points(), seed=20)
-        agents = simulation.spawn_npcs(client, wpp, n=10)
+        agents = simulation.try_spawn_npcs(client, wpp, n=10)
 
         time.sleep(1)
 

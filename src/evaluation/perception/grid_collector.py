@@ -157,7 +157,7 @@ def run(args=sys.argv[1:]):
 
     # Initialize Carla client
     client = carla.Client(args.host, args.port)
-    client.set_timeout(2.0)
+    client.set_timeout(CARLA_CONNECT_TIMEOUT)
 
     GridCollector(
         carla_client=client,

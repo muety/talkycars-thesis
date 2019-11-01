@@ -46,7 +46,7 @@ class OccupancyGridManager:
 
         if self.quadkey_current is None or key != self.quadkey_current:
             self.quadkey_current = key
-            self._recompute()
+            self._recompute(force_actors_update=False)  # Set to false for evaluation
             self.quadkey_prev = self.quadkey_current
             return True
 
@@ -127,11 +127,25 @@ class OccupancyGridManager:
 
         return states
 
-    def _recompute(self):
+    def _recompute(self, force_actors_update: bool = False):
         key = self.quadkey_current
-        if key.key in self.grids:
+        if key.key not in self.grids:
+            self.grids[key.key] = self._compute_grid()
+            self._update_ego_cells()
             return
-        self.grids[key.key] = self._compute_grid()
+        if force_actors_update:
+            self._update_ego_cells()
+
+    def _update_ego_cells(self):
+        self.ego_occupied_cells: FrozenSet[quadkey.QuadKey] = get_occupied_cells(self.ego) if self.ego else frozenset()
+
+        grid = self.get_grid()
+        if not grid:
+            return
+
+        for cell in grid.cells:
+            if cell.quad_key in self.ego_occupied_cells:
+                cell.state = UncertainProperty(1., GridCellState.OCCUPIED)
 
     def _compute_grid(self) -> Grid:
         nearby: Set[str] = set()
@@ -175,8 +189,6 @@ class OccupancyGridManager:
         assert len(nearby) == (self.radius * 2 + 1) ** 2
 
         quadkeys: List[quadkey.QuadKey] = list(map(lambda k: quadkey.QuadKey(k), nearby))
-
-        self.ego_occupied_cells: FrozenSet[quadkey.QuadKey] = get_occupied_cells(self.ego) if self.ego else frozenset()
 
         cells: Set[GridCell] = set(map(lambda q: GridCell(
             quad_key=q,

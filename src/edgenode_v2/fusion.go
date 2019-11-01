@@ -13,6 +13,7 @@ import (
 
 	"./log"
 	"./schema"
+	"./timing"
 	"github.com/n1try/tiles"
 	capnp "zombiezen.com/go/capnproto2"
 )
@@ -41,6 +42,7 @@ type GraphFusionService struct {
 	gridKeys        map[tiles.Quadkey][]tiles.Quadkey
 	observations    sync.Map
 	presentCells    sync.Map
+	timingService   *timing.TimingService
 }
 
 var (
@@ -73,10 +75,14 @@ func (s *GraphFusionService) Init() {
 	for w := 0; w < nPushWorkers; w++ {
 		go s.pushWorker(w, s.In)
 	}
+
+	s.timingService = timing.New()
 }
 
 // Don't call Push() directly from the outside, but push graphs into s.In channel
 func (s *GraphFusionService) Push(msg []byte) {
+	s.timingService.Start("d3")
+
 	graph, err := decodeGraph(msg)
 	if err != nil {
 		log.Error(err)
@@ -85,8 +91,13 @@ func (s *GraphFusionService) Push(msg []byte) {
 
 	ts := floatToTime(graph.Timestamp())
 	if time.Since(ts) > GraphMaxAge {
+		log.Info("Discarded incoming graph due to timeout.")
 		return
 	}
+
+	lastTs := floatToTime(graph.LastTimestamp())
+	s.timingService.StartCustom("d2", lastTs)
+	s.timingService.Stop("d2")
 
 	measuredBy, err := graph.MeasuredBy()
 	if err != nil {
@@ -108,6 +119,10 @@ func (s *GraphFusionService) Push(msg []byte) {
 
 	senderId := int(measuredBy.Id())
 
+	if cellList.Len() == 0 {
+		log.Errorf("Got graph with empty cell list from %d.\n", senderId)
+	}
+
 	for i := 0; i < cellList.Len(); i++ {
 		cell := cellList.At(i)
 		hash := tiles.Quadkey(quadInt2QuadKey(cell.Hash()))
@@ -117,19 +132,28 @@ func (s *GraphFusionService) Push(msg []byte) {
 			s.presentCells.Store(hash, ts)
 		}
 
-		s.observations.Store(getKey(hash, senderId, ts), &CellObservation{
+		// TODO: Introduce clean-up to prevent memory leak
+		s.observations.Store(getKey(hash, senderId, 0), &CellObservation{
 			Timestamp: ts,
 			Hash:      hash,
 			Cell:      &cell,
 		})
 	}
+
+	s.timingService.Stop("d3")
 }
 
 func (s *GraphFusionService) Get(maxAge time.Duration) map[tiles.Quadkey][]byte {
 	now := time.Now()
 	nowFloat := timeToFloat(now)
-	minTs := now
-	maxTs := now.Add(-24 * time.Hour)
+
+	tickDelay := 0.5 / float64(TickRate)
+	tickDelayDuration := time.Duration(tickDelay * float64(time.Second))
+	s.timingService.StartCustom("d4", now.Add(-tickDelayDuration))
+
+	minTs := sync.Map{}
+	maxTs := sync.Map{}
+
 	cellCount := make(map[tiles.Quadkey]*uint32)
 	messages := make(map[tiles.Quadkey]*capnp.Message)
 	scenes := make(map[tiles.Quadkey]schema.TrafficScene)
@@ -154,12 +178,16 @@ func (s *GraphFusionService) Get(maxAge time.Duration) map[tiles.Quadkey][]byte 
 			if obs != nil {
 				parent := obs.Hash[:RemoteGridTileLevel]
 				if l, ok := cells.Load(parent); ok {
-					if obs.MinTimestamp.Before(minTs) {
-						minTs = obs.MinTimestamp
+					currentTs1, ok2 := minTs.Load(parent)
+					if !ok2 || obs.MinTimestamp.Before(currentTs1.(time.Time)) {
+						minTs.Store(parent, obs.MinTimestamp)
 					}
-					if obs.MaxTimestamp.After(maxTs) {
-						maxTs = obs.MaxTimestamp
+
+					currentTs2, ok2 := maxTs.Load(parent)
+					if !ok2 || obs.MaxTimestamp.After(currentTs2.(time.Time)) {
+						maxTs.Store(parent, obs.MaxTimestamp)
 					}
+
 					l.(*list.List).PushBack(obs.Cell)
 				}
 			}
@@ -169,10 +197,10 @@ func (s *GraphFusionService) Get(maxAge time.Duration) map[tiles.Quadkey][]byte 
 
 	cellObservations := make(map[tiles.Quadkey]*list.List)
 
-	s.observations.Range(func(key, val interface{}) bool {
+	s.observations.Range(func(_, val interface{}) bool {
 		obs := val.(*CellObservation)
 		hash := obs.Hash
-		parent := hash[:RemoteGridTileLevel]
+		parent := tiles.Quadkey(string(hash)[:RemoteGridTileLevel])
 
 		if now.Sub(obs.Timestamp) <= GraphMaxAge {
 			if _, ok := messages[parent]; !ok {
@@ -243,6 +271,7 @@ func (s *GraphFusionService) Get(maxAge time.Duration) map[tiles.Quadkey][]byte 
 
 	wg.Wait()
 
+	nowFloat = timeToFloat(time.Now())
 	encodedMessages := make(map[tiles.Quadkey][]byte)
 
 	cells.Range(func(key, val interface{}) bool {
@@ -263,8 +292,13 @@ func (s *GraphFusionService) Get(maxAge time.Duration) map[tiles.Quadkey][]byte 
 			i++
 		}
 
-		scenes[parent].SetMinTimestamp(timeToFloat(minTs))
-		scenes[parent].SetMaxTimestamp(timeToFloat(maxTs))
+		scenes[parent].SetLastTimestamp(nowFloat)
+		if t, ok := minTs.Load(parent); ok {
+			scenes[parent].SetMinTimestamp(timeToFloat(t.(time.Time)))
+		}
+		if t, ok := maxTs.Load(parent); ok {
+			scenes[parent].SetMaxTimestamp(timeToFloat(t.(time.Time)))
+		}
 
 		encodedMessage, err := messages[parent].MarshalPacked()
 		if err != nil {
@@ -275,6 +309,8 @@ func (s *GraphFusionService) Get(maxAge time.Duration) map[tiles.Quadkey][]byte 
 
 		return true
 	})
+
+	s.timingService.Stop("d4")
 
 	return encodedMessages
 }
@@ -322,7 +358,7 @@ func fuseCell(hash tiles.Quadkey, cellCount *uint32, obs *list.List, outGrid *sc
 	}
 
 	j := int(atomic.AddUint32(cellCount, 1) - 1)
-	newCell := outCellList.At(j) // TODO: Data Race
+	newCell := outCellList.At(j)
 
 	newStateRelation, err := newCell.NewState()
 	if err != nil {
@@ -342,7 +378,7 @@ func fuseCell(hash tiles.Quadkey, cellCount *uint32, obs *list.List, outGrid *sc
 		return nil, err
 	}
 
-	// TODO: Also fix timestamp in case unknown-observations are discarded
+	// TODO: Also fix min- / max timestamps in case unknown-observations are discarded
 	if states[schema.GridCellState_free] > 0 || states[schema.GridCellState_occupied] > 0 {
 		states[schema.GridCellState_unknown] = 0
 		stateWeights[schema.GridCellState_unknown] = 0
@@ -471,10 +507,11 @@ func decay(val float32, t, now time.Time) float32 {
 	return val * float32(factor)
 }
 
-func getKey(qk tiles.Quadkey, senderId int, ts time.Time) string {
+func getKey(qk tiles.Quadkey, senderId int, ts int64) string {
 	// https://hermanschaaf.com/efficient-string-concatenation-in-go/
 	var buffer bytes.Buffer
 	buffer.WriteString(string(qk))
 	buffer.WriteString(strconv.Itoa(senderId))
+	buffer.WriteString(strconv.FormatInt(ts, 10))
 	return buffer.String()
 }

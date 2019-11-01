@@ -1,16 +1,30 @@
 import logging
-from threading import Thread
-from typing import Tuple, Callable, Dict, Set
+from multiprocessing.pool import ThreadPool
+from threading import Thread, Lock
+from typing import Tuple, Callable, Set
 
 import paho.mqtt.client as mqtt
 
+from common.constants import MQTT_QOS
+
 
 class MqttBridge:
-    def __init__(self, broker_host: str = 'localhost', broker_port: int = 1883, on_connect: Callable = None, on_disconnect: Callable = None):
+    def __init__(
+            self,
+            broker_host: str = 'localhost',
+            broker_port: int = 1883,
+            client_id: str = '',
+            discard_when_busy: bool = False,
+            on_connect: Callable = None,
+            on_disconnect: Callable = None
+    ):
         self.broker_config: Tuple[str, int] = (broker_host, broker_port,)
-        self.client: mqtt.Client = mqtt.Client()
-        self.subscriptions: Dict[str, Set[Callable]] = {}
+        self.client: mqtt.Client = mqtt.Client(client_id=client_id)
+        self.discard_when_busy: bool = discard_when_busy
+        self.subscriptions: Set[str] = set()
         self.loop_thread: Thread = None
+        self.read_pool: ThreadPool = ThreadPool(processes=1)
+        self.in_lock: Lock = Lock()
 
         self.connected: bool = False
         self.cb = {
@@ -19,7 +33,6 @@ class MqttBridge:
         }
 
         self.client.on_connect = self._on_connect
-        self.client.on_message = self._on_message
 
     def __del__(self):
         self.disconnect()
@@ -38,19 +51,18 @@ class MqttBridge:
 
     def subscribe(self, topic: str, callback: Callable):
         if topic not in self.subscriptions:
-            self.subscriptions[topic] = set()
-            self.client.subscribe(topic)
-
-        self.subscriptions[topic].add(callback)
+            self.client.subscribe(topic, qos=MQTT_QOS)
+            self.subscriptions.add(topic)
+            self.client.message_callback_add(topic, self.wrap_callback(callback))
 
     def unsubscribe(self, topic: str, callback: Callable):
         if topic not in self.subscriptions:
             return
-
-        self.subscriptions[topic].remove(callback)
+        self.subscriptions.remove(topic)
+        self.client.message_callback_remove(topic)
 
     def publish(self, topic: str, message: bytes):
-        self.client.publish(topic, message)
+        self.client.publish(topic, message, qos=MQTT_QOS)
 
     def disconnect(self):
         self.client.disconnect()
@@ -69,17 +81,21 @@ class MqttBridge:
         if self.cb['connect']:
             self.cb['connect']()
 
-        for topic in frozenset(self.subscriptions.keys()):
-            client.subscribe(topic)
+        for topic in self.subscriptions:
+            client.subscribe(topic, qos=MQTT_QOS)
 
-    def _on_message(self, client, userdata, msg):
-        # TODO: Optimize !
-        matching_subs = [s[1] for s in self.subscriptions.items() if mqtt.topic_matches_sub(s[0], msg.topic)]
-        if len(matching_subs) == 0:
-            return
+    def wrap_callback(self, callback: Callable) -> Callable:
+        def cb(client, userdata, msg):
+            with self.in_lock:
+                callback(msg.payload)
 
-        for s in set().union(*matching_subs):
-            s(msg.payload)
+        def on_message(*args):
+            if self.discard_when_busy and self.in_lock.locked():
+                return
+
+            self.read_pool.apply_async(cb, args=args)
+
+        return on_message
 
 
 class MqttBridgeUtils:

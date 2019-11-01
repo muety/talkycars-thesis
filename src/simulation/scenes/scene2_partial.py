@@ -20,8 +20,8 @@ class Scene(AbstractScene):
         self.initialized: bool = False
         self._egos: List[Ego] = []
         self._agents: List[BasicAgent] = []
-        self._peds: List[carla.Actor] = None
-        self._static: List[carla.Actor] = None
+        self._peds: List[carla.Actor] = []
+        self._static: List[carla.Actor] = []
         self._world: carla.World = None
         self._map: carla.Map = None
         self._sim: carla.Client = sim
@@ -70,6 +70,8 @@ class Scene(AbstractScene):
         logging.info(f'Attempting to spawn {SCENE2_N_VEHICLES} NPC vehicles.')
         self._agents = simulation.spawn_npcs(self._sim, self._waypoint_provider, SCENE2_N_VEHICLES, SCENE2_NPC_PREFIX)
 
+        self.print_scene_status()
+
     def tick(self, clock: pygame.time.Clock) -> bool:
         self._tick_count += 1
 
@@ -93,6 +95,23 @@ class Scene(AbstractScene):
 
     def done(self, n_remaining: int = 0):
         return simulation.count_present_vehicles(SCENE2_EGO_PREFIX, self._world) <= n_remaining
+
+    def print_scene_status(self):
+        logging.info(f'# Active pedestrians: {self.n_peds}')
+        logging.info(f'# Active static vehicles: {self.n_static}')
+        logging.info(f'# Active NPC vehicles: {self.n_npcs}')
+
+    @property
+    def n_peds(self) -> int:
+        return len(list(filter(lambda a: a.is_alive, self._peds))) // 2
+
+    @property
+    def n_static(self) -> int:
+        return len(list(filter(lambda a: a.is_alive, self._static)))
+
+    @property
+    def n_npcs(self) -> int:
+        return len(list(filter(lambda a: a.vehicle.is_alive, self._agents)))
 
     @property
     def egos(self) -> List[Ego]:

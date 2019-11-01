@@ -55,7 +55,7 @@ def run():
             p = Process(target=ego.run, daemon=False, kwargs={'args': sys.argv[2:]})
             p.start()
             processes.append(p)
-            time.sleep(0.1)
+            time.sleep(0.2)
 
         for p in processes:
             p.join()

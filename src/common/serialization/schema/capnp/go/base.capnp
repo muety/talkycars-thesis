@@ -12,6 +12,7 @@ struct TrafficScene {
     timestamp @0 :Float64;
     minTimestamp @1 :Float64;
     maxTimestamp @2 :Float64;
-    measuredBy @3 :DynamicActor;
-    occupancyGrid @4 :OccupancyGrid;
+    lastTimestamp @3 :Float64;
+    measuredBy @4 :DynamicActor;
+    occupancyGrid @5 :OccupancyGrid;
 }

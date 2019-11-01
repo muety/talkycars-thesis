@@ -6,14 +6,18 @@
 package main
 
 import (
+	"flag"
 	"math"
 	"os"
 	"os/signal"
+	"strings"
+	"sync"
 	"sync/atomic"
 	"syscall"
 	"time"
 
 	"./log"
+	"./timing"
 
 	MQTT "github.com/eclipse/paho.mqtt.golang"
 	"github.com/n1try/tiles"
@@ -23,6 +27,7 @@ var (
 	sigs                        chan os.Signal
 	graphInQueue                chan []byte
 	client                      MQTT.Client
+	brokerOpts                  *MQTT.ClientOptions
 	fusionService               GraphFusionService
 	inRateCount, outRateCount   uint32
 	inBytesCount, outBytesCount uint32
@@ -30,6 +35,7 @@ var (
 	lastTick                    time.Time = time.Now()
 	lastEval                    time.Time = time.Now()
 	kill                        uint32    // actually boolean
+	activeKeys                  sync.Map
 )
 
 func listen() {
@@ -50,7 +56,8 @@ func tick() {
 	m := fusionService.Get(GraphMaxAge)
 
 	for k, msg := range m {
-		client.Publish(TopicPrefixGraphFusedOut+"/"+string(k), 0, false, msg)
+		client.Publish(TopicPrefixGraphFusedOut+"/"+string(k), MqttQos, false, msg)
+		activeKeys.Store(k, lastTick)
 		atomic.AddUint32(&outBytesCount, uint32(len(msg)))
 	}
 
@@ -83,7 +90,16 @@ func monitor() {
 			od = atomic.LoadUint64(&outDelayCount) / uint64(or)
 		}
 
+		currentlyActiveKeys := make([]string, 0)
+		activeKeys.Range(func(key, val interface{}) bool {
+			if time.Since(val.(time.Time)) <= GraphMaxAge {
+				currentlyActiveKeys = append(currentlyActiveKeys, string(key.(tiles.Quadkey)))
+			}
+			return true
+		})
+
 		log.Infof("%d, %.4f, %.4f, %.4f, %.4f, %.4f", time.Now().UnixNano(), ir, or, ib, ob, float32(od)/float32(time.Second))
+		log.Infof("Active: [%s]", strings.Join(currentlyActiveKeys, ", "))
 
 		atomic.StoreUint32(&inRateCount, 0)
 		atomic.StoreUint32(&outRateCount, 0)
@@ -102,15 +118,17 @@ func init() {
 	plainFormatter.LevelDesc = []string{"PANC", "FATL", "ERRO", "WARN", "INFO", "DEBG"}
 	log.SetLogFormatter(plainFormatter)
 
-	var tile tiles.Quadkey
-
 	// Read command-line args
-	args := os.Args[1:]
-	if len(args) == 2 && args[0] == "--tile" {
-		tile = tiles.Quadkey(args[1]) // 1202032332303131
-	} else {
-		panic("You need to pass \"--tile\" parameter.")
-	}
+	tilePtr := flag.String("tile", "1202032332303131", "QuadKey of the tile this edge node will be responsible for")
+	brokerPtr := flag.String("broker", "tcp://localhost:1883", "MQTT broker URL")
+
+	flag.Parse()
+
+	tile := tiles.Quadkey(*tilePtr)
+
+	brokerOpts := MQTT.NewClientOptions()
+	brokerOpts.AddBroker(*brokerPtr)
+	client = MQTT.NewClient(brokerOpts)
 
 	sigs = make(chan os.Signal, 1)
 	graphInQueue = make(chan []byte)
@@ -119,6 +137,8 @@ func init() {
 
 	fusionService = GraphFusionService{Sector: tile, GridTileLevel: OccupancyTileLevel, RemoteTileLevel: RemoteGridTileLevel}
 	fusionService.Init()
+
+	activeKeys = sync.Map{}
 }
 
 func main() {
@@ -131,21 +151,24 @@ func main() {
 		}()
 	*/
 
-	opts := MQTT.NewClientOptions()
-	opts.AddBroker("tcp://localhost:1883")
-
-	client = MQTT.NewClient(opts)
 	if token := client.Connect(); token.Wait() && token.Error() != nil {
 		panic(token.Error())
 	}
 	log.Info("Connected to broker.")
 	defer client.Disconnect(100)
 
-	if token := client.Subscribe(TopicGraphRawIn, 0, func(client MQTT.Client, msg MQTT.Message) {
+	if token := client.Subscribe(TopicGraphRawIn, MqttQos, func(client MQTT.Client, msg MQTT.Message) {
 		graphInQueue <- msg.Payload()
 	}); token.Wait() && token.Error() != nil {
 		panic(token.Error())
 	}
+
+	timingService := timing.New()
+	go func() {
+		for info := range timingService.Infos {
+			log.Info(info)
+		}
+	}()
 
 	go listen()
 	go monitor()

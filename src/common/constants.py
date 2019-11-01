@@ -2,6 +2,8 @@ import os
 
 FRAMERATE = 30
 
+CARLA_CONNECT_TIMEOUT = 4.0
+
 OBS_LIDAR_POINTS = 'lidar_points'
 OBS_CAMERA_RGB_IMAGE = 'camera_image'
 OBS_POSITION = 'player_pos'
@@ -15,18 +17,19 @@ ALIAS_EGO = 'ego'
 INCREMENTAL_GRIDS = False  # because buggy
 GRID_TTL_SEC = 3
 
-OCCUPANCY_RADIUS_DEFAULT = 10 # (5 and 15 or 10 and 9)
+OCCUPANCY_RADIUS_DEFAULT = 10  # (5 and 15 or 10 and 7.5)
 OCCUPANCY_BBOX_OFFSET = 0.1
 OCCUPANCY_BBOX_HEIGHT = 3.5
 
-LIDAR_ANGLE_DEFAULT = 9  # Caution: Choose Lidar angle depending on grid size
-LIDAR_MAX_RANGE = 100
+LIDAR_ANGLE_DEFAULT = 7.5  # Caution: Choose Lidar angle depending on grid size
+LIDAR_MAX_RANGE = 48
 LIDAR_Z_OFFSET = 2.8
 
 GNSS_Z_OFFSET = 2.8
 
 RES_X, RES_Y = 1024, 768
 
+MQTT_QOS = 1
 TOPIC_GRAPH_RAW_IN = '/graph_raw_in'
 TOPIC_PREFIX_GRAPH_FUSED_OUT = '/graph_fused_out'
 
@@ -41,13 +44,13 @@ REMOTE_PSEUDO_ID = -1
 RECORDING_RATE = 15  # Hz
 RECORDING_FILE_TPL = 'recordings/<id>_%Y-%m-%d_%H-%M-%S.csv'
 
-NPC_TARGET_SPEED = 30  # km/h
-EGO_TARGET_SPEED = 30  # km/h
+NPC_TARGET_SPEED = 25  # km/h
+EGO_TARGET_SPEED = 25  # km/h
 
 SCENE2_EGO_PREFIX = 'random_hero'
 SCENE2_NPC_PREFIX = 'npc'
 SCENE2_STATIC_PREFIX = 'static'
-SCENE2_N_EGOS = 6
+SCENE2_N_EGOS = 3
 SCENE2_N_VEHICLES = 6
 SCENE2_N_PEDESTRIANS = 124
 SCENE2_N_STATIC = 124

@@ -16,10 +16,11 @@ class ActorsEvent(carla.SensorData):
 
 
 class ActorsSensor(Sensor):
-    def __init__(self, parent_actor, client: TalkyClient):
+    def __init__(self, parent_actor, client: TalkyClient, with_noise: bool = True):
         self._parent = parent_actor
         self._world = parent_actor.get_world()
         self._map = self._world.get_map()
+        self.with_noise: bool = with_noise
         self._ego_actor: carla.Actor = None
         self._non_ego_actors: List[carla.Actor] = []
         self._tick_count: int = 0
@@ -35,9 +36,12 @@ class ActorsSensor(Sensor):
             self._update_actors()
 
         ego_actors: List[DynamicActor] = [map_dynamic_actor(self._ego_actor, self._map)]
-        other_actors: List[DynamicActor] = list(map(self._noisify_actor, map(lambda a: map_dynamic_actor(a, self._map), self._non_ego_actors)))
-
         self.client.inbound.publish(OBS_ACTOR_EGO, ActorsObservation(event.ts, actors=ego_actors))
+
+        if self.with_noise:
+            other_actors: List[DynamicActor] = list(map(self._noisify_actor, map(lambda a: map_dynamic_actor(a, self._map), self._non_ego_actors)))
+        else:
+            other_actors: List[DynamicActor] = list(map(lambda a: map_dynamic_actor(a, self._map), self._non_ego_actors))
         self.client.inbound.publish(OBS_ACTORS_RAW, ActorsObservation(event.ts, actors=other_actors))
 
     def _update_actors(self):

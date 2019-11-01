@@ -82,11 +82,6 @@ class GridEvaluator:
         self.data_dir_observed: str = os.path.join(data_dir, 'observed')
 
     def run(self):
-        occupancy_ground_truth: List[Ogtc] = None
-        occupancy_observations_local: List[PEMTrafficSceneObservation] = None
-        occupancy_observations_remote: List[PEMTrafficSceneObservation] = None
-        occupancy_observations_fused: List[PEMTrafficSceneObservation] = None
-
         occupancy_observations_local, occupancy_observations_remote, occupancy_ground_truth = self.read_data()
 
         logging.info('Evaluation average observation delays.')
@@ -101,12 +96,18 @@ class GridEvaluator:
 
         tag = 'LOCAL'
         logging.info(f'[{tag}] Computing closest matches between ground truth and observations.')
-        matching: Set[Tuple[State5Tuple, State5Tuple]] = self.compute_matching(occupancy_observations_local, [], occupancy_ground_truth)
+        matching: Set[Tuple[State5Tuple, State5Tuple]] = self.compute_matching(
+            occupancy_observations_local,
+            [],
+            occupancy_ground_truth)
         self.print_scores(matching, tag)
 
         tag = 'FUSED'
         logging.info(f'[{tag}] Computing closest matches between ground truth and observations.')
-        matching: Set[Tuple[State5Tuple, State5Tuple]] = self.compute_matching(occupancy_observations_local, occupancy_observations_remote, occupancy_ground_truth)
+        matching: Set[Tuple[State5Tuple, State5Tuple]] = self.compute_matching(
+            occupancy_observations_local,
+            occupancy_observations_remote,
+            occupancy_ground_truth)
         self.print_scores(matching, tag)
 
     @staticmethod
@@ -116,13 +117,16 @@ class GridEvaluator:
 
         ts1_local: List[float] = list(map(attrgetter('value.timestamp'), local_ordered))
         ts2_local: List[float] = list(map(attrgetter('timestamp'), local_ordered))
-        ts1_remote: List[float] = list(map(attrgetter('value.timestamp'), remote_ordered))
-        ts2_remote: List[float] = list(map(attrgetter('timestamp'), remote_ordered))
+        ts1_remote_min: List[float] = list(map(attrgetter('value.min_timestamp'), remote_ordered))
+        ts2_remote_min: List[float] = list(map(attrgetter('timestamp'), remote_ordered))
+        ts1_remote_max: List[float] = list(map(attrgetter('value.max_timestamp'), remote_ordered))
+        ts2_remote_max: List[float] = ts2_remote_min
 
-        lag_local: float = sum(map(lambda t: abs(t[0] - t[1]), zip(ts1_local, ts2_local))) / len(ts1_local)
-        lag_remote: float = sum(map(lambda t: abs(t[0] - t[1]), zip(ts1_remote, ts2_remote))) / len(ts1_remote)
+        lag_local: float = sum(map(lambda t: abs(t[0] - t[1]), zip(ts1_local, ts2_local))) / len(local_ordered)
+        lag_remote_min: float = sum(map(lambda t: abs(t[0] - t[1]), zip(ts1_remote_min, ts2_remote_min))) / len(remote_ordered)
+        lag_remote_max: float = sum(map(lambda t: abs(t[0] - t[1]), zip(ts1_remote_max, ts2_remote_max))) / len(remote_ordered)
 
-        return lag_local, lag_local + lag_remote
+        return lag_local, (lag_remote_min + lag_remote_max) / 2
 
     @classmethod
     def print_scores(cls, matching: Set[Tuple[State5Tuple, State5Tuple]], tag: str = ''):
@@ -139,7 +143,9 @@ class GridEvaluator:
         assert local_observation.meta['parent'] == remote_observation.meta['parent']
 
         cells: List[PEMGridCell] = []
-        weights: Tuple[float, float] = (cls._decay(local_observation.timestamp, ref_time), cls._decay(remote_observation.timestamp, ref_time))
+        ts1: float = local_observation.value.timestamp
+        ts2: float = remote_observation.value.min_timestamp + (remote_observation.value.max_timestamp - remote_observation.value.min_timestamp) / 2
+        weights: Tuple[float, float] = (cls._decay(ts1, ref_time), cls._decay(ts2, ref_time))
         states: List[GridCellState] = GridCellState.options()
         local_cells: Dict[QuadKey, PEMGridCell] = {QuadKey(cls.cache_get(c.hash)): c for c in local_observation.value.occupancy_grid.cells}
         remote_cells: Dict[QuadKey, PEMGridCell] = {QuadKey(cls.cache_get(c.hash)): c for c in remote_observation.value.occupancy_grid.cells}
@@ -304,7 +310,10 @@ class GridEvaluator:
         return count / len(matching) if len(matching) > 0 else 0
 
     @classmethod
-    def compute_matching(cls, local_observations: List[PEMTrafficSceneObservation], remote_observations: List[PEMTrafficSceneObservation], ground_truth: List[Ogtc]) -> Set[Tuple[State5Tuple, State5Tuple]]:
+    def compute_matching(cls,
+                         local_observations: List[PEMTrafficSceneObservation],
+                         remote_observations: List[PEMTrafficSceneObservation],
+                         ground_truth: List[Ogtc]) -> Set[Tuple[State5Tuple, State5Tuple]]:
         matches: Set[Tuple[State5Tuple, State5Tuple]] = set()
         sender_ids: Set[int] = set()
         actual: Dict[QuadKey, List[Ogtc]] = dict.fromkeys(map(attrgetter('tile'), ground_truth), [])  # Parent tile keys -> Ogtc
@@ -318,6 +327,9 @@ class GridEvaluator:
         observed_remote: Dict[QuadKey, Dict[int, ObservationTree]] = mapping_result[0]
 
         quadint_map: Dict[QuadKey, int] = {}
+
+        local_count: int = 0
+        remote_count: int = 0
 
         # Populate ground truth map
         for k in actual.keys():
@@ -347,6 +359,10 @@ class GridEvaluator:
                     # Parent tile was not in this vehicle's range
                     if not item_local:
                         continue
+
+                    local_count += 1
+                    if item_remote:
+                        remote_count += 1
 
                     # Thin out: we want to avoid having the exact same match multiple times. Therefore, if two ground-truth
                     # items are time-wise closer than the next observation, skip.
@@ -386,7 +402,7 @@ class GridEvaluator:
                         # with some state and some confidence
                         matches.add((c1, c2))
 
-        logging.info(f'Matching has {len(matches)} entries.')
+        logging.info(f'Matching has {len(matches)} entries ({round((remote_count / (remote_count + local_count)) * 100, 2)} % remote).')
 
         return matches
 
@@ -411,9 +427,9 @@ class GridEvaluator:
         return mapping, sender_ids
 
     @staticmethod
-    def find_closest_match(needle: Any, needle_attr: str, haystack: ObservationTree, sign: int = 0) -> Union[PEMTrafficSceneObservation, None]:
+    def find_closest_match(needle: Any, needle_attr: str, haystack: ObservationTree, sign: int = 0, offset: float = 0.0) -> Union[PEMTrafficSceneObservation, None]:
         match: Union[Observation, None] = None
-        ref_ts: float = getattr(needle, needle_attr)
+        ref_ts: float = getattr(needle, needle_attr) + offset
 
         if sign == 0:
             match1 = haystack.find_ceil(ref_ts)

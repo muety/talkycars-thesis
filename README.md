@@ -30,7 +30,7 @@
 * Compile Cap'n'Proto schemas: `capnp compile -I$GOPATH/src/zombiezen.com/go/capnproto2/std -ogo:src/edgenode_v2/schema --src-prefix src/common/serialization/schema/capnp/go src/common/serialization/schema/capnp/go/*.capnp`
 * Compile Cython extensions: `cd src/common/quadkey/tilesystem && python3 setup.py build_ext --inplace && cd ../../raycast && python3 setup.py build_ext --inplace && cd ../../..`
 * Start Carla: `DISPLAY= ./CarlaUE4.sh -carla-server -windowed -ResX=800 -ResY=600 -opengl`
-* Start HiveMQ: `docker run -p 1883:1883 --rm skobow/hivemq-ce`
+* Start HiveMQ: `docker run -p 1883:1883 --rm -v config/hivemq.xml:/opt/config.xml skobow/hivemq-ce`
   * If the broker is started on a different machine as any of the other modules, you need to specify `MQTT_BASE_HOSTNAME=<BROKER_IP>` as an environment variable on the machine running the respective module (e.g. `simulation` or `ego`)
 
 ### Run Modules (examples)

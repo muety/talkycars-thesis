@@ -92,7 +92,7 @@ class Ego:
 
         self.sensors['gnss'] = GnssSensor(self.vehicle, self.client, offset_z=GNSS_Z_OFFSET)
         self.sensors['lidar'] = LidarSensor(self.vehicle, self.client, offset_z=LIDAR_Z_OFFSET, range=lidar_range, angle=lidar_angle)
-        self.sensors['actors'] = ActorsSensor(self.vehicle, self.client)
+        self.sensors['actors'] = ActorsSensor(self.vehicle, self.client, with_noise=True)  # Set to false for evaluation
         self.sensors['position'] = PositionSensor(self.vehicle, self.client)
         if render:
             self.sensors['camera_rgb'] = CameraRGBSensor(self.vehicle, self.hud)
@@ -101,8 +101,7 @@ class Ego:
         def on_grid(grid: OccupancyGridObservation):
             self.grid = grid.value
 
-        # Currently unused -> nothing publishes to that topic
-        self.client.outbound.subscribe(OBS_GRID_COMBINED, on_grid)
+        self.client.outbound.subscribe(OBS_GRID_LOCAL, on_grid)
 
         if is_standalone:
             lock = Lock()
@@ -214,7 +213,7 @@ def run(args=sys.argv[1:]):
 
     try:
         client = carla.Client(args.host, args.port)
-        client.set_timeout(2.0)
+        client.set_timeout(CARLA_CONNECT_TIMEOUT)
 
         strat: EgoStrategy = None
 

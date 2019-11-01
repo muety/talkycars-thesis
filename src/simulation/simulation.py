@@ -74,7 +74,7 @@ def game_loop(args):
 
     try:
         client = carla.Client(args.host, args.port)
-        client.set_timeout(2.0)
+        client.set_timeout(CARLA_CONNECT_TIMEOUT)
         world = World(client, args.scene)
         clock = pygame.time.Clock()
 

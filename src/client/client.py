@@ -3,7 +3,7 @@ import time
 from collections import deque
 from datetime import datetime
 from enum import Enum
-from threading import Thread
+from threading import Thread, Lock
 from typing import cast, Dict, Optional, Deque
 
 from client.observation import ObservationManager, LinearObservationTracker
@@ -22,6 +22,7 @@ from common.serialization.schema.actor import PEMDynamicActor
 from common.serialization.schema.base import PEMTrafficScene
 from common.serialization.schema.occupancy import PEMOccupancyGrid, PEMGridCell
 from common.serialization.schema.relation import PEMRelation
+from common.timing import TimingService
 from .inbound import InboundController
 from .occupancy import OccupancyGridManager
 from .outbound import OutboundController
@@ -37,21 +38,24 @@ class TalkyClient:
                  dialect: ClientDialect = ClientDialect.CARLA,
                  grid_radius: int = OCCUPANCY_RADIUS_DEFAULT,
                  ):
+        self.ego_id: str = str(for_subject_id)
         self.dialect: ClientDialect = dialect
         self.om: ObservationManager = ObservationManager()
         self.gm: OccupancyGridManager = OccupancyGridManager(OCCUPANCY_TILE_LEVEL, grid_radius)
         self.inbound: InboundController = InboundController(self.om, self.gm)
         self.outbound: OutboundController = OutboundController(self.om, self.gm)
-        self.tss: TileSubscriptionService = TileSubscriptionService(self._on_remote_graph, rate_limit=.05)
+        self.tss: TileSubscriptionService = TileSubscriptionService(self._on_remote_graph, client_id=self.ego_id)
         self.tracker: LinearObservationTracker = LinearObservationTracker(n=6)
+        self.timings: TimingService = TimingService()
+        self.quadint_cache: Dict[str, int] = {}
         self.remote_grid_sink: Sink = None
         self.local_grid_sink: Sink = None
         self.alive: bool = True
         self.recording: bool = False
-        self.ego_id: str = str(for_subject_id)
 
         self.recording_thread: Thread = Thread(target=self._record, daemon=True)
         self.recording_thread.start()
+        self.decode_lock: Lock = Lock()
 
         # Type registrations
         self.om.register_key(OBS_POSITION, PositionObservation)
@@ -81,6 +85,8 @@ class TalkyClient:
         self.tsdiffhistory2: Deque[float] = deque(maxlen=100)
         self.tsdiffhistory3: Deque[float] = deque(maxlen=100)
 
+        logging.info(f'Hi, I\'m {self.ego_id}!')
+
     def tear_down(self):
         logging.info(f'Stopping client in {GRID_TTL_SEC} seconds.')
         time.sleep(GRID_TTL_SEC)
@@ -89,6 +95,7 @@ class TalkyClient:
         self.recording = False
         self.om.tear_down()
         self.gm.tear_down()
+        self.timings.tear_down()
 
         if self.tss:
             self.tss.tear_down()
@@ -126,12 +133,11 @@ class TalkyClient:
     def _on_lidar(self, obs: LidarObservation):
         _ts = time.monotonic()
 
-        if self.om.has(OBS_GNSS_PREFIX + ALIAS_EGO):
-            self.gm.update_gnss(cast(GnssObservation, self.om.latest(OBS_GNSS_PREFIX + ALIAS_EGO)))
-
         if self.om.has(OBS_ACTOR_EGO):
-            ego: DynamicActor = cast(ActorsObservation, self.om.latest(OBS_ACTOR_EGO)).value[0]
+            ego_obs: ActorsObservation = cast(ActorsObservation, self.om.latest(OBS_ACTOR_EGO))
+            ego: DynamicActor = cast(ActorsObservation, ego_obs).value[0]
             self.gm.update_ego(ego)
+            self.gm.update_gnss(GnssObservation(timestamp=ego_obs.timestamp, coords=ego.gnss.value.components()))
 
         if not self.gm.match_with_lidar(cast(LidarObservation, obs)):
             return
@@ -149,33 +155,37 @@ class TalkyClient:
     def _on_gnss(self, obs: GnssObservation):
         qk: QuadKey = obs.to_quadkey(level=REMOTE_GRID_TILE_LEVEL)
 
-        if qk != self.tss.current_position:
+        if qk != self.tss.current_parent:
             self.tss.update_position(qk)
 
     def _on_grid(self, obs: OccupancyGridObservation):
         _ts = time.monotonic()
 
         ts1, grid = obs.timestamp, obs.value
-        # TODO: Solve properly. Cell state (computed in gm) lags behind ego position by 1
         actors_ego_obs = self.om.latest(OBS_ACTOR_EGO)
         actors_others_obs = self.om.latest(OBS_ACTORS_RAW)
 
         if not grid or not actors_ego_obs or not actors_others_obs or not actors_ego_obs.value or len(actors_ego_obs.value) < 1:
             return
 
+        ts: float = min([ts1, actors_ego_obs.timestamp, actors_others_obs.timestamp])
+
+        self.timings.start('d0', custom_time=ts)
+        self.timings.stop('d0')
+        self.timings.start('d1')
+
         ego_actor: DynamicActor = actors_ego_obs.value[0]
         visible_actors: Dict[str, DynamicActor] = get_occupied_cells_multi(actors_others_obs.value + [ego_actor])
 
         # Generate PEM complex object attributes
-        ts: float = min([ts1, actors_ego_obs.timestamp, actors_others_obs.timestamp])
         pem_ego = map_pem_actor(ego_actor)
         pem_grid = PEMOccupancyGrid(cells=[])
 
         for cell in grid.cells:
             group_key = f'cell_occupant_{cell.quad_key.key}'
 
-            occupant_relation: PEMRelation[Optional[PEMDynamicActor]] = None
             state_relation: PEMRelation[GridCellState] = PEMRelation(cell.state.confidence, GridCellState(cell.state.value))
+            occupant_relation: PEMRelation[Optional[PEMDynamicActor]] = PEMRelation(0, None)
 
             if cell.quad_key.key in visible_actors:
                 actor = visible_actors[cell.quad_key.key]
@@ -194,18 +204,23 @@ class TalkyClient:
                     occupant_relation = PEMRelation(state_relation.confidence, None)
 
             pem_grid.cells.append(PEMGridCell(
-                hash=cell.quad_key.to_quadint(),
+                hash=self._get_quadint(cell.quad_key),
                 state=state_relation,
                 occupant=occupant_relation
             ))
 
+        now = time.time()
+
         # Generate PEM graph
         graph = PEMTrafficScene(timestamp=ts,
+                                last_timestamp=now,
                                 measured_by=pem_ego,
                                 occupancy_grid=pem_grid)
 
-        # To get similar run times for comparability, still encode to graph, although when not being talky
         encoded_msg = graph.to_bytes()
+        self.timings.stop('d1')
+
+        self.inbound.publish(OBS_GRAPH_LOCAL, PEMTrafficSceneObservation(now, graph, meta={'sender': int(self.ego_id)}))
 
         if self.tss.active:
             self.tss.publish_graph(encoded_msg)
@@ -215,8 +230,6 @@ class TalkyClient:
             self.last_publish = time.monotonic()
             # logging.debug(f'PUBLISH: {np.mean(self.tsdiffhistory3)}')
 
-        self.inbound.publish(OBS_GRAPH_LOCAL, PEMTrafficSceneObservation(time.time(), graph, meta={'sender': int(self.ego_id)}))
-
         self.tsdiffhistory2.append(time.monotonic() - _ts)
         # logging.debug(f'GRID: {np.mean(self.tsdiffhistory2)}')
 
@@ -224,7 +237,24 @@ class TalkyClient:
         pass
 
     def _on_remote_graph(self, msg: bytes):
-        self.inbound.publish(OBS_GRAPH_REMOTE, RawBytesObservation(time.time(), msg, meta={'sender': int(self.ego_id)}))
+        in_time: float = time.time()
+
+        self.timings.start('d6')
+        try:
+            scene: PEMTrafficScene = PEMTrafficScene.from_bytes(msg)
+            self.inbound.publish(OBS_GRAPH_REMOTE, PEMTrafficSceneObservation(time.time(), scene, meta={'sender': int(self.ego_id)}))
+            self.timings.stop('d6')
+        except KeyError:
+            self.timings.stop('d6')
+            return
+
+        self.timings.start('d5', custom_time=scene.last_timestamp)
+        self.timings.stop('d5', custom_time=in_time)
+
+    def _get_quadint(self, qk: QuadKey) -> int:
+        if qk.key not in self.quadint_cache:
+            self.quadint_cache[qk.key] = qk.to_quadint()
+        return self.quadint_cache[qk.key]
 
     def _record(self):
         while True:

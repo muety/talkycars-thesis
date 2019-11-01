@@ -4,6 +4,7 @@ import time
 from util import simulation
 
 import carla
+from common.constants import CARLA_CONNECT_TIMEOUT
 
 logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.DEBUG)
 
@@ -13,7 +14,7 @@ logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.DEBUG)
 def main():
     try:
         client = carla.Client('localhost', 2000)
-        client.set_timeout(2.0)
+        client.set_timeout(CARLA_CONNECT_TIMEOUT)
         world = client.get_world()
 
         peds = simulation.try_spawn_pedestrians(client, 10)
