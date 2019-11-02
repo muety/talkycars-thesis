@@ -45,7 +45,7 @@ class TalkyClient:
         self.inbound: InboundController = InboundController(self.om, self.gm)
         self.outbound: OutboundController = OutboundController(self.om, self.gm)
         self.tss: TileSubscriptionService = TileSubscriptionService(self._on_remote_graph, client_id=self.ego_id)
-        self.tracker: LinearObservationTracker = LinearObservationTracker(n=6)
+        self.tracker: LinearObservationTracker = LinearObservationTracker(n=10)
         self.timings: TimingService = TimingService()
         self.quadint_cache: Dict[str, int] = {}
         self.remote_grid_sink: Sink = None

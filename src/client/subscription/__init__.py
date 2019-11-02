@@ -43,7 +43,7 @@ class TileSubscriptionService:
         self.manual_mode: bool = manual_mode
         self.edge_node_level: int = edge_node_level
         self.remote_tile_level: int = remote_tile_level
-        self.topic_prefix: int = topic_prefix
+        self.topic_prefix: str = topic_prefix
 
     def update_position(self, qk: QuadKey) -> bool:
         parent = quadkey.from_str(qk.key[:self.remote_tile_level])

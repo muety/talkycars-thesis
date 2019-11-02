@@ -330,6 +330,7 @@ class GridEvaluator:
 
         local_count: int = 0
         remote_count: int = 0
+        cell_tracker: List[int] = [0] * (GridCellState.N + 1)
 
         # Populate ground truth map
         for k in actual.keys():
@@ -366,11 +367,17 @@ class GridEvaluator:
 
                     # Thin out: we want to avoid having the exact same match multiple times. Therefore, if two ground-truth
                     # items are time-wise closer than the next observation, skip.
+                    '''
                     d = abs(item_actual.ts - items_actual[i - 1].ts)
                     if i > 0 and d < abs(item_actual.ts - item_local.timestamp) * .5:
                         continue
+                    '''
 
                     item: PEMTrafficSceneObservation = item_local if not item_remote else cls.fuse(item_local, item_remote, item_actual.ts)
+
+                    for cell in item.value.occupancy_grid.cells:
+                        cell_tracker[0] += 1
+                        cell_tracker[cell.state.object.value + 1] += 1
 
                     # For each truly occupied cell, first, check if it was even observed by some vehicle and, second, get its state.
                     # Currently, only occupied cells (~ false negatives) are considered.
@@ -402,6 +409,12 @@ class GridEvaluator:
                         # with some state and some confidence
                         matches.add((c1, c2))
 
+        # Print cell statistics
+        total: int = cell_tracker[0] + 1
+        free: float = round((cell_tracker[Gss.FREE + 1] / total) * 100, 2)
+        occupied: float = round((cell_tracker[Gss.OCCUPIED + 1] / total) * 100, 2)
+        unknown: float = round((cell_tracker[Gss.UNKNOWN + 1] / total) * 100, 2)
+        logging.info(f'Free: {free} %, Occupied: {occupied} %, Unknown: {unknown} %')
         logging.info(f'Matching has {len(matches)} entries ({round((remote_count / (remote_count + local_count)) * 100, 2)} % remote).')
 
         return matches
