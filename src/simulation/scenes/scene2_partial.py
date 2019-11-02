@@ -60,15 +60,33 @@ class Scene(AbstractScene):
 
         # Create walkers
         logging.info(f'Attempting to spawn {SCENE2_N_PEDESTRIANS} pedestrians.')
-        self._peds = simulation.try_spawn_pedestrians(self._sim, SCENE2_N_PEDESTRIANS)
+        retry_count: int = 0
+        while self.n_peds < SCENE2_N_PEDESTRIANS and retry_count < 3:
+            retry_count += 1
+            self._peds += simulation.try_spawn_pedestrians(
+                self._sim,
+                n=SCENE2_N_PEDESTRIANS - self.n_peds
+            )
 
         # Create static vehicles
         logging.info(f'Attempting to spawn {SCENE2_N_STATIC} static vehicles.')
-        self._static = simulation.spawn_static_vehicles(self._sim, SCENE2_N_STATIC, role_name_prefix=SCENE2_STATIC_PREFIX)
+        retry_count: int = 0
+        while self.n_static < SCENE2_N_PEDESTRIANS and retry_count < 3:
+            retry_count += 1
+            self._static += simulation.spawn_static_vehicles(
+                self._sim,
+                n=SCENE2_N_STATIC - self.n_static,
+                role_name_prefix=SCENE2_STATIC_PREFIX
+            )
 
         # Create moving vehicles
         logging.info(f'Attempting to spawn {SCENE2_N_VEHICLES} NPC vehicles.')
-        self._agents = simulation.spawn_npcs(self._sim, self._waypoint_provider, SCENE2_N_VEHICLES, SCENE2_NPC_PREFIX)
+        self._agents = simulation.spawn_npcs(
+            self._sim,
+            self._waypoint_provider,
+            n=SCENE2_N_VEHICLES,
+            role_name_prefix=SCENE2_NPC_PREFIX
+        )
 
         self.print_scene_status()
 
