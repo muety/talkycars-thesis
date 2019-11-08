@@ -1,4 +1,4 @@
-from typing import List, Dict, FrozenSet, Tuple, cast
+from typing import List, Dict, FrozenSet, Tuple, cast, Set
 
 from pyquadkey2 import quadkey
 from pyquadkey2.quadkey import QuadKey
@@ -93,7 +93,16 @@ def get_occupied_cells(for_actor: DynamicActor) -> FrozenSet[QuadKey]:
 
 
 # Assumes that a cell is tiny enough to contain at max one actor
-def get_occupied_cells_multi(for_actors: List[DynamicActor]) -> Dict[str, DynamicActor]:
+def get_occupied_cells_multi(for_actors: List[DynamicActor]) -> FrozenSet[QuadKey]:
+    matches: Set[QuadKey] = set()
+
+    for a in for_actors:
+        matches = matches.union(get_occupied_cells(a))
+
+    return frozenset(matches)
+
+
+def get_occupied_cells_multi_map(for_actors: List[DynamicActor]) -> Dict[str, DynamicActor]:
     matches: Dict[str, DynamicActor] = {}
 
     for a in for_actors:

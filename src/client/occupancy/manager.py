@@ -5,7 +5,7 @@ import numpy as np
 from pyquadkey2 import quadkey
 
 from client.observation import LinearObservationTracker
-from client.utils import get_occupied_cells
+from client.utils import get_occupied_cells_multi
 from common.constants import *
 from common.model import UncertainProperty, DynamicActor
 from common.observation import GnssObservation, LidarObservation
@@ -23,12 +23,12 @@ class OccupancyGridManager:
     def __init__(self, level, radius, offset_z=0):
         self.level = level
         self.radius = radius
-        self.ego: DynamicActor = None
+        self.actors: List[DynamicActor] = None
 
         self.gnss_current: GnssObservation = None
         self.quadkey_current: quadkey.QuadKey = None
         self.quadkey_prev: quadkey.QuadKey = None
-        self.ego_occupied_cells: FrozenSet[quadkey.QuadKey] = frozenset()
+        self.actor_occupied_cells: FrozenSet[quadkey.QuadKey] = frozenset()
 
         self.offset_z = offset_z
         # TODO: Prevent memory leak
@@ -52,8 +52,8 @@ class OccupancyGridManager:
 
         return False
 
-    def update_ego(self, ego: DynamicActor):
-        self.ego = ego
+    def update_actors(self, actors: List[DynamicActor]):
+        self.actors = actors
 
     def get_grid(self) -> Grid:
         return self.grids[self.quadkey_current.key] if self.quadkey_current and self.quadkey_current.key in self.grids and self.grids[self.quadkey_current.key] else None
@@ -63,7 +63,7 @@ class OccupancyGridManager:
 
     def match_with_lidar(self, obs: LidarObservation):
         grid = self.get_grid()
-        if grid is None or obs is None or self.ego is None or self.ego.location is None:
+        if grid is None or obs is None or self.actors is None or len(self.actors) < 1:
             return False
 
         n = len(grid.cells)
@@ -72,7 +72,7 @@ class OccupancyGridManager:
         batches = [(
             np.array(list(map(lambda c: c.bounds, grid_cells[i * batch_size:i * batch_size + batch_size])), dtype=np.float32),
             obs.value,
-            np.array(self.ego.location.value.components(), dtype=np.float32)
+            np.array(self.actors[0].location.value.components(), dtype=np.float32)  # ego is always first in list
         ) for i in range(n)]
 
         result: List[np.ndarray] = self.pool.starmap(self._match_cells_with_lidar, batches)  # ndarray[GridCellState]
@@ -82,7 +82,7 @@ class OccupancyGridManager:
                 s = GridCellState(s)
                 group_key = f'grid_cell_{i * batch_size + j}'
                 cell = grid_cells[i * batch_size + j]
-                if cell.quad_key in self.ego_occupied_cells:
+                if cell.quad_key in self.actor_occupied_cells:
                     continue
                 self.tracker.track(group_key, s)
                 self.tracker.cycle_group(group_key)
@@ -131,20 +131,20 @@ class OccupancyGridManager:
         key = self.quadkey_current
         if key.key not in self.grids:
             self.grids[key.key] = self._compute_grid()
-            self._update_ego_cells()
+            self._update_actor_cells()
             return
         if force_actors_update:
-            self._update_ego_cells()
+            self._update_actor_cells()
 
-    def _update_ego_cells(self):
-        self.ego_occupied_cells: FrozenSet[quadkey.QuadKey] = get_occupied_cells(self.ego) if self.ego else frozenset()
+    def _update_actor_cells(self):
+        self.actor_occupied_cells: FrozenSet[quadkey.QuadKey] = get_occupied_cells_multi(self.actors) if self.actors else frozenset()
 
         grid = self.get_grid()
         if not grid:
             return
 
         for cell in grid.cells:
-            if cell.quad_key in self.ego_occupied_cells:
+            if cell.quad_key in self.actor_occupied_cells:
                 cell.state = UncertainProperty(1., GridCellState.OCCUPIED)
 
     def _compute_grid(self) -> Grid:
@@ -195,6 +195,6 @@ class OccupancyGridManager:
             convert=self.convert,
             offset=self.get_cell_base_z(),
             height=OCCUPANCY_BBOX_HEIGHT,
-            state=UncertainProperty(1., GridCellState.OCCUPIED if q in self.ego_occupied_cells else GridCellState.UNKNOWN)
+            state=UncertainProperty(1., GridCellState.OCCUPIED if q in self.actor_occupied_cells else GridCellState.UNKNOWN)
         ), quadkeys))
         return Grid(cells)

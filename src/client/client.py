@@ -4,14 +4,14 @@ from collections import deque
 from datetime import datetime
 from enum import Enum
 from threading import Thread, Lock
-from typing import cast, Dict, Optional, Deque
+from typing import cast, Dict, Optional, Deque, List
 
 from pyquadkey2.quadkey import QuadKey
 
 from client.observation import ObservationManager, LinearObservationTracker
 from client.observation.sink import Sink, PickleObservationSink
 from client.subscription import TileSubscriptionService
-from client.utils import map_pem_actor, get_occupied_cells_multi
+from client.utils import map_pem_actor, get_occupied_cells_multi_map
 from common.constants import *
 from common.constants import EVAL2_BASE_KEY
 from common.model import DynamicActor
@@ -137,7 +137,12 @@ class TalkyClient:
         if self.om.has(OBS_ACTOR_EGO):
             ego_obs: ActorsObservation = cast(ActorsObservation, self.om.latest(OBS_ACTOR_EGO))
             ego: DynamicActor = cast(ActorsObservation, ego_obs).value[0]
-            self.gm.update_ego(ego)
+
+            actors: List[DynamicActor] = [ego]
+            if self.om.has(OBS_ACTORS_RAW):
+                actors += cast(ActorsObservation, self.om.latest(OBS_ACTORS_RAW)).value
+
+            self.gm.update_actors(actors)
             self.gm.update_gnss(GnssObservation(timestamp=ego_obs.timestamp, coords=ego.gnss.value.components()))
 
         if not self.gm.match_with_lidar(cast(LidarObservation, obs)):
@@ -176,7 +181,7 @@ class TalkyClient:
         self.timings.start('d1')
 
         ego_actor: DynamicActor = actors_ego_obs.value[0]
-        visible_actors: Dict[str, DynamicActor] = get_occupied_cells_multi(actors_others_obs.value + [ego_actor])
+        visible_actors: Dict[str, DynamicActor] = get_occupied_cells_multi_map(actors_others_obs.value + [ego_actor])
 
         # Generate PEM complex object attributes
         pem_ego = map_pem_actor(ego_actor)
