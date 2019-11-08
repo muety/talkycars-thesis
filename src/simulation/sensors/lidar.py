@@ -27,8 +27,8 @@ class LidarSensor(Sensor):
         bp.set_attribute('upper_fov', '0')
         bp.set_attribute('lower_fov', str(int(-angle)))
         bp.set_attribute('rotation_frequency', '30')
-        bp.set_attribute('channels', '6')
-        bp.set_attribute('points_per_second', '8000')
+        bp.set_attribute('channels', '3')
+        bp.set_attribute('points_per_second', '3000')
 
         logging.info(f'Lidar Angle: {int(-angle)}')
         logging.info(f'Lidar Range: {int(range)}')
