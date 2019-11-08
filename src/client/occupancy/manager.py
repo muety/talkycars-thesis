@@ -2,10 +2,10 @@ from multiprocessing.pool import Pool
 from typing import List, Set, Dict, Callable, FrozenSet
 
 import numpy as np
+from pyquadkey2 import quadkey
 
 from client.observation import LinearObservationTracker
 from client.utils import get_occupied_cells
-from common import quadkey
 from common.constants import *
 from common.model import UncertainProperty, DynamicActor
 from common.observation import GnssObservation, LidarObservation

@@ -2,9 +2,9 @@ from enum import IntEnum
 from typing import Callable, List, Tuple, Set
 
 import numpy as np
+from pyquadkey2.quadkey import QuadKey, TileAnchor
 
 from common.model import BBox3D, Point3D, Point2D, UncertainProperty
-from common.quadkey import QuadKey, TileAnchor
 
 
 class GridCellState(IntEnum):

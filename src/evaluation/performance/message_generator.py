@@ -12,10 +12,11 @@ from multiprocessing.pool import Pool
 from threading import Thread, Lock
 from typing import Tuple, List, Union, FrozenSet
 
+from pyquadkey2 import quadkey
+from pyquadkey2.quadkey import QuadKey
+
 from client import TileSubscriptionService
-from common import quadkey
 from common.constants import *
-from common.quadkey import QuadKey
 from common.serialization.schema import Vector3D, RelativeBBox, ActorType, GridCellState
 from common.serialization.schema.actor import PEMDynamicActor
 from common.serialization.schema.base import PEMTrafficScene

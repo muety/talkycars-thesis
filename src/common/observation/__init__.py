@@ -2,8 +2,8 @@ from datetime import datetime
 from typing import Tuple, List, Any, Dict, Union
 
 import numpy as np
+from pyquadkey2 import quadkey
 
-from common import quadkey
 from common.model import DynamicActor, UncertainProperty
 from common.occupancy import Grid, GridCellState
 from common.serialization.schema.base import PEMTrafficScene

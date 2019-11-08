@@ -8,14 +8,14 @@ import time
 from operator import attrgetter
 from typing import List, Tuple, Dict, Set, Any, Union, cast
 
+from pyquadkey2 import quadkey
+from pyquadkey2.quadkey import QuadKey
 from tqdm import tqdm
 
-from common import quadkey
 from common.bst.rb_tree import RedBlackTree
 from common.constants import *
 from common.observation import PEMTrafficSceneObservation, Observation, RawBytesObservation
 from common.occupancy import GridCellState as Gss
-from common.quadkey import QuadKey
 from common.serialization.schema import GridCellState
 from common.serialization.schema.base import PEMTrafficScene
 from common.serialization.schema.occupancy import PEMOccupancyGrid, PEMGridCell

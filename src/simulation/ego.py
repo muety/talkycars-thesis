@@ -7,6 +7,7 @@ from typing import Dict
 
 import pygame
 from hud import HUD
+from pyquadkey2.quadkey import QuadKey
 from sensors import GnssSensor, LidarSensor, CameraRGBSensor
 from sensors.actors import ActorsSensor
 from sensors.position import PositionSensor
@@ -19,7 +20,6 @@ from client import ClientDialect, TalkyClient
 from common.constants import *
 from common.observation import OccupancyGridObservation
 from common.occupancy import Grid
-from common.quadkey import QuadKey
 from common.util.process import GracefulKiller, proc_wrap
 
 ADD_ARGS_PREFIX = '--strat-'

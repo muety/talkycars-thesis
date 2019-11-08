@@ -7,12 +7,13 @@ from datetime import datetime
 from threading import Thread
 from typing import List, Iterator, FrozenSet, Iterable, Dict, Set
 
+from pyquadkey2.quadkey import QuadKey
+
 import carla
 from client import map_dynamic_actor, get_occupied_cells
 from common.constants import *
 from common.constants import EVAL2_BASE_KEY, EVAL2_DATA_DIR
 from common.model import DynamicActor
-from common.quadkey import QuadKey
 from common.util.process import GracefulKiller
 from evaluation.perception import OccupancyGroundTruthContainer
 

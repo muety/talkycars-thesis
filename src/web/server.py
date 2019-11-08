@@ -5,11 +5,11 @@ from collections import deque
 from typing import Deque, Dict, Any
 
 from fastapi import FastAPI
+from pyquadkey2 import quadkey
 from starlette.responses import Response
 from starlette.staticfiles import StaticFiles
 from starlette.websockets import WebSocket
 
-from common import quadkey
 from common.bridge import MqttBridge
 from common.constants import *
 from common.serialization.schema.base import PEMTrafficScene

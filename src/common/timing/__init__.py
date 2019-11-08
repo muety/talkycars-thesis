@@ -45,7 +45,7 @@ class TimingService(metaclass=Singleton):
         self.active = False
 
     def get_mean(self, key: str) -> float:
-        assert key in self.start_timestamps and key in self.stop_timestamps
+        assert key in self.start_timestamps and key in self.stop_timestamps and len(self.stop_timestamps[key]) > 0
         return sum(map(lambda t: t[0] - t[1], zip(self.stop_timestamps[key], self.start_timestamps[key]))) / len(self.stop_timestamps[key])
 
     def get_call_rate(self, key: str) -> float:

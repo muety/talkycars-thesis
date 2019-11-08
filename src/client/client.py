@@ -6,6 +6,8 @@ from enum import Enum
 from threading import Thread, Lock
 from typing import cast, Dict, Optional, Deque
 
+from pyquadkey2.quadkey import QuadKey
+
 from client.observation import ObservationManager, LinearObservationTracker
 from client.observation.sink import Sink, PickleObservationSink
 from client.subscription import TileSubscriptionService
@@ -16,7 +18,6 @@ from common.model import DynamicActor
 from common.observation import CameraRGBObservation, ActorsObservation, PEMTrafficSceneObservation, RawBytesObservation
 from common.observation import OccupancyGridObservation, LidarObservation, PositionObservation, \
     GnssObservation
-from common.quadkey import QuadKey
 from common.serialization.schema import GridCellState
 from common.serialization.schema.actor import PEMDynamicActor
 from common.serialization.schema.base import PEMTrafficScene

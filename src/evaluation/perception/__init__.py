@@ -1,7 +1,7 @@
 import time
 from typing import FrozenSet
 
-from common.quadkey import QuadKey
+from pyquadkey2.quadkey import QuadKey
 
 
 class OccupancyGroundTruthContainer:

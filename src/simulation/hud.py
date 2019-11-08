@@ -2,9 +2,9 @@ import datetime
 import math
 
 import pygame
+from pyquadkey2 import quadkey
 
 import carla
-from common import quadkey
 from common.constants import *
 
 

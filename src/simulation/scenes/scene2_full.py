@@ -3,14 +3,14 @@ from typing import cast
 
 import pygame
 from ego import Ego
+from pyquadkey2 import quadkey
+from pyquadkey2.quadkey import QuadKey
 from scenes import scene2_partial
 from strategy import RandomPathEgoStrategy
 
 import carla
 import common.constants
-from common import quadkey
 from common.constants import *
-from common.quadkey import QuadKey
 
 
 class Scene(scene2_partial.Scene):

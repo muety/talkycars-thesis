@@ -1,11 +1,12 @@
 from typing import List, Dict, FrozenSet, Tuple, cast
 
+from pyquadkey2 import quadkey
+from pyquadkey2.quadkey import QuadKey
+
 import carla
-from common import quadkey
 from common.constants import *
 from common.model import ActorType as At
 from common.model import DynamicActor, Point2D, UncertainProperty, Point3D, ActorDynamics, ActorProperties
-from common.quadkey import QuadKey
 from common.serialization.schema import RelativeBBox, Vector3D, ActorType
 from common.serialization.schema.actor import PEMDynamicActor
 from common.serialization.schema.relation import PEMRelation
@@ -88,7 +89,7 @@ def resolve_carla_type(carla_type: str) -> At:
 def get_occupied_cells(for_actor: DynamicActor) -> FrozenSet[QuadKey]:
     qks: List[QuadKey] = list(map(lambda c: quadkey.from_geo(c.components(), OCCUPANCY_TILE_LEVEL), for_actor.props.bbox.value))
 
-    return frozenset(quadkey.QuadKey.bbox_filled(qks))
+    return frozenset(quadkey.QuadKey.bbox(qks))
 
 
 # Assumes that a cell is tiny enough to contain at max one actor

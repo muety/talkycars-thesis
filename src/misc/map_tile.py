@@ -3,8 +3,9 @@ import time
 from operator import attrgetter
 from os.path import commonprefix
 
+from pyquadkey2 import quadkey
+
 import carla
-from common import quadkey
 from common.constants import *
 
 MAPS = ['Town01', 'Town02', 'Town03', 'Town04', 'Town05', 'Town07']

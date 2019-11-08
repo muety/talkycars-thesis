@@ -1,10 +1,11 @@
 import logging
 from typing import Dict, Tuple, Callable, Set, FrozenSet
 
-from common import quadkey
+from pyquadkey2 import quadkey
+from pyquadkey2.quadkey import QuadKey
+
 from common.bridge import MqttBridge
 from common.constants import *
-from common.quadkey import QuadKey
 
 '''
     In practice there is going to be multiple edge nodes with a separate MQTT broker alongside each.
