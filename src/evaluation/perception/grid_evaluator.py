@@ -466,7 +466,7 @@ class GridEvaluator:
 
     @staticmethod
     def _decay(timestamp: float, ref_time: float = time.time()) -> float:
-        t = int((ref_time - timestamp) * 10)  # t in 100ms
+        t = (ref_time - timestamp) * 10  # t in 100ms
         return math.exp(-t * FUSION_DECAY_LAMBDA)
 
 
