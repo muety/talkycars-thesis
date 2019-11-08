@@ -10,7 +10,7 @@ import time
 from multiprocessing import current_process
 from multiprocessing.pool import Pool
 from threading import Thread, Lock
-from typing import Tuple, List, Union, FrozenSet
+from typing import Tuple, List, Union
 
 from pyquadkey2 import quadkey
 from pyquadkey2.quadkey import QuadKey
@@ -54,7 +54,7 @@ class MessageGenerator:
         # Pre-generated pools of sample data to randomly choose from
         self.gen_ego_pool: List[PEMDynamicActor] = None
         self.gen_quads_pool: List[List[QuadKey]] = None
-        self.gen_msgs: List[Tuple[bytes, FrozenSet[str]]] = None  # Tuples of serialized message and list of contained tiles' quadkeys
+        self.gen_msgs: List[bytes] = None
 
         # Pre-generated fixed data to be used in every message
         self.gen_others: List[PEMDynamicActor] = None
@@ -83,8 +83,8 @@ class MessageGenerator:
         self.start_time = time.time()
 
         while True:
-            msg, tiles = random.choice(self.gen_msgs)
-            self.tss.publish_graph(msg, tiles)
+            msg = random.choice(self.gen_msgs)
+            self.tss.publish_graph(msg)
 
             with self.lock:
                 self.msg_count += 1
@@ -164,13 +164,12 @@ class MessageGenerator:
             self.gen_msgs = [self.generate_message(self.gen_quads_pool, self.gen_others, self.gen_ego_pool) for _ in range(self.n_sample_scenes)]
 
     @classmethod
-    def generate_scene(cls, quads: List[List[QuadKey]], others: List[PEMDynamicActor], egos: List[PEMDynamicActor]) -> Tuple[PEMTrafficScene, FrozenSet[str]]:
+    def generate_scene(cls, quads: List[List[QuadKey]], others: List[PEMDynamicActor], egos: List[PEMDynamicActor]) -> PEMTrafficScene:
         grid: PEMOccupancyGrid = PEMOccupancyGrid(cells=[])
 
         idx: int = random.randint(0, len(egos) - 1)
         ego: PEMDynamicActor = egos[idx]
         quadkeys: List[QuadKey] = quads[idx]
-        hashes: List[str] = []
 
         for qk in quadkeys:
             state: GridCellState = random.choice(STATES)
@@ -182,20 +181,18 @@ class MessageGenerator:
                 occupant=PEMRelation(cls.rand_prob(), occupant)
             ))
 
-            hashes.append(qk.key)
-
         scene: PEMTrafficScene = PEMTrafficScene(
             timestamp=time.time(),
             measured_by=ego,
             occupancy_grid=grid
         )
 
-        return scene, frozenset(hashes)
+        return scene
 
     @classmethod
-    def generate_message(cls, quads: List[List[QuadKey]], others: List[PEMDynamicActor], egos: List[PEMDynamicActor]) -> Tuple[bytes, FrozenSet[str]]:
-        scene, tiles = cls.generate_scene(quads, others, egos)
-        return scene.to_bytes(), tiles
+    def generate_message(cls, quads: List[List[QuadKey]], others: List[PEMDynamicActor], egos: List[PEMDynamicActor]) -> bytes:
+        scene = cls.generate_scene(quads, others, egos)
+        return scene.to_bytes()
 
     @staticmethod
     def rand_prob() -> float:
