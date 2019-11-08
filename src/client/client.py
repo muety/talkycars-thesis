@@ -11,7 +11,7 @@ from pyquadkey2.quadkey import QuadKey
 from client.observation import ObservationManager, LinearObservationTracker
 from client.observation.sink import Sink, PickleObservationSink
 from client.subscription import TileSubscriptionService
-from client.utils import map_pem_actor, get_occupied_cells_multi_map
+from client.utils import map_pem_actor
 from common.constants import *
 from common.constants import EVAL2_BASE_KEY
 from common.model import DynamicActor
@@ -181,7 +181,9 @@ class TalkyClient:
         self.timings.start('d1')
 
         ego_actor: DynamicActor = actors_ego_obs.value[0]
-        visible_actors: Dict[str, DynamicActor] = get_occupied_cells_multi_map(actors_others_obs.value + [ego_actor])
+        # Turned off for evaluation, because occupants are not fused anyway
+        # visible_actors: Dict[str, DynamicActor] = get_occupied_cells_multi_map(actors_others_obs.value + [ego_actor])
+        visible_actors: Dict[str, DynamicActor] = {}
 
         # Generate PEM complex object attributes
         pem_ego = map_pem_actor(ego_actor)
