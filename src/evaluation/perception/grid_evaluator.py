@@ -33,6 +33,7 @@ logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.DEBUG)
 State5Tuple = Tuple[QuadKey, float, Gss, int, float]  # Cell, Confidence, State, SenderId, Timestamp
 
 quad_str_lookup: Dict[int, str] = {}
+quad_int_lookup: Dict[str, int] = {}
 
 
 def data_dir():
@@ -47,8 +48,10 @@ class ObservationTree:
 
         self.extend(items if items else [])
 
-    def add(self, obj: Observation):
+    def add(self, obj: Observation, overwrite=True):
         key: float = multi_getattr(obj, self.key_attr)
+        if not overwrite and key in self.mapping:
+            return
         self.mapping[key] = obj
         self.tree.add(key)
 
@@ -364,11 +367,15 @@ class GridEvaluator:
                     if item_remote:
                         remote_count += 1
 
+                    if not item_local and not item_remote:
+                        continue
+
                     # Thin out: we want to avoid having the exact same match multiple times. Therefore, if two ground-truth
                     # items are time-wise closer than the next observation, skip.
                     '''
                     d = abs(item_actual.ts - items_actual[i - 1].ts)
-                    if i > 0 and d < abs(item_actual.ts - item_local.timestamp) * .5:
+                    dc: float = min([abs(item_actual.ts - (item_local.timestamp if item_local else 0)), abs(item_actual.ts - (item_remote.timestamp if item_remote else 0))])
+                    if i > 0 and d < dc * .5:
                         continue
                     '''
 
@@ -376,10 +383,8 @@ class GridEvaluator:
                         item: PEMTrafficSceneObservation = item_local
                     elif item_remote and not item_local:
                         item: PEMTrafficSceneObservation = item_remote
-                    elif item_local and item_remote:
-                        item: PEMTrafficSceneObservation = cls.fuse(item_local, item_remote, item_actual.ts)
                     else:
-                        continue
+                        item: PEMTrafficSceneObservation = cls.fuse(item_local, item_remote, item_actual.ts)
 
                     for cell in item.value.occupancy_grid.cells:
                         cell_tracker[0] += 1
@@ -440,7 +445,7 @@ class GridEvaluator:
             if sender_id not in mapping[parent]:
                 mapping[parent][sender_id] = ObservationTree(key_attr='timestamp')
 
-            mapping[parent][sender_id].add(obs)
+            mapping[parent][sender_id].add(obs, overwrite=False)
             sender_ids.add(sender_id)
 
         return mapping, sender_ids
@@ -469,6 +474,12 @@ class GridEvaluator:
         if quadint not in quad_str_lookup:
             quad_str_lookup[quadint] = quadkey.from_int(quadint).key
         return quad_str_lookup[quadint]
+
+    @staticmethod
+    def cache_get_inverse(quadstr: str) -> int:
+        if quadstr not in quad_int_lookup:
+            quad_int_lookup[quadstr] = QuadKey(quadstr).to_quadint()
+        return quad_int_lookup[quadstr]
 
     @staticmethod
     def _decay(timestamp: float, ref_time: float = time.time()) -> float:

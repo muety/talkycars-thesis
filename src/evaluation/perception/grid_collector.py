@@ -109,12 +109,12 @@ class GridCollector:
         self.flush_count += 1
 
     def push_ground_truth(self):
-        now: float = time.time()
-
         occupied_cells: Dict[str, Set[QuadKey]] = self.split_by_level(
             self.fetch_occupied_cells(),
             level=REMOTE_GRID_TILE_LEVEL
         )
+
+        now: float = time.time()
 
         for tile, cells in occupied_cells.items():
             self.ground_truth_buffer.append(OccupancyGroundTruthContainer(
