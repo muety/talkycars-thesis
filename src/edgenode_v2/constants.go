@@ -6,9 +6,9 @@ const (
 	TickRate                 = 15
 	OccupancyTileLevel       = 24
 	RemoteGridTileLevel      = 19
-	FusionDecayLambda        = 0.11 // 0.05, 0.08, 0.11, 0.14
+	FusionDecayLambda        = 0.05 // 0.05, 0.08, 0.11, 0.14
 	TopicGraphRawIn          = "/graph_raw_in"
 	TopicPrefixGraphFusedOut = "/graph_fused_out"
-	GraphMaxAge              = time.Duration(1 * time.Second)
+	GraphMaxAge              = time.Duration(2 * time.Second)
 	MqttQos                  = 1
 )

@@ -228,7 +228,14 @@ class TalkyClient:
         encoded_msg = graph.to_bytes()
         self.timings.stop('d1')
 
-        self.inbound.publish(OBS_GRAPH_LOCAL, PEMTrafficSceneObservation(now, graph, meta={'sender': int(self.ego_id)}))
+        obs: PEMTrafficSceneObservation = PEMTrafficSceneObservation(now, graph, meta={'sender': int(self.ego_id)})
+        self.inbound.publish(OBS_GRAPH_LOCAL, obs)
+
+        if self.alive and self.recording and self.local_grid_sink:
+            if OBS_GRAPH_LOCAL not in self.local_grid_sink.accumulator:
+                self.local_grid_sink.push(OBS_GRAPH_LOCAL, [obs])
+            else:
+                self.local_grid_sink.accumulator[OBS_GRAPH_LOCAL].append(obs)
 
         if self.tss.active:
             self.tss.publish_graph(encoded_msg)
@@ -250,7 +257,14 @@ class TalkyClient:
         self.timings.start('d6')
         try:
             scene: PEMTrafficScene = PEMTrafficScene.from_bytes(msg)
-            self.inbound.publish(OBS_GRAPH_REMOTE, PEMTrafficSceneObservation(time.time(), scene, meta={'sender': int(self.ego_id)}))
+            obs: PEMTrafficSceneObservation = PEMTrafficSceneObservation(time.time(), scene, meta={'sender': int(self.ego_id)})
+
+            if self.alive and self.recording and self.remote_grid_sink:
+                if OBS_GRAPH_REMOTE not in self.remote_grid_sink.accumulator:
+                    self.remote_grid_sink.push(OBS_GRAPH_REMOTE, [obs])
+                else:
+                    self.remote_grid_sink.accumulator[OBS_GRAPH_REMOTE].append(obs)
+
             self.timings.stop('d6')
         except KeyError:
             self.timings.stop('d6')
@@ -267,24 +281,4 @@ class TalkyClient:
     def _record(self):
         while True:
             time.sleep(1 / RECORDING_RATE)
-
-            if not self.alive:
-                return
-
-            if not self.recording:
-                continue
-
-            obs1: PEMTrafficSceneObservation = cast(PEMTrafficSceneObservation, self.inbound.om.latest(OBS_GRAPH_LOCAL))
-            obs2: PEMTrafficSceneObservation = cast(PEMTrafficSceneObservation, self.inbound.om.latest(OBS_GRAPH_REMOTE))
-
-            if obs1 and self.local_grid_sink:
-                if OBS_GRAPH_LOCAL not in self.local_grid_sink.accumulator:
-                    self.local_grid_sink.push(OBS_GRAPH_LOCAL, [obs1])
-                else:
-                    self.local_grid_sink.accumulator[OBS_GRAPH_LOCAL].append(obs1)
-
-            if obs2 and self.remote_grid_sink:
-                if OBS_GRAPH_REMOTE not in self.remote_grid_sink.accumulator:
-                    self.remote_grid_sink.push(OBS_GRAPH_REMOTE, [obs2])
-                else:
-                    self.remote_grid_sink.accumulator[OBS_GRAPH_REMOTE].append(obs2)
+            pass
