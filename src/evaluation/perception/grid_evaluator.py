@@ -101,8 +101,9 @@ class GridEvaluator:
         logging.info(f'[{tag}] Computing closest matches between ground truth and observations.')
         matching: Set[Tuple[State5Tuple, State5Tuple]] = self.compute_matching(
             occupancy_observations_local,
-            [],
-            occupancy_ground_truth)
+            occupancy_observations_remote,
+            occupancy_ground_truth,
+            exclude_remote=True)
         self.print_scores(matching, tag)
 
         tag = 'FUSED'
@@ -110,7 +111,8 @@ class GridEvaluator:
         matching: Set[Tuple[State5Tuple, State5Tuple]] = self.compute_matching(
             occupancy_observations_local,
             occupancy_observations_remote,
-            occupancy_ground_truth)
+            occupancy_ground_truth,
+            exclude_remote=False)
         self.print_scores(matching, tag)
 
     @staticmethod
@@ -318,7 +320,8 @@ class GridEvaluator:
     def compute_matching(cls,
                          local_observations: List[PEMTrafficSceneObservation],
                          remote_observations: List[PEMTrafficSceneObservation],
-                         ground_truth: List[Ogtc]) -> Set[Tuple[State5Tuple, State5Tuple]]:
+                         ground_truth: List[Ogtc],
+                         exclude_remote: bool) -> Set[Tuple[State5Tuple, State5Tuple]]:
         matches: Set[Tuple[State5Tuple, State5Tuple]] = set()
         sender_ids: Set[int] = set()
         actual: Dict[QuadKey, List[Ogtc]] = dict.fromkeys(map(attrgetter('tile'), ground_truth), [])  # Parent tile keys -> Ogtc
@@ -356,7 +359,7 @@ class GridEvaluator:
                     # For every ground truth data point, get closest local- and remote observations and fuse them (later)
                     if item_actual.tile in observed_local and sid in observed_local[item_actual.tile]:
                         item_local: Union[PEMTrafficSceneObservation, None] = cls.find_closest_match(item_actual, 'ts', observed_local[item_actual.tile][sid], sign=+1)
-                    if item_actual.tile in observed_remote and sid in observed_remote[item_actual.tile]:
+                    if not exclude_remote and item_actual.tile in observed_remote and sid in observed_remote[item_actual.tile]:
                         item_remote: Union[PEMTrafficSceneObservation, None] = cls.find_closest_match(item_actual, 'ts', observed_remote[item_actual.tile][sid], sign=+1)
 
                     if item_local:
@@ -374,19 +377,20 @@ class GridEvaluator:
                     if not item_local and not item_remote:
                         neighbors: List[QuadKey] = parent.nearby(1)
                         for neighbor in neighbors:
+                            # One of these two blocks returning true means the ego was subscribed to the given tile at given time.
+                            # Note: This is logically not symmetric. We can check whether an ego WAS subscribed to a parent, but
+                            # not whether is WAS NOT. But that's ok since it does only marginally bias the absolute scores later, not their relations.
+
                             if neighbor in observed_local and sid in observed_local[neighbor] and cls.find_closest_match(item_actual, 'ts', observed_local[neighbor][sid], sign=+1):
+                                # Timestamp as well as any other properties than occupancy grid cells should not matter anymore from here on
+                                item_local = cls.get_empty_observation(item_actual.ts)
+                                break
+                            elif neighbor in observed_remote and sid in observed_remote[neighbor] and cls.find_closest_match(item_actual, 'ts', observed_remote[neighbor][sid], sign=+1):
                                 # Timestamp as well as any other properties than occupancy grid cells should not matter anymore from here on
                                 item_local = cls.get_empty_observation(item_actual.ts)
                                 break
 
                     if not item_local:
-                        continue
-
-                    # Thin out: we want to avoid having the exact same match multiple times. Therefore, if two ground-truth
-                    # items are time-wise closer than the next observation, skip.
-                    d = abs(item_actual.ts - items_actual[i - 1].ts)
-                    dc: float = min([abs(item_actual.ts - (item_local.timestamp if item_local else 0)), abs(item_actual.ts - (item_remote.timestamp if item_remote else 0))])
-                    if i > 0 and d < dc * .5:
                         continue
 
                     if item_local and not item_remote:
@@ -487,6 +491,7 @@ class GridEvaluator:
         return quad_int_lookup[quadstr]
 
     @staticmethod
+    # Caution: Most values, like timestamps, meta data, etc. are not set
     def get_empty_observation(with_ts: float) -> PEMTrafficSceneObservation:
         return PEMTrafficSceneObservation(
             timestamp=with_ts,
