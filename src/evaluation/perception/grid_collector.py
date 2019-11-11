@@ -127,7 +127,6 @@ class GridCollector:
         carla_actors: List[carla.Actor] = []
         carla_actors += list(self.world.get_actors().filter('vehicle.*'))
         carla_actors += list(self.world.get_actors().filter('walker.*'))
-        carla_actors = list(filter(lambda a: 'role_name' not in a.attributes or not a.attributes['role_name'].startswith(self.ego_prefix), carla_actors))  # Don't consider egos
         all_actors: Iterator[DynamicActor] = map(lambda a: map_dynamic_actor(a, self.map), carla_actors)
 
         occupied_cells: Iterator[FrozenSet[QuadKey]] = map(get_occupied_cells, all_actors)

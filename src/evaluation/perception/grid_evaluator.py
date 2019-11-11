@@ -154,7 +154,9 @@ class GridEvaluator:
         for qk in keys:
             if qk in local_cells and qk not in remote_cells:
                 cells.append(local_cells[qk])
-            elif qk in local_cells and qk in remote_cells:
+            elif qk not in local_cells and qk in remote_cells:
+                cells.append(remote_cells[qk])
+            else:
                 weight_sum: float = sum(weights)
                 new_cell: PEMGridCell = PEMGridCell(hash=local_cells[qk].hash)
                 state_vec: List[float] = [0] * GridCellState.N
@@ -357,11 +359,8 @@ class GridEvaluator:
                     if item_actual.tile in observed_remote and sid in observed_remote[item_actual.tile]:
                         item_remote: Union[PEMTrafficSceneObservation, None] = cls.find_closest_match(item_actual, 'ts', observed_remote[item_actual.tile][sid], sign=+1)
 
-                    # Parent tile was not in this vehicle's range
-                    if not item_local:
-                        continue
-
-                    local_count += 1
+                    if item_local:
+                        local_count += 1
                     if item_remote:
                         remote_count += 1
 
@@ -373,7 +372,14 @@ class GridEvaluator:
                         continue
                     '''
 
-                    item: PEMTrafficSceneObservation = item_local if not item_remote else cls.fuse(item_local, item_remote, item_actual.ts)
+                    if item_local and not item_remote:
+                        item: PEMTrafficSceneObservation = item_local
+                    elif item_remote and not item_local:
+                        item: PEMTrafficSceneObservation = item_remote
+                    elif item_local and item_remote:
+                        item: PEMTrafficSceneObservation = cls.fuse(item_local, item_remote, item_actual.ts)
+                    else:
+                        continue
 
                     for cell in item.value.occupancy_grid.cells:
                         cell_tracker[0] += 1
