@@ -331,8 +331,6 @@ class GridEvaluator:
         sender_ids = sender_ids.union(mapping_result[1])
         observed_remote: Dict[QuadKey, Dict[int, ObservationTree]] = mapping_result[0]
 
-        quadint_map: Dict[QuadKey, int] = {}
-
         local_count: int = 0
         remote_count: int = 0
         cell_tracker: List[int] = [0] * (GridCellState.N + 1)
@@ -341,7 +339,6 @@ class GridEvaluator:
         for k in actual.keys():
             actual[k] = list(filter(lambda o: o.tile == k, ground_truth))
 
-        # Compute match for every cell
         parent_quads: Set[QuadKey] = set(actual.keys()).intersection(set(observed_local.keys()))
         for parent in tqdm(parent_quads):
             items_actual: List[Ogtc] = sorted(actual[parent], key=attrgetter('ts'))
@@ -367,17 +364,30 @@ class GridEvaluator:
                     if item_remote:
                         remote_count += 1
 
+                    # Consider all parent cells which the ego was subscribed to.
+                    # If item_local is not None for current parent, it was directly observed by the ego at that point in time.
+                    # If item_local is None, but item_remote is not, it was within the ego's subscription and within another ego's direct range of sight.
+                    # However, to have a common basis for comparison (same denominator), we always want to consider all neighbor parents (subscription range).
+                    # Therefore, the following code checks whether the current parent (item_actual) was within the neighborhood of the ego at that time (+/- GRID_TTL).
+                    # If yes, all obstacles / occupied cells in it shall be considered for accuracy computation.
+                    # If no, the tile was not of interest at that time and we can discard it.
                     if not item_local and not item_remote:
+                        neighbors: List[QuadKey] = parent.nearby(1)
+                        for neighbor in neighbors:
+                            if neighbor in observed_local and sid in observed_local[neighbor] and cls.find_closest_match(item_actual, 'ts', observed_local[neighbor][sid], sign=+1):
+                                # Timestamp as well as any other properties than occupancy grid cells should not matter anymore from here on
+                                item_local = cls.get_empty_observation(item_actual.ts)
+                                break
+
+                    if not item_local:
                         continue
 
                     # Thin out: we want to avoid having the exact same match multiple times. Therefore, if two ground-truth
                     # items are time-wise closer than the next observation, skip.
-                    '''
                     d = abs(item_actual.ts - items_actual[i - 1].ts)
                     dc: float = min([abs(item_actual.ts - (item_local.timestamp if item_local else 0)), abs(item_actual.ts - (item_remote.timestamp if item_remote else 0))])
                     if i > 0 and d < dc * .5:
                         continue
-                    '''
 
                     if item_local and not item_remote:
                         item: PEMTrafficSceneObservation = item_local
@@ -385,10 +395,6 @@ class GridEvaluator:
                         item: PEMTrafficSceneObservation = item_remote
                     else:
                         item: PEMTrafficSceneObservation = cls.fuse(item_local, item_remote, item_actual.ts)
-
-                    for cell in item.value.occupancy_grid.cells:
-                        cell_tracker[0] += 1
-                        cell_tracker[cell.state.object.value + 1] += 1
 
                     # For each truly occupied cell, first, check if it was even observed by some vehicle and, second, get its state.
                     # Currently, only occupied cells (~ false negatives) are considered.
@@ -398,10 +404,7 @@ class GridEvaluator:
                         if not qk.is_ancestor(parent):
                             continue
 
-                        if qk not in quadint_map:
-                            quadint_map[qk] = qk.to_quadint()
-
-                        inthash: int = quadint_map[qk]
+                        inthash: int = cls.cache_get_inverse(qk.key)
 
                         # True state is occupied with 100 % confidence, because only occupied cells were even recorded by the ground truth data collector
                         s1: Tuple[float, Gss] = (1., Gss.OCCUPIED)
@@ -410,8 +413,10 @@ class GridEvaluator:
                             tmp_state: PEMRelation = next(filter(lambda c: c.hash == inthash, item.value.occupancy_grid.cells)).state
                             s2: Tuple[float, Gss] = (tmp_state.confidence, tmp_state.object.value)
                         except StopIteration:
-                            # Cell was not observed, e.g. because not in any vehicle's field of view -> ignore
-                            continue
+                            s2: Tuple[float, Gss] = (1, Gss.UNKNOWN)
+
+                        cell_tracker[0] += 1
+                        cell_tracker[s2[1] + 1] += 1
 
                         c1: State5Tuple = (qk, s1[0], s1[1], sid, item_actual.ts)
                         c2: State5Tuple = (qk, s2[0], s2[1], sid, item_actual.ts)
@@ -480,6 +485,15 @@ class GridEvaluator:
         if quadstr not in quad_int_lookup:
             quad_int_lookup[quadstr] = QuadKey(quadstr).to_quadint()
         return quad_int_lookup[quadstr]
+
+    @staticmethod
+    def get_empty_observation(with_ts: float) -> PEMTrafficSceneObservation:
+        return PEMTrafficSceneObservation(
+            timestamp=with_ts,
+            scene=PEMTrafficScene(
+                occupancy_grid=PEMOccupancyGrid(cells=[])
+            )
+        )
 
     @staticmethod
     def _decay(timestamp: float, ref_time: float = time.time()) -> float:
