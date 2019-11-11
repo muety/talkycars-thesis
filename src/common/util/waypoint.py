@@ -51,6 +51,28 @@ class MaxStreetDistancePolicy(MaxDistancePolicy):
         return self._agent.get_global_plan_distance()
 
 
+class MinDistancePolicy(WaypointPickPolicy):
+    def __init__(self, ref: carla.Location, min_space: float = 0.0):
+        self.ref: carla.Location = ref
+        self.min_space: float = min_space
+        self._picked: carla.Transform = None
+
+    def pick(self, available_waypoints: List[carla.Transform]):
+        available_waypoints = list(filter(lambda wp: self._sortkey(wp) >= self.min_space, sorted(available_waypoints, key=self._sortkey, reverse=False)))
+        if len(available_waypoints) < 1:
+            return None
+        return available_waypoints[0]
+
+    @property
+    def distance(self) -> float:
+        return self._dist(self._picked) if self._picked else 0
+
+    def _dist(self, waypoint: carla.Transform) -> float:
+        return waypoint.location.distance(self.ref)
+
+    def _sortkey(self, waypoint: carla.Transform) -> float:
+        return self._dist(waypoint)
+
 class WaypointProvider:
     def __init__(
             self,
@@ -72,7 +94,7 @@ class WaypointProvider:
     def set_waypoints(self, waypoints: List[carla.Transform]):
         self.waypoints: List[carla.Transform] = waypoints
 
-    def get(self, policy: WaypointPickPolicy = RandomPickPolicy()) -> carla.Transform:
+    def get(self, policy: WaypointPickPolicy = RandomPickPolicy(), keep: bool = False) -> carla.Transform:
         wp: carla.Transform = self._pick(policy)
 
         if wp is None:
@@ -82,6 +104,9 @@ class WaypointProvider:
         self.picked.append(wp)
 
         return wp
+
+    def get_by_index(self, index: int) -> carla.Transform:
+        return self.waypoints[index]
 
     # Initializes this instance's waypoints as all unoccupied waypoints in a map
     def update(self, free_only: bool = False, anywhere: bool = False):

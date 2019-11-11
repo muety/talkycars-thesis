@@ -12,6 +12,7 @@ from sensors import GnssSensor, LidarSensor, CameraRGBSensor
 from sensors.actors import ActorsSensor
 from sensors.position import PositionSensor
 from strategy import *
+from strategy.convoy import ConvoyStrategy
 from strategy.empty import EmptyEgoStrategy
 from util import bbox, simulation
 
@@ -133,6 +134,10 @@ class Ego:
                     self.killer.kill_now = True
                     continue
 
+    @property
+    def transform(self) -> carla.Transform:
+        return self.player.get_transform()
+
     def tick(self, clock: pygame.time.Clock) -> bool:
         if not self.alive:
             return True
@@ -245,6 +250,28 @@ def run(args=sys.argv[1:]):
                 seed=arg_seed,
                 center=SCENE2_AREA_CENTER,
                 center_dist=SCENE2_CENTER_DIST
+            )
+
+        # Case 4: Convoy strategy (for evaluation)
+        elif args.strategy == 'convoy':
+            arg_id: int = random.randint(0, 9999)
+            arg_seed: int = 0
+            args.rolename = f'{SCENE2_EGO_PREFIX}_{arg_id}'
+            arg_config: int = 0
+            for i, a in enumerate(additional_args):
+                if a == f'{ADD_ARGS_PREFIX}config' and len(additional_args) > i:
+                    arg_config = int(additional_args[i + 1])
+                    continue
+
+                if a == f'{ADD_ARGS_PREFIX}seed' and len(additional_args) > i:
+                    arg_seed = int(additional_args[i + 1])
+                    continue
+
+            strat = ConvoyStrategy(
+                id=arg_id,
+                config=arg_config,
+                wait_for_egos=SCENE2_N_EGOS,
+                seed=arg_seed
             )
 
         ego = Ego(client,

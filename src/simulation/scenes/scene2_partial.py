@@ -56,7 +56,7 @@ class Scene(AbstractScene):
             n_present = simulation.count_present_vehicles(SCENE2_EGO_PREFIX, self._world)
         self._start_time = time.time()
 
-        self._waypoint_provider.update(free_only=True, anywhere=True)
+        self._waypoint_provider.update(free_only=True, anywhere=False)
 
         # Create walkers
         logging.info(f'Attempting to spawn {SCENE2_N_PEDESTRIANS} pedestrians.')

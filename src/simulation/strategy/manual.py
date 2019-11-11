@@ -3,6 +3,7 @@ from typing import List, Tuple
 from keyboard_control import KeyboardControl
 
 import carla
+from common.constants import SCENE2_AREA_CENTER
 from . import EgoStrategy
 
 
@@ -12,6 +13,7 @@ class ManualEgoStrategy(EgoStrategy):
             # vehicle, spawn point, fixed
             ('vehicle.tesla.model3', None, False),
             ('vehicle.tesla.model3', carla.Transform(carla.Location(x=-155.2, y=-36.1, z=1.5), carla.Rotation(yaw=180)), False),
+            ('vehicle.tesla.model3', carla.Transform(carla.Location(*SCENE2_AREA_CENTER), carla.Rotation(yaw=90)), False),
             ('vehicle.tesla.model3', carla.Transform(carla.Location(x=-155.2, y=-36.1, z=1.5), carla.Rotation(yaw=180)), True),
             ('vehicle.mercedes-benz.coupe', carla.Transform(carla.Location(x=-170.2, y=-36.1, z=1.5), carla.Rotation(yaw=180)), True),
         ]

@@ -177,10 +177,13 @@ def get_world_settings() -> carla.WorldSettings:
     )
 
 
-def count_present_vehicles(role_name_prefix: str, world: carla.World) -> int:
+def get_present_vehicles(role_name_prefix: str, world: carla.World) -> List[carla.Actor]:
     all_actors: carla.ActorList = world.get_actors().filter('vehicle.*')
-    n_egos_present = len([a for a in all_actors if has_prefixed_attribute(a, 'role_name', role_name_prefix)])
-    return n_egos_present
+    return [a for a in all_actors if has_prefixed_attribute(a, 'role_name', role_name_prefix)]
+
+
+def count_present_vehicles(role_name_prefix: str, world: carla.World) -> int:
+    return len(get_present_vehicles(role_name_prefix, world))
 
 
 def has_prefixed_attribute(a: carla.Actor, attr: str, prefix: str) -> bool:

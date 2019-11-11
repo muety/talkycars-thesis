@@ -37,11 +37,13 @@ class Agent(object):
         :param vehicle: actor to apply to local planner logic onto
         """
         self._vehicle = vehicle
-        self._proximity_threshold = 10.0  # meters
+        self._proximity_threshold = 4.0  # meters
         self._local_planner = None
         self._world = self._vehicle.get_world()
         self._map = self._vehicle.get_world().get_map()
         self._last_traffic_light = None
+        self._start_waypoint: carla.Waypoint = None
+        self._end_waypoint: carla.Waypoint = None
 
     def run_step(self, debug=False):
         """

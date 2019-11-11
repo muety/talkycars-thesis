@@ -32,7 +32,7 @@ class BasicAgent(Agent):
         """
         super(BasicAgent, self).__init__(vehicle)
 
-        self._proximity_threshold = 10.0  # meters
+        self._proximity_threshold = 4.0  # meters
         self._state = AgentState.NAVIGATING
         args_lateral_dict = {
             'K_P': 1,
@@ -55,14 +55,17 @@ class BasicAgent(Agent):
         based on the route returned by the global router
         """
 
-        start_waypoint = self._map.get_waypoint(custom_start if custom_start else self._vehicle.get_location())
-        end_waypoint = self._map.get_waypoint(
+        self._start_waypoint = self._map.get_waypoint(custom_start if custom_start else self._vehicle.get_location())
+        self._end_waypoint = self._map.get_waypoint(
             carla.Location(location[0], location[1], location[2]))
 
-        route_trace = self._trace_route(start_waypoint, end_waypoint)
+        route_trace = self._trace_route(self._start_waypoint, self._end_waypoint)
         assert route_trace
 
         self._local_planner.set_global_plan(route_trace)
+
+    def get_destination_waypoint(self) -> carla.Waypoint:
+        return self._end_waypoint
 
     def set_location_destination(self, location, custom_start=None):
         return self.set_destination((location.x, location.y, location.z), custom_start)
