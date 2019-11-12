@@ -5,6 +5,7 @@ import math
 import pickle
 import sys
 import time
+from multiprocessing.pool import Pool, AsyncResult
 from operator import attrgetter
 from typing import List, Tuple, Dict, Set, Any, Union, cast
 
@@ -83,6 +84,8 @@ class GridEvaluator:
         self.data_dir: str = data_dir
         self.data_dir_actual: str = os.path.join(data_dir, 'actual')
         self.data_dir_observed: str = os.path.join(data_dir, 'observed')
+        self.n_proc: int = 2
+        self.consider_neighborhood: bool = True
 
     def run(self):
         occupancy_observations_local, occupancy_observations_remote, occupancy_ground_truth = self.read_data()
@@ -97,23 +100,32 @@ class GridEvaluator:
             occupancy_ground_truth
         )
 
-        tag = 'LOCAL'
-        logging.info(f'[{tag}] Computing closest matches between ground truth and observations.')
-        matching: Set[Tuple[State5Tuple, State5Tuple]] = self.compute_matching(
-            occupancy_observations_local,
-            occupancy_observations_remote,
-            occupancy_ground_truth,
-            exclude_remote=True)
-        self.print_scores(matching, tag)
+        pool: Pool = Pool(processes=self.n_proc)
 
-        tag = 'FUSED'
-        logging.info(f'[{tag}] Computing closest matches between ground truth and observations.')
-        matching: Set[Tuple[State5Tuple, State5Tuple]] = self.compute_matching(
+        tags: List[str] = ['LOCAL', 'FUSED']
+
+        logging.info(f'[{tags[0]}] Computing closest matches between ground truth and observations.')
+        r1: AsyncResult = pool.apply_async(self.compute_matching, args=(
             occupancy_observations_local,
             occupancy_observations_remote,
             occupancy_ground_truth,
-            exclude_remote=False)
-        self.print_scores(matching, tag)
+            True,
+            self.consider_neighborhood
+        ))
+
+        logging.info(f'[{tags[1]}] Computing closest matches between ground truth and observations.')
+        r2: AsyncResult = pool.apply_async(self.compute_matching, args=(
+            occupancy_observations_local,
+            occupancy_observations_remote,
+            occupancy_ground_truth,
+            False,
+            self.consider_neighborhood
+        ))
+
+        for i, result in enumerate([r1, r2]):
+            matching: Set[Tuple[Tuple[QuadKey, float, GridCellState, int, float], Tuple[QuadKey, float, GridCellState, int, float]]] = result.get()
+            logging.info(f'[{tags[i]}] Finished matching computation.')
+            self.print_scores(matching, tags[i])
 
     @staticmethod
     def eval_mean_delays(local_observations: List[PEMTrafficSceneObservation], remote_observations: List[PEMTrafficSceneObservation]) -> Tuple[float, float]:
@@ -316,12 +328,16 @@ class GridEvaluator:
             count += m[0][2] == m[1][2]
         return count / len(matching) if len(matching) > 0 else 0
 
+    '''
+    See https://go.gliffy.com/go/share/s27a2t2njhihpntoqe81 [1] for an illustration
+    '''
     @classmethod
     def compute_matching(cls,
                          local_observations: List[PEMTrafficSceneObservation],
                          remote_observations: List[PEMTrafficSceneObservation],
                          ground_truth: List[Ogtc],
-                         exclude_remote: bool) -> Set[Tuple[State5Tuple, State5Tuple]]:
+                         exclude_remote: bool,
+                         consider_neighborhood: bool) -> Set[Tuple[State5Tuple, State5Tuple]]:
         matches: Set[Tuple[State5Tuple, State5Tuple]] = set()
         sender_ids: Set[int] = set()
         actual: Dict[QuadKey, List[Ogtc]] = dict.fromkeys(map(attrgetter('tile'), ground_truth), [])  # Parent tile keys -> Ogtc
@@ -342,7 +358,7 @@ class GridEvaluator:
         for k in actual.keys():
             actual[k] = list(filter(lambda o: o.tile == k, ground_truth))
 
-        parent_quads: Set[QuadKey] = set(actual.keys()).intersection(set(observed_local.keys()))
+        parent_quads: Set[QuadKey] = set(actual.keys()).intersection(set(observed_local.keys()).union(set(observed_remote.keys())))
         for parent in tqdm(parent_quads):
             items_actual: List[Ogtc] = sorted(actual[parent], key=attrgetter('ts'))
 
@@ -367,29 +383,43 @@ class GridEvaluator:
                     if item_remote:
                         remote_count += 1
 
-                    # Consider all parent cells which the ego was subscribed to.
-                    # If item_local is not None for current parent, it was directly observed by the ego at that point in time.
-                    # If item_local is None, but item_remote is not, it was within the ego's subscription and within another ego's direct range of sight.
-                    # However, to have a common basis for comparison (same denominator), we always want to consider all neighbor parents (subscription range).
-                    # Therefore, the following code checks whether the current parent (item_actual) was within the neighborhood of the ego at that time (+/- GRID_TTL).
-                    # If yes, all obstacles / occupied cells in it shall be considered for accuracy computation.
-                    # If no, the tile was not of interest at that time and we can discard it.
-                    if not item_local and not item_remote:
-                        neighbors: List[QuadKey] = parent.nearby(1)
+                    '''
+                    Example in [1]:
+                    – Case 1.1 -> Tile F 
+                    – Case 1.2 -> Tile C 
+                    '''
+                    if not consider_neighborhood and item_remote and not item_local:
+                        continue
+
+                    '''
+                    Example in [1]:
+                    – Case 2.1 -> Tile C
+                      --> this block will find a hit -> tile C will be considered for ground truth (denominator), because it's in the local neighborhood
+                    – Case 2.1 -> Tile A
+                      --> this block won't find a hit -> breaking loop iteration here
+                    – Case 2.2 -> Tile H
+                      --> this block won't get executed, as item_remote is not None
+                    – Case 2.2 -> Tile C
+                      -> this block will find a hit -> tile C will be considered for ground truth (denominator), because it's in the local neighborhood
+                    – Case 2.1 -> Tile A
+                      --> this block won't find a hit -> breaking loop iteration here
+                    '''
+                    if consider_neighborhood and not item_local and not item_remote:
+                        neighbors: Set[QuadKey] = set(map(QuadKey, parent.nearby(1)))
                         for neighbor in neighbors:
-                            # One of these two blocks returning true means the ego was subscribed to the given tile at given time.
+                            # This block returning true means the ego was subscribed to the given tile at given time.
                             # Note: This is logically not symmetric. We can check whether an ego WAS subscribed to a parent, but
                             # not whether is WAS NOT. But that's ok since it does only marginally bias the absolute scores later, not their relations.
-
                             if neighbor in observed_local and sid in observed_local[neighbor] and cls.find_closest_match(item_actual, 'ts', observed_local[neighbor][sid], sign=+1):
                                 # Timestamp as well as any other properties than occupancy grid cells should not matter anymore from here on
                                 item_local = cls.get_empty_observation(item_actual.ts)
                                 break
-                            elif neighbor in observed_remote and sid in observed_remote[neighbor] and cls.find_closest_match(item_actual, 'ts', observed_remote[neighbor][sid], sign=+1):
-                                # Timestamp as well as any other properties than occupancy grid cells should not matter anymore from here on
-                                item_local = cls.get_empty_observation(item_actual.ts)
-                                break
 
+                    '''
+                    Example in [1]:
+                    – Case 1.1, 1.2 -> Tile H
+                    – Case 2.1, 2.2 -> Tile A
+                    '''
                     if not item_local:
                         continue
 
@@ -417,6 +447,7 @@ class GridEvaluator:
                             tmp_state: PEMRelation = next(filter(lambda c: c.hash == inthash, item.value.occupancy_grid.cells)).state
                             s2: Tuple[float, Gss] = (tmp_state.confidence, tmp_state.object.value)
                         except StopIteration:
+                            # Current parent tile was in observation range, but cell was not observed, although it could have been -> consider it unknown
                             s2: Tuple[float, Gss] = (1, Gss.UNKNOWN)
 
                         cell_tracker[0] += 1
