@@ -28,6 +28,7 @@ from evaluation.perception import OccupancyGroundTruthContainer as Ogtc
 DATA_DIR = '../../../data/evaluation/perception'
 
 logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.DEBUG)
+random.seed(0)
 
 # TODO: Multi-threading
 # TODO: Optimize Big-O complexity
@@ -89,6 +90,7 @@ class GridEvaluator:
         self.consider_neighborhood: bool = True
 
     def run(self):
+        # empirically found that down-sampling by factor of 4 makes effectively no difference in output
         occupancy_observations_local, occupancy_observations_remote, occupancy_ground_truth = self.read_data(
             downsample_ground_truth=.25, downsample_observations=1
         )
@@ -98,7 +100,7 @@ class GridEvaluator:
         logging.info(f'Ø local delay: {d1} sec; Ø remote delay: {d2} sec')
 
         occupancy_observations_local, occupancy_observations_remote, occupancy_ground_truth = self.preprocess_data(
-            occupancy_observations_local[:10],
+            occupancy_observations_local,
             occupancy_observations_remote,
             occupancy_ground_truth
         )
@@ -106,18 +108,18 @@ class GridEvaluator:
         tags: List[str] = ['LOCAL', 'FUSED']
 
         logging.info(f'[{tags[0]}] Computing closest matches between ground truth and observations.')
-        matching: Set[Tuple[Tuple[QuadKey, float, GridCellState, int, float], Tuple[QuadKey, float, GridCellState, int, float]]] = self.compute_matching(
-            occupancy_observations_local[:10],
+        matching1: Set[Tuple[Tuple[QuadKey, float, GridCellState, int, float], Tuple[QuadKey, float, GridCellState, int, float]]] = self.compute_matching(
+            occupancy_observations_local,
             occupancy_observations_remote,
             occupancy_ground_truth,
             True,
             self.consider_neighborhood
         )
         logging.info(f'[{tags[0]}] Finished matching computation.')
-        self.print_scores(matching, tags[0])
+        self.print_scores(matching1, tags[0])
 
         logging.info(f'[{tags[1]}] Computing closest matches between ground truth and observations.')
-        matching: Set[Tuple[Tuple[QuadKey, float, GridCellState, int, float], Tuple[QuadKey, float, GridCellState, int, float]]] = self.compute_matching(
+        matching2: Set[Tuple[Tuple[QuadKey, float, GridCellState, int, float], Tuple[QuadKey, float, GridCellState, int, float]]] = self.compute_matching(
             occupancy_observations_local,
             occupancy_observations_remote,
             occupancy_ground_truth,
@@ -125,7 +127,9 @@ class GridEvaluator:
             self.consider_neighborhood
         )
         logging.info(f'[{tags[1]}] Finished matching computation.')
-        self.print_scores(matching, tags[1])
+        self.print_scores(matching2, tags[1])
+
+        assert len(matching1) == len(matching2)
 
     @staticmethod
     def eval_mean_delays(local_observations: List[PEMTrafficSceneObservation], remote_observations: List[PEMTrafficSceneObservation]) -> Tuple[float, float]:
@@ -262,9 +266,9 @@ class GridEvaluator:
 
         logging.info(f'Got {len(occupancy_observations_local)} local and {len(occupancy_observations_remote)} remote observations.')
 
-        occupancy_ground_truth = random.sample(occupancy_ground_truth, k=math.floor(len(occupancy_ground_truth) * downsample_ground_truth))
-        occupancy_observations_local = random.sample(occupancy_observations_local, k=math.floor(len(occupancy_observations_local) * downsample_observations))
-        occupancy_observations_remote = random.sample(occupancy_observations_remote, k=math.floor(len(occupancy_observations_remote) * downsample_observations))
+        occupancy_ground_truth = sorted(random.sample(occupancy_ground_truth, k=math.floor(len(occupancy_ground_truth) * downsample_ground_truth)), key=attrgetter('ts'))
+        occupancy_observations_local = sorted(random.sample(occupancy_observations_local, k=math.floor(len(occupancy_observations_local) * downsample_observations)), key=attrgetter('timestamp'))
+        occupancy_observations_remote = sorted(random.sample(occupancy_observations_remote, k=math.floor(len(occupancy_observations_remote) * downsample_observations)), key=attrgetter('timestamp'))
 
         return occupancy_observations_local, occupancy_observations_remote, occupancy_ground_truth
 
@@ -391,11 +395,6 @@ class GridEvaluator:
                     if not exclude_remote and item_actual.tile in observed_remote and sid in observed_remote[item_actual.tile]:
                         item_remote: Union[PEMTrafficSceneObservation, None] = cls.find_closest_match(item_actual, 'ts', observed_remote[item_actual.tile][sid], sign=+1)
 
-                    if item_local:
-                        local_count += 1
-                    if item_remote:
-                        remote_count += 1
-
                     '''
                     Example in [1]:
                     – Case 2.1 -> Tile C
@@ -427,6 +426,11 @@ class GridEvaluator:
                     '''
                     if not item_local:
                         continue
+
+                    if item_local and 'empty' not in item_local.meta:
+                        local_count += 1
+                    if item_remote:
+                        remote_count += 1
 
                     if item_local and not item_remote:
                         item: PEMTrafficSceneObservation = item_local

@@ -15,7 +15,7 @@ OBS_GNSS_PREFIX = 'pos_gnss_'
 ALIAS_EGO = 'ego'
 
 INCREMENTAL_GRIDS = False  # because buggy
-GRID_TTL_SEC = 3
+GRID_TTL_SEC = 2  # choose greater than (average effective grid generation rate)^-1 for evaluation
 
 OCCUPANCY_RADIUS_DEFAULT = 10  # (5 and 15 or 10 and 7.5)
 OCCUPANCY_BBOX_OFFSET = 0.1
