@@ -1,11 +1,12 @@
 import argparse
+import gc
 import itertools
 import logging
 import math
 import pickle
+import random
 import sys
 import time
-from multiprocessing.pool import Pool, AsyncResult
 from operator import attrgetter
 from typing import List, Tuple, Dict, Set, Any, Union, cast
 
@@ -84,48 +85,47 @@ class GridEvaluator:
         self.data_dir: str = data_dir
         self.data_dir_actual: str = os.path.join(data_dir, 'actual')
         self.data_dir_observed: str = os.path.join(data_dir, 'observed')
-        self.n_proc: int = 2
+        self.n_proc: int = 1
         self.consider_neighborhood: bool = True
 
     def run(self):
-        occupancy_observations_local, occupancy_observations_remote, occupancy_ground_truth = self.read_data()
+        occupancy_observations_local, occupancy_observations_remote, occupancy_ground_truth = self.read_data(
+            downsample_ground_truth=.25, downsample_observations=1
+        )
 
-        logging.info('Evaluation average observation delays.')
+        logging.info('Evaluating average observation delays.')
         d1, d2 = self.eval_mean_delays(occupancy_observations_local, occupancy_observations_remote)
         logging.info(f'Ø local delay: {d1} sec; Ø remote delay: {d2} sec')
 
         occupancy_observations_local, occupancy_observations_remote, occupancy_ground_truth = self.preprocess_data(
-            occupancy_observations_local,
+            occupancy_observations_local[:10],
             occupancy_observations_remote,
             occupancy_ground_truth
         )
 
-        pool: Pool = Pool(processes=self.n_proc)
-
         tags: List[str] = ['LOCAL', 'FUSED']
 
         logging.info(f'[{tags[0]}] Computing closest matches between ground truth and observations.')
-        r1: AsyncResult = pool.apply_async(self.compute_matching, args=(
-            occupancy_observations_local,
+        matching: Set[Tuple[Tuple[QuadKey, float, GridCellState, int, float], Tuple[QuadKey, float, GridCellState, int, float]]] = self.compute_matching(
+            occupancy_observations_local[:10],
             occupancy_observations_remote,
             occupancy_ground_truth,
             True,
             self.consider_neighborhood
-        ))
+        )
+        logging.info(f'[{tags[0]}] Finished matching computation.')
+        self.print_scores(matching, tags[0])
 
         logging.info(f'[{tags[1]}] Computing closest matches between ground truth and observations.')
-        r2: AsyncResult = pool.apply_async(self.compute_matching, args=(
+        matching: Set[Tuple[Tuple[QuadKey, float, GridCellState, int, float], Tuple[QuadKey, float, GridCellState, int, float]]] = self.compute_matching(
             occupancy_observations_local,
             occupancy_observations_remote,
             occupancy_ground_truth,
             False,
             self.consider_neighborhood
-        ))
-
-        for i, result in enumerate([r1, r2]):
-            matching: Set[Tuple[Tuple[QuadKey, float, GridCellState, int, float], Tuple[QuadKey, float, GridCellState, int, float]]] = result.get()
-            logging.info(f'[{tags[i]}] Finished matching computation.')
-            self.print_scores(matching, tags[i])
+        )
+        logging.info(f'[{tags[1]}] Finished matching computation.')
+        self.print_scores(matching, tags[1])
 
     @staticmethod
     def eval_mean_delays(local_observations: List[PEMTrafficSceneObservation], remote_observations: List[PEMTrafficSceneObservation]) -> Tuple[float, float]:
@@ -208,7 +208,10 @@ class GridEvaluator:
             meta=local_observation.meta
         )
 
-    def read_data(self) -> Tuple[List[PEMTrafficSceneObservation], List[PEMTrafficSceneObservation], List[Ogtc]]:
+    def read_data(self, downsample_ground_truth: float = 1., downsample_observations: float = 1.) -> Tuple[List[PEMTrafficSceneObservation], List[PEMTrafficSceneObservation], List[Ogtc]]:
+        assert downsample_ground_truth <= 1 and downsample_observations <= 1
+
+        logging.info(f'downsample_ground_truth={downsample_ground_truth}, downsample_observations={downsample_observations}')
         logging.info('Reading directory info.')
 
         files_actual: List[str] = list(filter(lambda s: s.startswith(self.file_prefix), os.listdir(self.data_dir_actual)))
@@ -258,6 +261,10 @@ class GridEvaluator:
                     logging.warning(f'File {file_name} corrupt.')
 
         logging.info(f'Got {len(occupancy_observations_local)} local and {len(occupancy_observations_remote)} remote observations.')
+
+        occupancy_ground_truth = random.sample(occupancy_ground_truth, k=math.floor(len(occupancy_ground_truth) * downsample_ground_truth))
+        occupancy_observations_local = random.sample(occupancy_observations_local, k=math.floor(len(occupancy_observations_local) * downsample_observations))
+        occupancy_observations_remote = random.sample(occupancy_observations_remote, k=math.floor(len(occupancy_observations_remote) * downsample_observations))
 
         return occupancy_observations_local, occupancy_observations_remote, occupancy_ground_truth
 
@@ -331,6 +338,7 @@ class GridEvaluator:
     '''
     See https://go.gliffy.com/go/share/s27a2t2njhihpntoqe81 [1] for an illustration
     '''
+
     @classmethod
     def compute_matching(cls,
                          local_observations: List[PEMTrafficSceneObservation],
@@ -357,6 +365,11 @@ class GridEvaluator:
         # Populate ground truth map
         for k in actual.keys():
             actual[k] = list(filter(lambda o: o.tile == k, ground_truth))
+
+        del local_observations
+        del remote_observations
+        del ground_truth
+        gc.collect()
 
         parent_quads: Set[QuadKey] = set(actual.keys()).intersection(set(observed_local.keys()).union(set(observed_remote.keys())))
         for parent in tqdm(parent_quads):
@@ -385,14 +398,6 @@ class GridEvaluator:
 
                     '''
                     Example in [1]:
-                    – Case 1.1 -> Tile F 
-                    – Case 1.2 -> Tile C 
-                    '''
-                    if not consider_neighborhood and item_remote and not item_local:
-                        continue
-
-                    '''
-                    Example in [1]:
                     – Case 2.1 -> Tile C
                       --> this block will find a hit -> tile C will be considered for ground truth (denominator), because it's in the local neighborhood
                     – Case 2.1 -> Tile A
@@ -404,7 +409,7 @@ class GridEvaluator:
                     – Case 2.1 -> Tile A
                       --> this block won't find a hit -> breaking loop iteration here
                     '''
-                    if consider_neighborhood and not item_local and not item_remote:
+                    if consider_neighborhood and not item_local:
                         neighbors: Set[QuadKey] = set(map(QuadKey, parent.nearby(1)))
                         for neighbor in neighbors:
                             # This block returning true means the ego was subscribed to the given tile at given time.
@@ -425,7 +430,7 @@ class GridEvaluator:
 
                     if item_local and not item_remote:
                         item: PEMTrafficSceneObservation = item_local
-                    elif item_remote and not item_local:
+                    elif item_remote and (not item_local or 'empty' in item_local.meta):
                         item: PEMTrafficSceneObservation = item_remote
                     else:
                         item: PEMTrafficSceneObservation = cls.fuse(item_local, item_remote, item_actual.ts)
@@ -528,7 +533,8 @@ class GridEvaluator:
             timestamp=with_ts,
             scene=PEMTrafficScene(
                 occupancy_grid=PEMOccupancyGrid(cells=[])
-            )
+            ),
+            meta={'empty': True}
         )
 
     @staticmethod
