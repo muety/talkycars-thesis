@@ -1,0 +1,11 @@
+1 egos, random seed 4:  15-42 to 15-49
+1 egos, random seed 8:  15-50 to 15-59
+1 egos, random seed 16: 16-01 to 16-06
+
+3 egos, random seed 4:  14-25 to 14-36
+3 egos, random seed 8:  14-39 to 14-44
+3 egos, random seed 16:  14-46 to 14-54
+
+6 egos, random seed 1:  15-23 to 15-30
+6 egos, random seed 12:  15-07 to 15-14
+6 egos, random seed 16:  15-33 to 15-39
