@@ -80,6 +80,7 @@ def run():
     elif sys.argv[1] in {'clean'}:
         import glob
         list(map(os.remove, glob.glob('../data/recordings/*.csv')))
+        list(map(os.remove, glob.glob('../data/evaluation/perception/eval_log.txt')))
         list(map(os.remove, glob.glob('../data/evaluation/perception/actual/*.pkl')))
         list(map(os.remove, glob.glob('../data/evaluation/perception/observed/*.pkl')))
 

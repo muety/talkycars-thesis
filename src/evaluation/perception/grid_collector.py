@@ -99,7 +99,7 @@ class GridCollector:
         self.tick_count += 1
 
     def flush(self):
-        tpl = f'{self.base_tile.key}_%Y-%m-%d_%H-%M-%S_part-{self.flush_count + 1}.pkl'
+        tpl = f'{self.base_tile.key}_{FUSION_DECAY_LAMBDA}-decay_%Y-%m-%d_%H-%M-%S_part-{self.flush_count + 1}.pkl'
 
         logging.info('Flushing ground truth ...')
         with open(os.path.join(self.data_dir_actual, self.start_time.strftime(tpl)), 'wb') as f:

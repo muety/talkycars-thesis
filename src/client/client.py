@@ -113,7 +113,7 @@ class TalkyClient:
                 key=OBS_GRAPH_LOCAL,
                 outpath=os.path.join(
                     self.data_dir, EVAL2_DATA_DIR, 'observed',  # No evaluation-related code is supposed to be here
-                    now.strftime(f'{EVAL2_BASE_KEY}_%Y-%m-%d_%H-%M-%S_local_ego-{self.ego_id}.pkl')
+                    now.strftime(f'{EVAL2_BASE_KEY}_{FUSION_DECAY_LAMBDA}-decay_%Y-%m-%d_%H-%M-%S_local_ego-{self.ego_id}.pkl')
                 )
             )
 
@@ -121,7 +121,7 @@ class TalkyClient:
                 key=OBS_GRAPH_REMOTE,
                 outpath=os.path.join(
                     self.data_dir, EVAL2_DATA_DIR, 'observed',  # No evaluation-related code is supposed to be here
-                    now.strftime(f'{EVAL2_BASE_KEY}_%Y-%m-%d_%H-%M-%S_remote_ego-{self.ego_id}.pkl')
+                    now.strftime(f'{EVAL2_BASE_KEY}_{FUSION_DECAY_LAMBDA}-decay_%Y-%m-%d_%H-%M-%S_remote_ego-{self.ego_id}.pkl')
                 )
             )
 

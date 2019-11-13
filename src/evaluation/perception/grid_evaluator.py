@@ -1,4 +1,5 @@
 import argparse
+import datetime
 import gc
 import itertools
 import logging
@@ -25,9 +26,12 @@ from common.serialization.schema.relation import PEMRelation
 from common.util.misc import multi_getattr
 from evaluation.perception import OccupancyGroundTruthContainer as Ogtc
 
-DATA_DIR = '../../../data/evaluation/perception'
 
-logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.DEBUG)
+def data_dir():
+    return os.path.normpath(os.path.join(os.path.dirname(__file__), '../../../data'))
+
+
+logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO, filename=f'{data_dir()}/evaluation/perception/eval_log.txt')
 random.seed(0)
 
 # TODO: Multi-threading
@@ -37,10 +41,6 @@ State5Tuple = Tuple[QuadKey, float, Gss, int, float]  # Cell, Confidence, State,
 
 quad_str_lookup: Dict[int, str] = {}
 quad_int_lookup: Dict[str, int] = {}
-
-
-def data_dir():
-    return os.path.normpath(os.path.join(os.path.dirname(__file__), '../../../data'))
 
 
 class ObservationTree:
@@ -90,12 +90,13 @@ class GridEvaluator:
         self.consider_neighborhood: bool = True
 
     def run(self):
+        logging.info(f'{datetime.datetime.now()}\n============')
         # empirically found that down-sampling by factor of 4 makes effectively no difference in output
         occupancy_observations_local, occupancy_observations_remote, occupancy_ground_truth = self.read_data(
             downsample_ground_truth=.25, downsample_observations=1
         )
 
-        logging.info('Evaluating average observation delays.')
+        logging.debug('Evaluating average observation delays.')
         d1, d2 = self.eval_mean_delays(occupancy_observations_local, occupancy_observations_remote)
         logging.info(f'Ø local delay: {d1} sec; Ø remote delay: {d2} sec')
 
@@ -107,7 +108,7 @@ class GridEvaluator:
 
         tags: List[str] = ['LOCAL', 'FUSED']
 
-        logging.info(f'[{tags[0]}] Computing closest matches between ground truth and observations.')
+        logging.debug(f'[{tags[0]}] Computing closest matches between ground truth and observations.')
         matching1: Set[Tuple[Tuple[QuadKey, float, GridCellState, int, float], Tuple[QuadKey, float, GridCellState, int, float]]] = self.compute_matching(
             occupancy_observations_local,
             occupancy_observations_remote,
@@ -115,10 +116,10 @@ class GridEvaluator:
             True,
             self.consider_neighborhood
         )
-        logging.info(f'[{tags[0]}] Finished matching computation.')
+        logging.debug(f'[{tags[0]}] Finished matching computation.')
         self.print_scores(matching1, tags[0])
 
-        logging.info(f'[{tags[1]}] Computing closest matches between ground truth and observations.')
+        logging.debug(f'[{tags[1]}] Computing closest matches between ground truth and observations.')
         matching2: Set[Tuple[Tuple[QuadKey, float, GridCellState, int, float], Tuple[QuadKey, float, GridCellState, int, float]]] = self.compute_matching(
             occupancy_observations_local,
             occupancy_observations_remote,
@@ -126,7 +127,7 @@ class GridEvaluator:
             False,
             self.consider_neighborhood
         )
-        logging.info(f'[{tags[1]}] Finished matching computation.')
+        logging.debug(f'[{tags[1]}] Finished matching computation.')
         self.print_scores(matching2, tags[1])
 
         assert len(matching1) == len(matching2)
@@ -154,10 +155,11 @@ class GridEvaluator:
         if len(matching) < 1:
             logging.warning('Did not find any match.')
         else:
-            logging.info(f'[{tag}] Computing score.')
+            logging.debug(f'[{tag}] Computing score.')
             mse: float = cls.compute_mse(matching)
+            mae: float = cls.compute_mae(matching)
             acc: float = cls.compute_accuracy(matching)
-            logging.info(f'[{tag}] MSE: {mse}, ACC: {acc}')
+            logging.info(f'[{tag}] MSE: {mse}, MAE: {mae}, ACC: {acc}')
 
     @classmethod
     def fuse(cls, local_observation: PEMTrafficSceneObservation, remote_observation: PEMTrafficSceneObservation, ref_time: float) -> PEMTrafficSceneObservation:
@@ -215,8 +217,8 @@ class GridEvaluator:
     def read_data(self, downsample_ground_truth: float = 1., downsample_observations: float = 1.) -> Tuple[List[PEMTrafficSceneObservation], List[PEMTrafficSceneObservation], List[Ogtc]]:
         assert downsample_ground_truth <= 1 and downsample_observations <= 1
 
-        logging.info(f'downsample_ground_truth={downsample_ground_truth}, downsample_observations={downsample_observations}')
-        logging.info('Reading directory info.')
+        logging.debug(f'downsample_ground_truth={downsample_ground_truth}, downsample_observations={downsample_observations}')
+        logging.debug('Reading directory info.')
 
         files_actual: List[str] = list(filter(lambda s: s.startswith(self.file_prefix), os.listdir(self.data_dir_actual)))
         files_observed: List[str] = list(filter(lambda s: s.startswith(self.file_prefix), os.listdir(self.data_dir_observed)))
@@ -225,7 +227,7 @@ class GridEvaluator:
         occupancy_observations_local: List[PEMTrafficSceneObservation] = []
         occupancy_observations_remote: List[PEMTrafficSceneObservation] = []
 
-        logging.info('Reading ground truth.')
+        logging.debug('Reading ground truth.')
 
         for file_name in files_actual:
             with open(os.path.join(self.data_dir_actual, file_name), 'rb') as f:
@@ -234,8 +236,8 @@ class GridEvaluator:
                 except EOFError:
                     logging.warning(f'File {file_name} corrupt.')
 
-        logging.info(f'Got {len(occupancy_ground_truth)} ground truth data points.')
-        logging.info(f'Reading and decoding observations.')
+        logging.debug(f'Got {len(occupancy_ground_truth)} ground truth data points.')
+        logging.debug(f'Reading and decoding observations.')
 
         for file_name in files_observed:
             with open(os.path.join(self.data_dir_observed, file_name), 'rb') as f:
@@ -264,7 +266,7 @@ class GridEvaluator:
                 except EOFError:
                     logging.warning(f'File {file_name} corrupt.')
 
-        logging.info(f'Got {len(occupancy_observations_local)} local and {len(occupancy_observations_remote)} remote observations.')
+        logging.debug(f'Got {len(occupancy_observations_local)} local and {len(occupancy_observations_remote)} remote observations.')
 
         occupancy_ground_truth = sorted(random.sample(occupancy_ground_truth, k=math.floor(len(occupancy_ground_truth) * downsample_ground_truth)), key=attrgetter('ts'))
         occupancy_observations_local = sorted(random.sample(occupancy_observations_local, k=math.floor(len(occupancy_observations_local) * downsample_observations)), key=attrgetter('timestamp'))
@@ -274,10 +276,10 @@ class GridEvaluator:
 
     @classmethod
     def preprocess_data(cls, occupancy_observations_local: List[PEMTrafficSceneObservation], occupancy_observations_remote: List[PEMTrafficSceneObservation], occupancy_ground_truth: List[Ogtc]) -> Tuple[List[PEMTrafficSceneObservation], List[PEMTrafficSceneObservation], List[Ogtc]]:
-        logging.info(f'Re-arranging observations.')
+        logging.debug(f'Re-arranging observations.')
         occupancy_observations_local = cls.split_by_level(occupancy_observations_local)
         occupancy_observations_remote = cls.split_by_level(occupancy_observations_remote)
-        logging.info(f'Got {len(occupancy_observations_local)} local and {len(occupancy_observations_remote)} remote observations after re-arranging.')
+        logging.debug(f'Got {len(occupancy_observations_local)} local and {len(occupancy_observations_remote)} remote observations after re-arranging.')
 
         min_obs_ts_local: float = min(occupancy_observations_local, key=lambda o: o.value.min_timestamp).value.min_timestamp
         max_obs_ts_local: float = max(occupancy_observations_local, key=lambda o: o.value.max_timestamp).value.max_timestamp
@@ -475,7 +477,7 @@ class GridEvaluator:
         occupied: float = round((cell_tracker[Gss.OCCUPIED + 1] / total) * 100, 2)
         unknown: float = round((cell_tracker[Gss.UNKNOWN + 1] / total) * 100, 2)
         logging.info(f'Free: {free} %, Occupied: {occupied} %, Unknown: {unknown} %')
-        logging.info(f'Matching has {len(matches)} entries ({round((remote_count / (remote_count + local_count)) * 100, 2)} % remote).')
+        logging.debug(f'Matching has {len(matches)} entries ({round((remote_count / (remote_count + local_count)) * 100, 2)} % remote).')
 
         return matches
 
