@@ -38,6 +38,7 @@ class MessageGenerator:
             rate: float = 10,  # msgs / ego / sec (total)
             n_sample_egos: int = 100,
             n_sample_scenes: int = 512,
+            with_occupant: bool = True,
     ):
         # Parameters
         self.grid_tile_level = grid_tile_level
@@ -45,6 +46,7 @@ class MessageGenerator:
         self.rate: float = rate
         self.n_sample_scenes: int = n_sample_scenes
         self.n_sample_egos: int = n_sample_egos
+        self.with_occupant: bool = with_occupant
         self.parallel: bool = True
 
         # Derived parameters
@@ -157,14 +159,14 @@ class MessageGenerator:
         # not within a daemon process, but standalone
         # TODO: Make batches of data to prevent from redundant data copying to processes
         if self.parallel and current_process().name == 'MainProcess':
-            args = [(self.gen_quads_pool, self.gen_others, self.gen_ego_pool) for _ in range(self.n_sample_scenes)]
+            args = [(self.gen_quads_pool, self.gen_others, self.gen_ego_pool, self.with_occupant) for _ in range(self.n_sample_scenes)]
             with Pool(processes=os.cpu_count()) as pool:
                 self.gen_msgs = pool.starmap(self.generate_message, args)
         else:
-            self.gen_msgs = [self.generate_message(self.gen_quads_pool, self.gen_others, self.gen_ego_pool) for _ in range(self.n_sample_scenes)]
+            self.gen_msgs = [self.generate_message(self.gen_quads_pool, self.gen_others, self.gen_ego_pool, self.with_occupant) for _ in range(self.n_sample_scenes)]
 
     @classmethod
-    def generate_scene(cls, quads: List[List[QuadKey]], others: List[PEMDynamicActor], egos: List[PEMDynamicActor]) -> PEMTrafficScene:
+    def generate_scene(cls, quads: List[List[QuadKey]], others: List[PEMDynamicActor], egos: List[PEMDynamicActor], with_occupant: bool) -> PEMTrafficScene:
         grid: PEMOccupancyGrid = PEMOccupancyGrid(cells=[])
 
         idx: int = random.randint(0, len(egos) - 1)
@@ -173,7 +175,7 @@ class MessageGenerator:
 
         for qk in quadkeys:
             state: GridCellState = random.choice(STATES)
-            occupant: Union[PEMDynamicActor, None] = random.choice(others) if state == GridCellState.occupied() else None
+            occupant: Union[PEMDynamicActor, None] = random.choice(others) if with_occupant and state == GridCellState.occupied() else None
 
             grid.cells.append(PEMGridCell(
                 hash=qk.to_quadint(),
@@ -190,8 +192,8 @@ class MessageGenerator:
         return scene
 
     @classmethod
-    def generate_message(cls, quads: List[List[QuadKey]], others: List[PEMDynamicActor], egos: List[PEMDynamicActor]) -> bytes:
-        scene = cls.generate_scene(quads, others, egos)
+    def generate_message(cls, quads: List[List[QuadKey]], others: List[PEMDynamicActor], egos: List[PEMDynamicActor], with_occupant: bool) -> bytes:
+        scene = cls.generate_scene(quads, others, egos, with_occupant)
         return scene.to_bytes()
 
     @staticmethod
@@ -213,11 +215,13 @@ def run(args=sys.argv[1:]):
     argparser.add_argument('--level', '-l', default=OCCUPANCY_TILE_LEVEL, type=int, help='Occupancy Grid Tile Level')
     argparser.add_argument('--radius', '-R', default=OCCUPANCY_RADIUS_DEFAULT, type=int, help='Occupancy Grid Radius')
     argparser.add_argument('--egos', '-e', default=1, type=int, help='Number of different ego vehicles to simulate sending data from')
+    argparser.add_argument('--no-occupant', dest='no_occupant', default='false', type=str, help='Whether or not to include a dummy occupant relation for occupied cells or otherwise None.')
 
     args, _ = argparser.parse_known_args(args)
     logging.info(f'Rate: {args.rate}, Level: {args.level}, Radius: {args.radius}, Egos: {args.egos}')
 
-    gen = MessageGenerator(grid_radius=args.radius, grid_tile_level=args.level, rate=args.rate, n_sample_egos=args.egos)
+    no_occupant: bool = args.no_occupant.lower() == 'true'
+    gen = MessageGenerator(grid_radius=args.radius, grid_tile_level=args.level, rate=args.rate, n_sample_egos=args.egos, with_occupant=not no_occupant)
     gen.run()
 
 
