@@ -1,0 +1,23 @@
+// protoc -I ./schema/protobuf --go_out=./schema/protobuf ./schema/protobuf/schema.proto
+
+syntax = "proto3";
+
+enum GridCellState {
+    FREE = 0;
+    OCCUPIED = 1;
+    UNKNOWN = 2;
+}
+
+message GridCellStateRelation {
+    float confidence = 1;
+    GridCellState object = 2;
+}
+
+message GridCell {
+    uint64 hash = 1;
+    GridCellStateRelation state = 2;
+}
+
+message OccupancyGrid {
+    repeated GridCell cells = 1;
+}
