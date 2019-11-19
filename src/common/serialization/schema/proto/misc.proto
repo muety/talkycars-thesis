@@ -1,0 +1,28 @@
+syntax = "proto3";
+package schema;
+
+message Vector3D {
+    float x = 1;
+    float y = 2;
+    float z = 3;
+}
+
+message RelativeBBox {
+    Vector3D lower = 1;
+    Vector3D higher = 2;
+}
+
+message TextRelation {
+    float confidence = 1;
+    string object = 2;
+}
+
+message Vector3DRelation {
+    float confidence = 1;
+    Vector3D object = 2;
+}
+
+message RelativeBBoxRelation {
+    float confidence = 1;
+    RelativeBBox object = 2;
+}

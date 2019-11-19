@@ -11,9 +11,16 @@ def run():
 
     if sys.argv[1] in {'edgenode', 'edge'}:
         import subprocess
+        import glob
+        import shutil
 
         current_dir = os.path.dirname(os.path.realpath(__file__))
+        schema_dir = os.path.join(current_dir, 'common/serialization/schema/proto')
         target_dir = os.path.join(current_dir, 'edgenode_v2')
+        schema_target_dir = os.path.join(target_dir, 'schema')
+
+        for file in glob.glob(f'{schema_dir}/*.go'):
+            shutil.copy(file, schema_target_dir)
 
         gopaths = [p for p in [os.getenv('GOROOT', default='/usr/bin/go'), '/opt/go/bin/go'] if os.path.isfile(p)]
         if len(gopaths) == 0:

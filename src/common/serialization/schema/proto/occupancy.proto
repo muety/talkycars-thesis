@@ -1,0 +1,25 @@
+syntax = "proto3";
+package schema;
+
+import "actor.proto";
+
+enum GridCellState {
+    STATE_FREE = 0;
+    STATE_OCCUPIED = 1;
+    STATE_UNKNOWN = 2;
+}
+
+message GridCell {
+    uint64 hash = 1;
+    GridCellStateRelation state = 2;
+    DynamicActorRelation occupant = 3;
+}
+
+message OccupancyGrid {
+    repeated GridCell cells = 1;
+}
+
+message GridCellStateRelation {
+    float confidence = 1;
+    GridCellState object = 2;
+}

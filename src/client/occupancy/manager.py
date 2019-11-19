@@ -46,7 +46,7 @@ class OccupancyGridManager:
 
         if self.quadkey_current is None or key != self.quadkey_current:
             self.quadkey_current = key
-            self._recompute(force_actors_update=False)  # Set to false for evaluation
+            self._recompute(force_actors_update=True)  # Set to false for evaluation
             self.quadkey_prev = self.quadkey_current
             return True
 

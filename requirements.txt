@@ -2,10 +2,10 @@ pygame==1.9.6
 numpy==1.16.4
 Cython==0.29.12
 networkx==2.3
-pycapnp==0.6.4
 paho-mqtt==1.4.0
 fastapi==0.35.0
 uvicorn==0.8.6
 aiofiles==0.4.0
 tqdm==4.36.1
 pyquadkey2==0.2.0
+protobuf==3.10.0

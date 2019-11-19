@@ -1,21 +1,15 @@
 import os
-from typing import Dict, Type, List
+from typing import Type, List
 
-import capnp
-
-from common.serialization.schema import CapnpObject, GridCellState
+from common.serialization.schema import ProtobufObject, GridCellState
 from common.serialization.schema.actor import PEMDynamicActor
+from common.serialization.schema.proto import occupancy_pb2, actor_pb2
 from .relation import PEMRelation
-
-capnp.remove_import_hook()
 
 dirname = os.path.dirname(__file__)
 
-occupancy = capnp.load(os.path.join(dirname, './capnp/python/occupancy.capnp'))
-relation = capnp.load(os.path.join(dirname, './capnp/python/relation.capnp'))
 
-
-class PEMGridCell(CapnpObject):
+class PEMGridCell(ProtobufObject):
     def __init__(self, **entries):
         self.hash: int = None
         self.state: PEMRelation[GridCellState] = None
@@ -25,23 +19,22 @@ class PEMGridCell(CapnpObject):
             self.__dict__.update(**entries)
 
     def to_message(self):
-        cell = occupancy.GridCell.new_message()
-
-        if self.hash:
-            cell.hash = self.hash
-        if self.state:
-            cell.state = self.state.to_message()
-        if self.occupant:
-            cell.occupant = self.occupant.to_message(type_hint=relation.DynamicActorRelation)
-
-        return cell
+        return occupancy_pb2.GridCell(
+            hash=self.hash,
+            state=self.state.to_message() if self.state else None,
+            occupant=self.occupant.to_message(type_hint=actor_pb2.DynamicActorRelation) if self.occupant else None
+        )
 
     @classmethod
-    def from_message_dict(cls, object_dict: Dict, target_cls: Type = None) -> 'PEMGridCell':
-        hash = object_dict['hash'] if 'hash' in object_dict else None
-        state = PEMRelation.from_message_dict(object_dict['state'], target_cls=GridCellState)
-        occupant = PEMRelation.from_message_dict(object_dict['occupant'], target_cls=PEMDynamicActor) if 'occupant' in object_dict else None
+    def from_message(cls, msg, target_cls: Type['ProtobufObject'] = None) -> 'PEMGridCell':
+        hash = msg.hash
+        state = PEMRelation.from_message(msg.state, target_cls=GridCellState) if msg.state.confidence > 0 else None
+        occupant = PEMRelation.from_message(msg.occupant, target_cls=PEMDynamicActor) if msg.occupant.confidence > 0 else None
         return cls(hash=hash, state=state, occupant=occupant)
+
+    @classmethod
+    def get_protobuf_class(cls):
+        return occupancy_pb2.GridCell
 
     def __str__(self):
         return f'PEM Grid Cell @ {self.hash} : {self.state.object} [{self.state.confidence}]'
@@ -61,7 +54,7 @@ class PEMGridCell(CapnpObject):
         return hash(self.__str__())
 
 
-class PEMOccupancyGrid(CapnpObject):
+class PEMOccupancyGrid(ProtobufObject):
     def __init__(self, **entries):
         self.cells: List[PEMGridCell] = None
 
@@ -69,21 +62,18 @@ class PEMOccupancyGrid(CapnpObject):
             self.__dict__.update(**entries)
 
     def to_message(self):
-        grid = occupancy.OccupancyGrid.new_message()
-
-        if self.cells:
-            grid.cells = [c.to_message() for c in self.cells]
-
-        return grid
+        return occupancy_pb2.OccupancyGrid(
+            cells=[c.to_message() for c in self.cells]
+        )
 
     @classmethod
-    def from_message_dict(cls, object_dict: Dict, target_cls: Type = None) -> 'PEMOccupancyGrid':
-        cells = [PEMGridCell.from_message_dict(c) for c in object_dict['cells']] if 'cells' in object_dict else None
+    def from_message(cls, msg, target_cls: Type['ProtobufObject'] = None) -> 'PEMOccupancyGrid':
+        cells = [PEMGridCell.from_message(c) for c in msg.cells]
         return cls(cells=cells)
 
     @classmethod
-    def _get_capnp_class(cls):
-        return occupancy.OccupancyGrid
+    def get_protobuf_class(cls):
+        return occupancy_pb2.OccupancyGrid
 
     def __str__(self):
         return f'Occupancy Grid with {len(self.cells)} cells'

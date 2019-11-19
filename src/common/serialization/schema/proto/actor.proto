@@ -1,0 +1,30 @@
+syntax = "proto3";
+package schema;
+
+import "misc.proto";
+
+enum ActorType {
+    TYPE_VEHICLE = 0;
+    TYPE_PEDESTRIAN = 1;
+    TYPE_UNKNOWN = 2;
+}
+
+message DynamicActor {
+    uint32 id = 1;
+    ActorTypeRelation type = 2;
+    Vector3DRelation position = 3;
+    TextRelation color = 4;
+    RelativeBBoxRelation boundingBox = 5;
+    Vector3DRelation velocity = 6;
+    Vector3DRelation acceleration = 7;
+}
+
+message ActorTypeRelation {
+    float confidence = 1;
+    ActorType object = 2;
+}
+
+message DynamicActorRelation {
+    float confidence = 1;
+    DynamicActor object = 2;
+}

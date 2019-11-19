@@ -1,2 +1,3 @@
 *.capnp.go
+*.pb.go
 edgenode_v2

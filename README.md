@@ -12,14 +12,14 @@
   * You might want to use [pyenv](https://github.com/pyenv/pyenv) for version management (see [Common Build Problems](https://github.com/pyenv/pyenv/wiki/Common-build-problems))
 * Go 1.13
 * [Carla](https://github.com/carla-simulator/carla) 0.9.6
-* [Cap'n'Proto](https://capnproto.org/install.html) 0.7.0
+* [Protocol Buffers](https://developers.google.com/protocol-buffers/docs/overview) 3.0.0
 
 ## Setup
 * `python3 -m venv ./venv`
 * `source venv/bin/activate`
 * `pip3 install -r requirements.txt`
 * `go get ./...`
-* `go get -u -t zombiezen.com/go/capnproto2/...`
+* `go get -u github.com/golang/protobuf/protoc-gen-go`
 
 ## Run
 ### Preparations
@@ -27,7 +27,7 @@
   * `export PYTHONPATH=$PYTHONPATH:"$('pwd')/src/simulation"`
   * `export PYTHONPATH=$PYTHONPATH:"$('pwd')/carla"`
   * `export PYTHONPATH=$PYTHONPATH:"$('pwd')/carla/dist/carla-0.9.6-py3.7-linux-x86_64.egg"`
-* Compile Cap'n'Proto schemas: `capnp compile -I$GOPATH/src/zombiezen.com/go/capnproto2/std -ogo:src/edgenode_v2/schema --src-prefix src/common/serialization/schema/capnp/go src/common/serialization/schema/capnp/go/*.capnp`
+* Compile Protobuf schemas: `bash src/script/compile_proto.sh`
 * Compile Cython extensions: `cd src/common/quadkey/tilesystem && python3 setup.py build_ext --inplace && cd ../../raycast && python3 setup.py build_ext --inplace && cd ../../..`
 * Start Carla: `DISPLAY= ./CarlaUE4.sh -carla-server -windowed -ResX=800 -ResY=600 -opengl`
 * Start HiveMQ: `docker run -p 1883:1883 --rm -v config/hivemq.xml:/opt/config.xml skobow/hivemq-ce`
@@ -40,8 +40,9 @@
   * When running on a different machine as the simulator, add the `--host <HOST_IP>` argument.
 * Run the **web** dashboard: `cd src && python3 run.py web`
 
-### Further Improvements
-* ✅ **QuadInt**s: Currently, an unpacked Cap'n'Proto message containing a radius-20 grid with level-24 cells without occupants is ~ 340 kBytes in size. By representing QuadKeys as 64-bit integers instead of strings (as done in [jquad](https://github.com/ethlo/jquad), for instance) could reduce the size to ~ 130 kBytes ([Trello Ticket #89](https://trello.com/c/BrxwRiMd)). ➡️ **Done.** Reduced average message size by 25 % (~ 210 kb now).
+### Optimizations
+* ✅ **QuadInt**s: Reduced average message size by ~ 25 % 
+* ✅ **Protobuf**: Instead of Cap'n'Proto. Improved serialization performance by ~ 25 % and reduced average message size by ~ 39 %. 
 
 ### Troubleshooting
 _**ImportError: libjpeg.so.8: cannot open shared object file**_

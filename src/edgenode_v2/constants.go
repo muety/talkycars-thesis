@@ -3,7 +3,7 @@ package main
 import "time"
 
 const (
-	TickRate                 = 15
+	TickRate                 = 10
 	OccupancyTileLevel       = 24
 	RemoteGridTileLevel      = 19
 	FusionDecayLambda        = 0.14 // 0.05, 0.08, 0.11, 0.14

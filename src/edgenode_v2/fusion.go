@@ -8,14 +8,13 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"./log"
 	"./schema"
 	"./timing"
+	"github.com/golang/protobuf/proto"
 	"github.com/n1try/tiles"
-	capnp "zombiezen.com/go/capnproto2"
 )
 
 type CellObservation struct {
@@ -28,9 +27,7 @@ type CellObservation struct {
 
 type CellFuseJob struct {
 	Hash         tiles.Quadkey
-	CellCount    *uint32
 	Observations *list.List
-	OutGrid      *schema.OccupancyGrid
 }
 
 type GraphFusionService struct {
@@ -89,43 +86,25 @@ func (s *GraphFusionService) Push(msg []byte) {
 		return
 	}
 
-	ts := floatToTime(graph.Timestamp())
+	ts := floatToTime(graph.Timestamp)
 	if time.Since(ts) > GraphMaxAge {
 		log.Info("Discarded incoming graph due to timeout.")
 		return
 	}
 
-	lastTs := floatToTime(graph.LastTimestamp())
+	lastTs := floatToTime(graph.LastTimestamp)
 	s.timingService.StartCustom("d2", lastTs)
 	s.timingService.Stop("d2")
 
-	measuredBy, err := graph.MeasuredBy()
-	if err != nil {
-		log.Error(err)
-		return
-	}
+	senderId := int(graph.MeasuredBy.Id)
 
-	grid, err := graph.OccupancyGrid()
-	if err != nil {
-		log.Error(err)
-		return
-	}
-
-	cellList, err := grid.Cells()
-	if err != nil {
-		log.Error(err)
-		return
-	}
-
-	senderId := int(measuredBy.Id())
-
-	if cellList.Len() == 0 {
+	if len(graph.OccupancyGrid.Cells) == 0 {
 		log.Errorf("Got graph with empty cell list from %d.\n", senderId)
 	}
 
-	for i := 0; i < cellList.Len(); i++ {
-		cell := cellList.At(i)
-		hash := tiles.Quadkey(quadInt2QuadKey(cell.Hash()))
+	for i := 0; i < len(graph.OccupancyGrid.Cells); i++ {
+		cell := graph.OccupancyGrid.Cells[i]
+		hash := tiles.Quadkey(quadInt2QuadKey(cell.Hash))
 
 		// Store latest timestamp for this cell in presentCells
 		if ts1, ok := s.presentCells.Load(hash); !ok || ts1.(time.Time).Before(ts) {
@@ -136,7 +115,7 @@ func (s *GraphFusionService) Push(msg []byte) {
 		s.observations.Store(getKey(hash, senderId, 0), &CellObservation{
 			Timestamp: ts,
 			Hash:      hash,
-			Cell:      &cell,
+			Cell:      cell,
 		})
 	}
 
@@ -144,20 +123,16 @@ func (s *GraphFusionService) Push(msg []byte) {
 }
 
 func (s *GraphFusionService) Get(maxAge time.Duration) map[tiles.Quadkey][]byte {
-	now := time.Now()
-	nowFloat := timeToFloat(now)
+	t0 := time.Now()
+	t0Float := timeToFloat(t0)
 
 	tickDelay := 0.5 / float64(TickRate)
 	tickDelayDuration := time.Duration(tickDelay * float64(time.Second))
-	s.timingService.StartCustom("d4", now.Add(-tickDelayDuration))
+	s.timingService.StartCustom("d4", t0.Add(-tickDelayDuration))
 
 	minTs := sync.Map{}
 	maxTs := sync.Map{}
 
-	cellCount := make(map[tiles.Quadkey]*uint32)
-	messages := make(map[tiles.Quadkey]*capnp.Message)
-	scenes := make(map[tiles.Quadkey]schema.TrafficScene)
-	grids := make(map[tiles.Quadkey]schema.OccupancyGrid)
 	cells := sync.Map{}
 
 	var wg sync.WaitGroup
@@ -200,54 +175,16 @@ func (s *GraphFusionService) Get(maxAge time.Duration) map[tiles.Quadkey][]byte 
 	s.observations.Range(func(_, val interface{}) bool {
 		obs := val.(*CellObservation)
 		hash := obs.Hash
-		parent := tiles.Quadkey(string(hash)[:RemoteGridTileLevel])
+		parent := hash[:RemoteGridTileLevel]
 
-		if now.Sub(obs.Timestamp) <= GraphMaxAge {
-			if _, ok := messages[parent]; !ok {
-				msg, seg, _ := capnp.NewMessage(capnp.SingleSegment(nil))
+		if _, ok := cells.Load(parent); !ok {
+			cells.Store(parent, list.New())
+		}
 
-				scene, err := schema.NewRootTrafficScene(seg)
-				if err != nil {
-					log.Error(err)
-					return false
-				}
-
-				grid, err := scene.NewOccupancyGrid()
-				if err != nil {
-					log.Error(err)
-					return false
-				}
-
-				count := s.countPresentCells(parent, now)
-
-				cellList, err := grid.NewCells(count)
-				if err != nil {
-					log.Error(err)
-					return false
-				}
-
-				for i := 0; i < int(count); i++ {
-					schema.NewGridCell(cellList.Segment())
-				}
-
-				var c uint32
-				cellCount[parent] = &c
-
-				grid.SetCells(cellList)
-				scene.SetTimestamp(nowFloat)
-				scene.SetOccupancyGrid(grid)
-
-				messages[parent] = msg
-				scenes[parent] = scene
-				grids[parent] = grid
-
-				cells.Store(parent, list.New())
-			}
-
+		if t0.Sub(obs.Timestamp) <= GraphMaxAge {
 			if _, ok := cellObservations[hash]; !ok {
 				cellObservations[hash] = list.New()
 			}
-
 			cellObservations[hash].PushBack(obs)
 		}
 
@@ -255,14 +192,9 @@ func (s *GraphFusionService) Get(maxAge time.Duration) map[tiles.Quadkey][]byte 
 	})
 
 	for hash, observations := range cellObservations {
-		parent := hash[:RemoteGridTileLevel]
-		grid := grids[parent]
-
 		job := CellFuseJob{
 			Hash:         hash,
-			CellCount:    cellCount[parent],
 			Observations: observations,
-			OutGrid:      &grid,
 		}
 
 		wg.Add(1)
@@ -271,41 +203,49 @@ func (s *GraphFusionService) Get(maxAge time.Duration) map[tiles.Quadkey][]byte 
 
 	wg.Wait()
 
-	nowFloat = timeToFloat(time.Now())
+	t1Float := timeToFloat(time.Now())
 	encodedMessages := make(map[tiles.Quadkey][]byte)
 
 	cells.Range(func(key, val interface{}) bool {
 		parent := key.(tiles.Quadkey)
 		cellz := val.(*list.List)
+		cellList := make([]*schema.GridCell, cellz.Len(), cellz.Len())
 
-		cellList, err := grids[parent].Cells()
-		if err != nil {
-			log.Error(err)
-			return false
+		var (
+			minTimestamp float64
+			maxTimestamp float64
+		)
+
+		if t, ok := minTs.Load(parent); ok {
+			minTimestamp = timeToFloat(t.(time.Time))
+		}
+		if t, ok := maxTs.Load(parent); ok {
+			maxTimestamp = timeToFloat(t.(time.Time))
 		}
 
 		i := 0
 		elem := cellz.Front()
 		for elem != nil {
-			cellList.Set(i, *(elem.Value.(*schema.GridCell)))
+			cellList[i] = (elem.Value.(*schema.GridCell))
 			elem = elem.Next()
 			i++
 		}
 
-		scenes[parent].SetLastTimestamp(nowFloat)
-		if t, ok := minTs.Load(parent); ok {
-			scenes[parent].SetMinTimestamp(timeToFloat(t.(time.Time)))
-		}
-		if t, ok := maxTs.Load(parent); ok {
-			scenes[parent].SetMaxTimestamp(timeToFloat(t.(time.Time)))
+		grid := &schema.OccupancyGrid{Cells: cellList}
+		scene := &schema.TrafficScene{
+			Timestamp:     t0Float,
+			LastTimestamp: t1Float,
+			MinTimestamp:  minTimestamp,
+			MaxTimestamp:  maxTimestamp,
+			OccupancyGrid: grid,
 		}
 
-		encodedMessage, err := messages[parent].MarshalPacked()
+		out, err := proto.Marshal(scene)
 		if err != nil {
 			log.Error(err)
 			return false
 		}
-		encodedMessages[parent] = encodedMessage
+		encodedMessages[parent] = out
 
 		return true
 	})
@@ -315,7 +255,7 @@ func (s *GraphFusionService) Get(maxAge time.Duration) map[tiles.Quadkey][]byte 
 	return encodedMessages
 }
 
-func fuseCell(hash tiles.Quadkey, cellCount *uint32, obs *list.List, outGrid *schema.OccupancyGrid) (*CellObservation, error) {
+func fuseCell(hash tiles.Quadkey, obs *list.List) (*CellObservation, error) {
 	now := time.Now()
 	minTimestamp := now
 	maxTimestamp := now.Add(-24 * time.Hour)
@@ -326,13 +266,7 @@ func fuseCell(hash tiles.Quadkey, cellCount *uint32, obs *list.List, outGrid *sc
 	for listItem != nil {
 		o := listItem.Value.(*CellObservation)
 
-		stateRelation, err := o.Cell.State()
-		if err != nil {
-			log.Error(err)
-			continue
-		}
-
-		conf, state := stateRelation.Confidence(), stateRelation.Object()
+		conf, state := o.Cell.State.Confidence, o.Cell.State.Object
 		weight := decay(1, o.Timestamp, now)
 
 		states[int(state)] += conf * weight
@@ -351,71 +285,46 @@ func fuseCell(hash tiles.Quadkey, cellCount *uint32, obs *list.List, outGrid *sc
 	lock1.Lock()
 	defer lock1.Unlock()
 
-	outCellList, err := outGrid.Cells()
-	if err != nil {
-		log.Error(err)
-		return nil, err
+	// TODO: Also fix min- / max timestamps in case unknown-observations are discarded
+	if states[schema.GridCellState_STATE_FREE] > 0 || states[schema.GridCellState_STATE_OCCUPIED] > 0 {
+		states[schema.GridCellState_STATE_UNKNOWN] = 0
+		stateWeights[schema.GridCellState_STATE_UNKNOWN] = 0
 	}
 
-	j := int(atomic.AddUint32(cellCount, 1) - 1)
-	newCell := outCellList.At(j)
-
-	newStateRelation, err := newCell.NewState()
-	if err != nil {
-		log.Error(err)
-		return nil, err
-	}
-
-	newOccupantRelation, err := newCell.NewOccupant()
-	if err != nil {
-		log.Error(err)
-		return nil, err
-	}
-
+	meanStateVector := meanCellState(states, vectorSum(stateWeights), 1.0)
+	maxConf, maxState := getMaxState(meanStateVector)
 	quadInt, err := quadKey2QuadInt(string(hash))
 	if err != nil {
 		log.Error(err)
 		return nil, err
 	}
 
-	// TODO: Also fix min- / max timestamps in case unknown-observations are discarded
-	if states[schema.GridCellState_free] > 0 || states[schema.GridCellState_occupied] > 0 {
-		states[schema.GridCellState_unknown] = 0
-		stateWeights[schema.GridCellState_unknown] = 0
+	newCell := &schema.GridCell{
+		Hash: quadInt,
+		State: &schema.GridCellStateRelation{
+			Confidence: maxConf,
+			Object:     maxState,
+		},
 	}
-
-	meanStateVector := meanCellState(states, vectorSum(stateWeights), 1.0)
-	maxConf, maxState := getMaxState(meanStateVector)
-	newStateRelation.SetConfidence(maxConf)
-	newStateRelation.SetObject(maxState)
-
-	newCell.SetHash(quadInt)
-	newCell.SetState(newStateRelation)
-	newCell.SetOccupant(newOccupantRelation)
 
 	fusedObs := &CellObservation{
 		Timestamp:    time.Now(), // shouldn't matter ever, could be anything
 		MinTimestamp: minTimestamp,
 		MaxTimestamp: maxTimestamp,
 		Hash:         hash,
-		Cell:         &newCell,
+		Cell:         newCell,
 	}
 
 	return fusedObs, nil
 }
 
 func decodeGraph(msg []byte) (*schema.TrafficScene, error) {
-	decodedMsg, err := capnp.UnmarshalPacked(msg)
-	if err != nil {
+	graph := &schema.TrafficScene{}
+	if err := proto.Unmarshal(msg, graph); err != nil {
 		log.Error(err)
 		return nil, err
 	}
-	graph, err := schema.ReadRootTrafficScene(decodedMsg)
-	if err != nil {
-		log.Error(err)
-		return nil, err
-	}
-	return &graph, nil
+	return graph, nil
 }
 
 func (s *GraphFusionService) countPresentCells(parent tiles.Quadkey, now time.Time) int32 {
@@ -456,7 +365,7 @@ func runFuseJob(job *CellFuseJob) *CellObservation {
 	}()
 
 	// Do fusion work
-	result, err := fuseCell(job.Hash, job.CellCount, job.Observations, job.OutGrid)
+	result, err := fuseCell(job.Hash, job.Observations)
 	if err != nil {
 		log.Error(err)
 	}
@@ -465,7 +374,7 @@ func runFuseJob(job *CellFuseJob) *CellObservation {
 }
 
 func getMaxState(states []float32) (float32, schema.GridCellState) {
-	state := schema.GridCellState_unknown
+	state := schema.GridCellState_STATE_UNKNOWN
 	maxConf := float32(0.0)
 
 	for i, conf := range states {

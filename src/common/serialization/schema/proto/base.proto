@@ -1,0 +1,14 @@
+syntax = "proto3";
+package schema;
+
+import "actor.proto";
+import "occupancy.proto";
+
+message TrafficScene {
+    double timestamp = 1;
+    double minTimestamp = 2;
+    double maxTimestamp = 3;
+    double lastTimestamp = 4;
+    DynamicActor measuredBy = 5;
+    OccupancyGrid occupancyGrid = 6;
+}

@@ -1,27 +1,22 @@
 import logging
 import os
-from typing import TypeVar, Generic, Type, Dict, Tuple, Union
+from typing import TypeVar, Generic, Type, Tuple, Union
 
-import capnp
-
-from common.serialization.schema import Vector3D, RelativeBBox, GridCellState, ActorType, CapnpObject
-
-capnp.remove_import_hook()
+from common.serialization.schema import Vector3D, RelativeBBox, GridCellState, ProtobufObject, ActorType
+from common.serialization.schema.proto import misc_pb2, occupancy_pb2, actor_pb2
 
 dirname = os.path.dirname(__file__)
 
-relation = capnp.load(os.path.join(dirname, './capnp/python/relation.capnp'))
-
 T = TypeVar('T')
-_RelationType = Union[type(relation.TextRelation),
-                      type(relation.Vector3DRelation),
-                      type(relation.RelativeBBoxRelation),
-                      type(relation.GridCellStateRelation),
-                      type(relation.ActorTypeRelation),
-                      type(relation.DynamicActorRelation)]
+_RelationType = Union[type(misc_pb2.TextRelation),
+                      type(misc_pb2.Vector3DRelation),
+                      type(misc_pb2.RelativeBBoxRelation),
+                      type(occupancy_pb2.GridCellStateRelation),
+                      type(actor_pb2.ActorTypeRelation),
+                      type(actor_pb2.DynamicActorRelation)]
 
 
-class PEMRelation(Generic[T], CapnpObject):
+class PEMRelation(Generic[T], ProtobufObject):
     def __init__(self, confidence: float, object: T):
         self.confidence: float = confidence
         self.object: T = object
@@ -35,9 +30,15 @@ class PEMRelation(Generic[T], CapnpObject):
             elif not relation_type and type_hint:
                 relation_type = type_hint
 
-            msg = relation_type.new_message(confidence=self.confidence)
+            obj = None
             if self.object is not None:
-                msg.object = self.object if is_primitive else self.object.to_message()
+                obj = self.object if is_primitive else self.object.to_message()
+
+            msg = relation_type(
+                confidence=self.confidence,
+                object=obj
+            )
+
             return msg
 
         except TypeError as e:
@@ -51,23 +52,26 @@ class PEMRelation(Generic[T], CapnpObject):
         if obj is None:
             return None, True
         elif isinstance(obj, Vector3D):
-            return relation.Vector3DRelation, False
+            return misc_pb2.Vector3DRelation, False
         elif isinstance(obj, RelativeBBox):
-            return relation.RelativeBBoxRelation, False
+            return misc_pb2.RelativeBBoxRelation, False
         elif isinstance(obj, PEMDynamicActor):
-            return relation.DynamicActorRelation, False
+            return actor_pb2.DynamicActorRelation, False
         elif isinstance(obj, GridCellState):
-            return relation.GridCellStateRelation, False
+            return occupancy_pb2.GridCellStateRelation, False
         elif isinstance(obj, ActorType):
-            return relation.ActorTypeRelation, False
+            return actor_pb2.ActorTypeRelation, False
         elif isinstance(obj, str):
-            return relation.TextRelation, True
+            return misc_pb2.TextRelation, True
         else:
             raise TypeError(f'unknown relation type "{type(obj)}"')
 
     @classmethod
-    def from_message_dict(cls, obj_dict: Dict, target_cls: Type[CapnpObject] = None) -> 'PEMRelation':
-        obj: CapnpObject = None
-        if 'object' in obj_dict:
-            obj = target_cls.from_message_dict(obj_dict['object']) if target_cls else obj_dict['object']
-        return cls(confidence=obj_dict['confidence'], object=obj)
+    def get_protobuf_class(cls):
+        raise NotImplementedError('not implemented')
+
+    @classmethod
+    def from_message(cls, msg, target_cls: Type[ProtobufObject] = None) -> 'PEMRelation':
+        obj: ProtobufObject = None
+        obj = target_cls.from_message(msg.object) if target_cls else msg.object
+        return cls(confidence=msg.confidence, object=obj)

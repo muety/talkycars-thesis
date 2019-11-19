@@ -1,19 +1,14 @@
 import os
-from typing import Dict, Type
+from typing import Type
 
-import capnp
-
-from common.serialization.schema import CapnpObject, Vector3D, RelativeBBox, ActorType
+from common.serialization.schema import ProtobufObject, Vector3D, RelativeBBox, ActorType
+from common.serialization.schema.proto import actor_pb2
 from .relation import PEMRelation
-
-capnp.remove_import_hook()
 
 dirname = os.path.dirname(__file__)
 
-dynamic_actor = capnp.load(os.path.join(dirname, './capnp/python/actor.capnp'))
 
-
-class PEMDynamicActor(CapnpObject):
+class PEMDynamicActor(ProtobufObject):
     def __init__(self, **entries):
         self.id: int = None
         self.type: PEMRelation[ActorType] = None
@@ -27,33 +22,25 @@ class PEMDynamicActor(CapnpObject):
             self.__dict__.update(**entries)
 
     def to_message(self):
-        me = dynamic_actor.DynamicActor.new_message()
-
-        me.id = self.id
-        if self.type and self.type.object:
-            me.type = self.type.to_message()
-        if self.color and self.color.object:
-            me.color = self.color.to_message()
-        if self.position and self.position.object:
-            me.position = self.position.to_message()
-        if self.bounding_box and self.bounding_box.object:
-            me.boundingBox = self.bounding_box.to_message()
-        if self.velocity and self.velocity.object:
-            me.velocity = self.velocity.to_message()
-        if self.acceleration and self.acceleration.object:
-            me.acceleration = self.acceleration.to_message()
-
-        return me
+        return actor_pb2.DynamicActor(
+            id=self.id,
+            type=self.type.to_message() if self.type and self.type.object else None,
+            color=self.color.to_message() if self.color and self.color.object else None,
+            position=self.position.to_message() if self.position and self.position.object else None,
+            boundingBox=self.bounding_box.to_message() if self.bounding_box and self.bounding_box.object else None,
+            velocity=self.velocity.to_message() if self.velocity and self.velocity.object else None,
+            acceleration=self.acceleration.to_message() if self.acceleration and self.acceleration.object else None,
+        )
 
     @classmethod
-    def from_message_dict(cls, object_dict: Dict, target_cls: Type = None) -> 'PEMDynamicActor':
-        id = object_dict['id'] if 'id' in object_dict else None
-        type = PEMRelation.from_message_dict(object_dict['type'], target_cls=ActorType) if 'type' in object_dict else None
-        color = PEMRelation.from_message_dict(object_dict['color']) if 'color' in object_dict else None
-        position = PEMRelation.from_message_dict(object_dict['position'], target_cls=Vector3D) if 'position' in object_dict else None
-        bounding_box = PEMRelation.from_message_dict(object_dict['boundingBox'], target_cls=RelativeBBox) if 'boundingBox' in object_dict else None
-        velocity = PEMRelation.from_message_dict(object_dict['velocity'], target_cls=Vector3D) if 'velocity' in object_dict else None
-        acceleration = PEMRelation.from_message_dict(object_dict['acceleration'], target_cls=Vector3D) if 'acceleration' in object_dict else None
+    def from_message(cls, msg, target_cls: Type[ProtobufObject] = None) -> 'PEMDynamicActor':
+        id = msg.id
+        type = PEMRelation.from_message(msg.type, target_cls=ActorType) if msg.type.confidence > 0 else None
+        color = PEMRelation.from_message(msg.color) if msg.color.confidence > 0 else None
+        position = PEMRelation.from_message(msg.position, target_cls=Vector3D) if msg.position.confidence > 0 else None
+        bounding_box = PEMRelation.from_message(msg.boundingBox, target_cls=RelativeBBox) if msg.boundingBox.confidence > 0 else None
+        velocity = PEMRelation.from_message(msg.velocity, target_cls=Vector3D) if msg.velocity.confidence > 0 else None
+        acceleration = PEMRelation.from_message(msg.acceleration, target_cls=Vector3D) if msg.acceleration.confidence > 0 else None
 
         return cls(
             id=id,
@@ -66,8 +53,8 @@ class PEMDynamicActor(CapnpObject):
         )
 
     @classmethod
-    def _get_capnp_class(cls):
-        return dynamic_actor.EgoVehicle
+    def get_protobuf_class(cls):
+        return actor_pb2.DynamicActor
 
     def __str__(self):
         return f'Dynamic Actor [{self.id}]'

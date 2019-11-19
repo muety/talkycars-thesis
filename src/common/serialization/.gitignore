@@ -1,0 +1,2 @@
+schema/proto/*.go
+schema/proto/*.py

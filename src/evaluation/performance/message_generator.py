@@ -17,7 +17,7 @@ from pyquadkey2.quadkey import QuadKey
 
 from client import TileSubscriptionService
 from common.constants import *
-from common.serialization.schema import Vector3D, RelativeBBox, ActorType, GridCellState
+from common.serialization.schema import Vector3D, RelativeBBox, GridCellState, ActorType
 from common.serialization.schema.actor import PEMDynamicActor
 from common.serialization.schema.base import PEMTrafficScene
 from common.serialization.schema.occupancy import PEMOccupancyGrid, PEMGridCell
