@@ -92,12 +92,12 @@ MOCK_REMOTE_2: List[PEMTrafficSceneObservation] = [
 def test_compute_matching():
     sut: GridEvaluator = GridEvaluator(file_prefix='')
 
-    matching: List[Tuple[State5Tuple, State5Tuple]] = list(sut.compute_matching(MOCK_LOCAL_1, [], MOCK_ACTUAL_1))
+    matching: List[Tuple[State5Tuple, State5Tuple]] = list(sut.compute_matching(MOCK_LOCAL_1, MOCK_REMOTE_1, MOCK_ACTUAL_1, exclude_remote=True, consider_neighborhood=True))
     assert len(matching) == 1
     assert matching[0][0][1] == 1.0
     assert matching[0][1][1] == 0.5
 
-    matching: List[Tuple[State5Tuple, State5Tuple]] = list(sut.compute_matching(MOCK_LOCAL_1, MOCK_REMOTE_1, MOCK_ACTUAL_1))
+    matching: List[Tuple[State5Tuple, State5Tuple]] = list(sut.compute_matching(MOCK_LOCAL_1, MOCK_REMOTE_1, MOCK_ACTUAL_1, exclude_remote=False, consider_neighborhood=True))
     assert len(matching) == 1
     assert matching[0][0][1] == 1.0
     assert .24 < matching[0][1][1] < .26
@@ -107,7 +107,7 @@ def test_compute_matching():
 def test_override_unknown():
     sut: GridEvaluator = GridEvaluator(file_prefix='')
 
-    matching: List[Tuple[State5Tuple, State5Tuple]] = list(sut.compute_matching(MOCK_LOCAL_1, MOCK_REMOTE_2, MOCK_ACTUAL_1))
+    matching: List[Tuple[State5Tuple, State5Tuple]] = list(sut.compute_matching(MOCK_LOCAL_1, MOCK_REMOTE_2, MOCK_ACTUAL_1, exclude_remote=False, consider_neighborhood=True))
     assert len(matching) == 1
     assert matching[0][0][1] == 1.0
     assert .4 < matching[0][1][1] < .6
@@ -117,13 +117,13 @@ def test_override_unknown():
 def test_compute_scores():
     sut: GridEvaluator = GridEvaluator(file_prefix='')
 
-    matching: Set[Tuple[State5Tuple, State5Tuple]] = sut.compute_matching(MOCK_LOCAL_1, [], MOCK_ACTUAL_1)
+    matching: Set[Tuple[State5Tuple, State5Tuple]] = sut.compute_matching(MOCK_LOCAL_1, MOCK_REMOTE_1, MOCK_ACTUAL_1, exclude_remote=True, consider_neighborhood=True)
     acc: float = sut.compute_accuracy(matching)
     mae: float = sut.compute_mae(matching)
     assert acc == 1
     assert mae == 0.5
 
-    matching: Set[Tuple[State5Tuple, State5Tuple]] = sut.compute_matching(MOCK_LOCAL_1, MOCK_REMOTE_1, MOCK_ACTUAL_1)
+    matching: Set[Tuple[State5Tuple, State5Tuple]] = sut.compute_matching(MOCK_LOCAL_1, MOCK_REMOTE_1, MOCK_ACTUAL_1, exclude_remote=False, consider_neighborhood=True)
     acc: float = sut.compute_accuracy(matching)
     mae: float = sut.compute_mae(matching)
     assert acc == 1
