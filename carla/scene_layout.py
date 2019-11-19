@@ -6,11 +6,10 @@
 # Provides map data for users.
 
 import glob
-import os
 import sys
 
 try:
-    sys.path.append(glob.glob('../carla/dist/carla-*3.5-linux-x86_64.egg')[0])
+    sys.path.append(glob.glob('../carla/dist/carla-*3.7-linux-x86_64.egg')[0])
 except IndexError:
     pass
 
