@@ -1,0 +1,219 @@
+%##################################################################################
+ 
+\documentclass[12pt,a4paper,twoside]{report}
+%\documentclass[12pt,a4paper,oneside]{report}
+\usepackage{graphicx}
+\usepackage[english]{babel} %-- uncomment this to get english titles
+\usepackage{german,a4}
+%\usepackage{picins}
+%\usepackage{epsfig}
+\usepackage{fancyhdr}			% for nice header and footer
+\usepackage{hyperref}			% references in pdf
+\usepackage[sf]{titlesec}	%customization of \chapter Titles for appendices
+\usepackage{textcomp}
+\usepackage{makeidx}
+\usepackage{ngerman}			% german Umlauts
+\usepackage[utf8]{inputenc}
+\usepackage{booktabs}                               % necessary for tabulars
+\usepackage[squaren]{SIunits}
+\usepackage[numbers,square]{natbib}
+ 
+%\usepackage{wrapfig}
+%\usepackage[pdftex]{graphicx}
+%\usepackage{ifthen}  
+%\usepackage{booktabs} % fancy tables
+%\usepackage[titletoc]{appendix} % custom naming of appendices
+\usepackage{amssymb, amsmath, amsthm} % for equations & eqref
+%\usepackage{listings} \lstset{basicstyle=\tiny\ttfamily, numbers=left, escapeinside={(*}{*)}, captionpos=b}
+%\usepackage{dirtree}
+
+%get bigger \par with one empty line
+\newcommand{\mypar}{\par\medskip}
+
+%TODO line
+\newcommand{\writeTodo}{1}
+\newcommand{\todo}[1]{
+	\ifdefined \writeTodo
+		\mypar\textbf{\textcolor{KITgreen}{TODO: }\textcolor{red}{#1}}\mypar
+	\fi
+} 
+ 
+%\theoremstyle{plain}% default
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}
+
+% Abbkürzungsverzeichnis einfügen
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
+\usepackage{nomencl}
+\let\abbrev\nomenclature
+\renewcommand{\nomname}{Abkürzungsverzeichnis}
+\setlength{\nomlabelwidth}{.25\hsize}
+\renewcommand{\nomlabel}[1]{#1 }%\dotfill}
+\setlength{\nomitemsep}{-\parsep}
+\makenomenclature
+\newcommand{\markup}[1]{\underline{#1}} 
+
+% Farben
+\usepackage{color}
+\definecolor{KITgreen}{rgb}{0, .61, .51} 
+\definecolor{KITbluegrey}{rgb}{.27, .39, .67} 
+\definecolor{KITgrey}{rgb}{.49, .49, .49} 
+
+% =====================================================
+% Dokumenten-Platzhalter
+% =====================================================
+\input{00_special_pages/platzhalter-titel}
+
+% ====================================================
+% Formatierung des Dokuments
+% ====================================================
+\input{00_special_pages/formats}
+
+% =====================================================
+% Inhalt der Titelseite definieren
+% =====================================================
+
+\makeindex
+\newcommand{\Idx}[1]{#1 \index{#1}}
+
+\hyphenation{
+EVITA
+}
+
+% =====================================================
+% Zeichen für Copyright, Trademark, Registerd, ...
+% =====================================================
+\def\TReg{\textsuperscript{\textregistered}}
+\def\TCop{\textsuperscript{\textcopyright}}
+\def\TTra{\textsuperscript{\texttrademark}}
+
+% =====================================================
+% selbs definierte Zeichen
+% =====================================================
+\def\zB{z.\,B. }
+\def\uvm{u.\,v.\,m.}
+\begin{document}
+
+% =====================================================
+% Put Titel in English
+% ===================================================== 
+%\input{00_special_pages/titelseite_en}
+%    \parindent=0pt
+%    %\sloppypar
+%    \linespread{1.2}
+%    \thispagestyle{plain}
+%    %\frontmatter
+%    %\maketitle
+
+% =====================================================
+% Put Titel in Deutsch
+% ===================================================== 
+\input{00_special_pages/titelseite}
+    \parindent=0pt
+    %\sloppypar
+    \linespread{1.2}
+    \thispagestyle{plain}
+    %\frontmatter
+    %\maketitle
+    \cleardoublepage
+    
+% =====================================================
+% Abstract
+% =====================================================     
+	\begin{abstract}
+		\input{00_special_pages/zusammenfassung}
+	\end{abstract}
+	\cleardoublepage
+% =====================================================
+% Signaturepage
+% ===================================================== 
+    \input{00_special_pages/erklaerung}
+	\cleardoublepage
+% =====================================================
+% TOC
+% ===================================================== 
+    \tableofcontents
+    %\clearpage
+    \cleardoublepage
+
+% =====================================================
+% Main Chapters
+% ===================================================== 
+    %\mainmatter
+    \pagenumbering{arabic}
+    \setcounter{page}{1}
+    \pagestyle{fancy}
+ \normalsize
+
+    
+    \chapter{Introduction}
+    \label{ch:Introduction}    
+    	\input{10_introduction/bsp-chapter.tex}
+    \cleardoublepage
+    
+    \chapter{Background}
+    \label{ch:Background}
+		\input{20_background/bsp-chapter.tex}
+    \cleardoublepage
+
+	\chapter{Related Work}
+	\label{ch:Related_Work}  	
+		\input{30_related_work/bsp-chapter.tex}
+    \cleardoublepage    
+    
+    \chapter{Problem Description}
+    \label{ch:Problem_Description}   
+   		\input{40_problem_description/bsp-chapter.tex}
+   		
+    \chapter{Design \& Implementation}
+	\label{ch:Design_Implementaion}  
+		\input{50_design_implementation/bsp-chapter.tex}
+    \cleardoublepage    
+
+	\chapter{Evaluation}
+	\label{ch:Evaluation}  
+	\input{60_evaluation/bsp-chapter.tex}
+	\cleardoublepage  
+	
+	\chapter{Conclusion \& Future Work}
+	\label{ch:Conclusion_Future_Work}  
+	\input{70_conclusion_future_work/bsp-chapter.tex}
+	\cleardoublepage  
+
+    
+% =====================================================
+% Bibliography
+% ===================================================== 
+\nocite{*}
+%\addcontentsline{toc}{chapter}{Literaturverzeichnis, in ToC löschen}
+%\addcontentsline{toc}{chapter}{Literature}
+%\bibliographystyle{dinat}        % use a DIN style for the bibliography
+%\bibliographystyle{plain}        % use a DIN style for the bibliography
+%\bibliographystyle{abbrv}			%mit nummern in []
+%\bibliographystyle{plain}			%mit nummern in []
+%\bibliographystyle{alpha}			%3 Buchstaben + Jahr
+\bibliographystyle{alphadin}
+
+    % use external Bib-File, 
+		\bibliography{99_bib/standardbib}		
+		\cleardoublepage
+% =====================================================
+% Appendix
+% ===================================================== 
+    \appendix
+
+%    \input{95_anhang/anhang}
+		\cleardoublepage
+
+    \listoftables
+    	\cleardoublepage
+    \listoffigures
+    	\cleardoublepage
+    \printindex
+    	\cleardoublepage
+    \printnomenclature
+    \renewcommand{\leftmark}{\uppercase{Abkürzungsverzeichnis}}
+    	\cleardoublepage
+
+\end{document}
+

@@ -1,0 +1,111 @@
+
+
+%\usepackage{color}
+%\usepackage{helvet}
+
+% =====================================================
+% Seite einrichten
+% =====================================================
+\setlength{\textwidth}{160mm} \setlength{\textheight}{235mm}
+\setlength{\oddsidemargin}{5mm}
+%pagelayout: (1in=25,4mm), default offset of page origin: 1in x 1in
+%     25,4+5=30,4mm       160mm          19,6mm
+%  |                   sadfasdfasdfasdf          |
+\setlength{\evensidemargin}{-5,8mm} 
+%     25,4-5,8= 19,6mm    160mm          30,4mm
+%  |                   sadfasdfasdfasdf          |
+\setlength{\topmargin}{0mm} \setlength{\voffset}{-15mm}
+\setlength{\headsep}{12mm} \setlength{\footskip}{15mm}
+\setlength{\headheight}{15.5pt}
+
+% =====================================================
+% sonstige Einstellungen
+% =====================================================
+%\flushbottom % Textfluss schoen unten ausrichten
+\footnotesep12pt % Abstand Text / Fussnote
+%\setlength{\parindent}{0pt} \setlength{\abovecaptionskip}{-6pt}
+%\setlength{\belowcaptionskip}{0pt} \setlength{\intextsep}{18pt}
+%\renewcommand{\baselinestretch}{1.2} % Zeilenabstand
+\setcounter{secnumdepth}{4}
+\newcommand{\p}[1]{\texttt{#1}}
+\nonfrenchspacing
+
+% =====================================================
+% Kopf- und Fusszeile formatieren
+% =====================================================
+\pagestyle{fancy}
+\fancyhead{}
+\makeatletter
+\if@twoside
+	\fancyhead[LO]{\sf{\rightmark}}
+	\fancyhead[RE]{\sf{\leftmark}}
+	\fancyfoot[LE]{\setlength{\unitlength}{1mm}
+		\begin{picture}(0,0) \put(0,-2){
+			%\includegraphics[height=0.6cm,width=0.6cm]{98_images/ITIVlogo.png}
+		} \end{picture}
+		%\put(9,2){\scriptsize\sf{\Institut}}\put(9,-2){\scriptsize\sf{\Dachorganisation}}}
+		\put(0,2){\scriptsize\sf{\Institut}}\put(0,-2){\scriptsize\sf{\Dachorganisation}}}
+
+\else
+	\fancyhead[LO]{\sf{\leftmark}}
+	\fancyfoot[LO]{\setlength{\unitlength}{1mm} 
+		\begin{picture}(0,0) \put(0,-2){
+			% \includegraphics[height=0.6cm,width=0.6cm]{98_images/ITIVlogo.png}
+		} \end{picture}
+		%\put(9,2){\scriptsize\sf{\Institut}}\put(9,-2){\scriptsize\sf{\Dachorganisation}}}
+		\put(0,2){\scriptsize\sf{\Institut}}\put(0,-2){\scriptsize\sf{\Dachorganisation}}}
+\fi
+\fancyhead[LE, RO]{\sf{\thepage}}
+\makeatother
+
+\cfoot{}
+\fancyfoot[RO]{\footnotesize\sf{\titelderarbeit}}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{1.0pt}
+
+% ====================================================
+% Kopf- und Fusszeile fuer "plain"-Format ueberschreiben
+% ====================================================
+\makeatletter
+\if@twoside
+	\fancypagestyle{plain}{%
+	\fancyhf{}
+	\fancyfoot[LE]{\setlength{\unitlength}{1mm}
+		\begin{picture}(0,0) \put(0,-2){
+			%\includegraphics[height=0.6cm,width=0.6cm]{98_images/ITIVlogo.png}
+		} \end{picture}
+		%\put(9,2){\scriptsize\sf{\Institut}}\put(9,-2){\scriptsize\sf{\Dachorganisation}}}
+		\put(0,2){\scriptsize\sf{\Institut}}\put(0,-2){\scriptsize\sf{\Dachorganisation}}}
+	\cfoot{}
+	\fancyfoot[RO]{\footnotesize\sf{\titelderarbeit}}
+	\renewcommand{\headrulewidth}{0pt}
+	\renewcommand{\footrulewidth}{1.0pt}}
+\else
+	\fancypagestyle{plain}{%
+	\fancyhf{}
+	\fancyfoot[L,C,R]{\setlength{\unitlength}{1mm}
+	\begin{picture}(0,0) \put(0,-2){
+		%\includegraphics[height=0.6cm,width=0.6cm]{98_images/ITIVlogo.png}
+	} \end{picture}
+	%\put(9,2){\scriptsize\sf{\Institut}}\put(9,-2){\scriptsize\sf{\Dachorganisation}}}
+	\put(0,2){\scriptsize\sf{\Institut}}\put(0,-2){\scriptsize\sf{\Dachorganisation}}}
+	\cfoot{}
+	\rfoot{\footnotesize\sf{\titelderarbeit}}
+	\renewcommand{\headrulewidth}{0pt}
+	\renewcommand{\footrulewidth}{1.0pt}}
+\fi
+
+%makes the index do not remove!
+\makeindex
+
+\hypersetup{
+	%pdftex %schon gesetzt
+	pdfauthor = \docauthor,
+	%pagebackref,%schon gesetzt
+	colorlinks=true,
+	linkcolor=black,
+	citecolor=black,
+	urlcolor=black
+	}
+
+\providecommand{\e}[1]{\ensuremath{\times 10^{#1}}}
