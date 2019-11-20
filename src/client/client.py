@@ -178,7 +178,8 @@ class TalkyClient:
 
         self.timings.start('d0', custom_time=ts)
         self.timings.stop('d0')
-        self.timings.start('d1')
+
+        ts2: float = time.time()
 
         ego_actor: DynamicActor = actors_ego_obs.value[0]
         # Turned off for evaluation, because occupants are not fused anyway
@@ -226,6 +227,7 @@ class TalkyClient:
                                 occupancy_grid=pem_grid)
 
         encoded_msg = graph.to_bytes()
+        self.timings.start('d1', custom_time=ts2)
         self.timings.stop('d1')
 
         obs: PEMTrafficSceneObservation = PEMTrafficSceneObservation(now, graph, meta={'sender': int(self.ego_id)})
@@ -254,7 +256,6 @@ class TalkyClient:
     def _on_remote_graph(self, msg: bytes):
         in_time: float = time.time()
 
-        self.timings.start('d6')
         try:
             scene: PEMTrafficScene = PEMTrafficScene.from_bytes(msg)
             obs: PEMTrafficSceneObservation = PEMTrafficSceneObservation(time.time(), scene, meta={'sender': int(self.ego_id)})
@@ -265,9 +266,9 @@ class TalkyClient:
                 else:
                     self.remote_grid_sink.accumulator[OBS_GRAPH_REMOTE].append(obs)
 
+            self.timings.start('d6', custom_time=in_time)
             self.timings.stop('d6')
         except KeyError:
-            self.timings.stop('d6')
             return
 
         self.timings.start('d5', custom_time=scene.last_timestamp)

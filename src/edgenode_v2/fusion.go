@@ -78,7 +78,7 @@ func (s *GraphFusionService) Init() {
 
 // Don't call Push() directly from the outside, but push graphs into s.In channel
 func (s *GraphFusionService) Push(msg []byte) {
-	s.timingService.Start("d3")
+    t0 := time.Now()
 
 	graph, err := decodeGraph(msg)
 	if err != nil {
@@ -119,6 +119,7 @@ func (s *GraphFusionService) Push(msg []byte) {
 		})
 	}
 
+	s.timingService.StartCustom("d3", t0)
 	s.timingService.Stop("d3")
 }
 
@@ -128,7 +129,6 @@ func (s *GraphFusionService) Get(maxAge time.Duration) map[tiles.Quadkey][]byte 
 
 	tickDelay := 0.5 / float64(TickRate)
 	tickDelayDuration := time.Duration(tickDelay * float64(time.Second))
-	s.timingService.StartCustom("d4", t0.Add(-tickDelayDuration))
 
 	minTs := sync.Map{}
 	maxTs := sync.Map{}
@@ -250,6 +250,7 @@ func (s *GraphFusionService) Get(maxAge time.Duration) map[tiles.Quadkey][]byte 
 		return true
 	})
 
+	s.timingService.StartCustom("d4", t0.Add(-tickDelayDuration))
 	s.timingService.Stop("d4")
 
 	return encodedMessages
