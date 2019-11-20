@@ -16,7 +16,7 @@ def run():
 
         current_dir = os.path.dirname(os.path.realpath(__file__))
         schema_dir = os.path.join(current_dir, 'common/serialization/schema/proto')
-        target_dir = os.path.join(current_dir, 'edgenode_v2')
+        target_dir = os.path.join(current_dir, 'edgenode')
         schema_target_dir = os.path.join(target_dir, 'schema')
 
         for file in glob.glob(f'{schema_dir}/*.go'):
@@ -34,7 +34,7 @@ def run():
             return
 
         logging.info('Starting sub-process ...')
-        exit_code = subprocess.run(['./edgenode_v2', *sys.argv[2:]], cwd=target_dir).returncode
+        exit_code = subprocess.run(['./edgenode', *sys.argv[2:]], cwd=target_dir).returncode
         if exit_code != 0:
             logging.error(f'Command exited with code {exit_code}.')
             return

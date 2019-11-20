@@ -1,0 +1,4 @@
+*.capnp.go
+*.pb.go
+edgenode_v2
+edgenode
