@@ -4,6 +4,7 @@
 * Add TeXstudio PPA: `sudo add-apt-repository ppa:sunderme/texstudio && sudo apt update`
 * Install TeXstudio: `sudo apt install texstudio`
 * Install LaTeX: `sudo apt install texlive texlive-lang-german texlive-latex-extra texlive-science`
+* [Optional] Install GTK styles for Qt: `sudo apt install qt5-style-plugins`
 
 ```
 # /usr/share/applications/texstudio.desktop 
