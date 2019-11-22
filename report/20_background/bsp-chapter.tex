@@ -1,17 +1,20 @@
+This chapter introduces to essential topics and concepts in the context of this work and provides the reader with background knowledge required to follow in later chapters.
+
 \section{Autonomous Driving}
 \label{sec:background:autonomous_driving}
+
+\subsection{Levels of Autonomy}
+\label{subsec:background:labels_of_autonomy}
 With reference to self-driving cars, a distinction is usually made between five different levels of autonomy \cite{Klein}. These levels are used to commonly describe vehicles' capabilities and their degree of independence from a human driver with regard to the task of driving. 
 
 \begin{itemize}
 	\item \textbf{Level 0:} No computer assistance of any kind. A car is completely controlled by its human driver.
-	\item \textbf{Level 1:} Minor assistance, e.g. adaptive cruise control. While most functions are controlled by the driver, the car might take responsibility of a single task, e.g. accelerating and decelerating in certain scenarios. To ensure that a driver is still pays full attention and is able to intervene in case of system failures or critical situations, various methods of \textit{Driver Monitoring} are employed. Such include to visually observe a driver's face using cameras or to measure the force applied to the steering wheel.
-	\item \textbf{Level 2:} Advanced driver assistance, e.g. cruise control and lane centering. At this level, a car is able to take over multiple driving tasks in combination. Usually, it maintains an understanding of its environment and is able to react on it. While the driver is still required to monitor the roadway, she is "'disengaged from physically operating the vehicle"' \cite{Klein} and may keep her hands of the steering wheel and feet of the pedals. 
-	\item \textbf{Level 3:} High autonomy. At this level, a driver might fully rely on a car's self-driving under most conditions, delegating all safety-critical function to the ADAS. Although a driver still has to be present and prepared to take occasional control, she is not required to constantly monitor the traffic. 
-	\item \textbf{Level 4:} Full autonomy. This refers to a system that is able to perform all safety-critical driving functions under any condition. The autonomous car can complete an entire trip without a driver having to be inside. Driving performance of Level 4 autonomous cars is at least equal to human level and would generally even surpass it. 
+	\item \textbf{Level 1:} Basic assistance, e.g. adaptive cruise control. While most functions are controlled by the driver, the car might take responsibility of a single task, e.g. accelerating and decelerating in certain scenarios.
+	\item \textbf{Level 2:} Partial automation, e.g. cruise control and lane centering. At this level, a car is able to take over multiple driving tasks in combination. While the driver is still required to monitor the roadway, she is "'disengaged from physically operating the vehicle"' \cite{Klein} and may keep her hands of the steering wheel and feet of the pedals. To ensure that a driver is still pays full attention and is able to intervene in case of system failures or critical situations, various methods of \textit{Driver Monitoring} are employed. Such include to visually observe a driver's face using cameras or to measure the force applied to the steering wheel.
+	\item \textbf{Level 3:} High degree of automation. At this level, a driver might fully rely on a car's self-driving under most conditions, delegating all safety-critical function to the ADAS. Usually, it would maintain a comprehensive awareness of its environment and is able to react on it. Although a driver still has to be present and prepared to take occasional control, she is not required to constantly monitor the traffic. 
+	\item \textbf{Level 4:} Full automation. This refers to a system that is able to "'perform all safety-critical driving functions and monitor roadway conditions for an entire trip."' \cite{2016transportation} At this level, there is no necessity for a driver to actually occupy the vehicle.Driving performance of Level 4 autonomous cars is at least equal to human level and would generally even surpass it. 
+	\item \textbf{Level 5:} Full autonomy. The highest level of automation describes a system that is capable of driving under any conditions, even extreme ones. Its performance is expected to be at least human-like or even surpass human driving capabilities. 
 \end{itemize}
-
-\subsection{Levels of Autonomy}
-\label{subsec:background:labels_of_autonomy}
 
 \subsection{State of the Art}
 \label{subsec:background:state_of_the_art}

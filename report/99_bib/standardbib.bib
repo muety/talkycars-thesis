@@ -2,19 +2,10 @@
 % Encoding: Cp1252
 
 @article{Chen2019,
-	abstract = {Autonomous vehicles may make wrong decisions due to inaccurate detection and recognition. Therefore, an intelligent vehicle can combine its own data with that of other vehicles to enhance perceptive ability, and thus improve detection accuracy and driving safety. However, multi-vehicle cooperative perception requires the integration of real world scenes and the traffic of raw sensor data exchange far exceeds the bandwidth of existing vehicular networks. To the best our knowledge, we are the first to conduct a study on raw-data level cooperative perception for enhancing the detection ability of self-driving systems. In this work, relying on LiDAR 3D point clouds, we fuse the sensor data collected from different positions and angles of connected vehicles. A point cloud based 3D object detection method is proposed to work on a diversity of aligned point clouds. Experimental results on KITTI and our collected dataset show that the proposed system outperforms perception by extending sensing area, improving detection accuracy and promoting augmented results. Most importantly, we demonstrate it is possible to transmit point clouds data for cooperative perception via existing vehicular network technologies.},
-	annote = {– Perform CP by sharing raw LiDAR point cloud data over V2V network
-	– Explain 3 different abstraction levels of fusion -{\textgreater} I am doing "high-level fusion"
-	– Mentions challenges with CP, including integrity, security, etc.
-	– Evaluate similar improvements: (1) extended range of sight, (2) increased confidence for detections
-	– Mentions drawbacks of high-/object-level fusion -{\textgreater} Include!
-	– Use algorithm to find region of interest (ROI) (e.g. traffic lights, etc.) for which to actually transmit data to save bandwidth
-	– Depending on how ROI is computed, their "messages" are between 80 and 500 kBytes},
 	archivePrefix = {arXiv},
 	arxivId = {1905.05265},
 	author = {Chen, Qi and Tang, Sihai and Yang, Qing and Fu, Song},
 	eprint = {1905.05265},
-	file = {:home/ferdinand/.local/share/data/Mendeley Ltd./Mendeley Desktop/Downloaded/Chen et al. - 2019 - Cooper Cooperative Perception for Connected Autonomous Vehicles based on 3D Point Clouds.pdf:pdf},
 	keywords = {background,motivation,related{\_}work},
 	mendeley-tags = {background,motivation,related{\_}work},
 	month = {may},
@@ -24,19 +15,10 @@
 }
 
 @article{Thandavarayan2019,
-	annote = {– August 2019
-	– Renders my message format useless, to some extent
-	– Introduces to standard made by ETSI including CAMs, CPMs and CPM generation rules
-	– Precisely describe CPM format
-	– States that the ETSI rules yield to inefficient network usage, because they are sent too frequently with too few new information being transmitted
-	– Based on ITS-G5 802.11p
-	– Introduce enhances heuristics and algorithms for detecting whether a CPM should be sent or not 
-	– Reduce the average required CPM publish rate from {\~{}} 8 Hz to 4.5 Hz (by 42 {\%}), which results in {\~{}} 35 {\%} less busy network},
 	archivePrefix = {arXiv},
 	arxivId = {1908.11151},
 	author = {Thandavarayan, Gokulnath and Sepulcre, Miguel and Gozalvez, Javier},
 	eprint = {1908.11151},
-	file = {:home/ferdinand/.local/share/data/Mendeley Ltd./Mendeley Desktop/Downloaded/Thandavarayan, Sepulcre, Gozalvez - 2019 - Generation of Cooperative Perception Messages for Connected and Automated Vehicles.pdf:pdf},
 	keywords = {message format,modeling,related{\_}work},
 	mendeley-tags = {message format,modeling,related{\_}work},
 	month = {aug},
@@ -46,22 +28,9 @@
 }
 
 @inproceedings{Calvo2017,
-	annote = {– Propose a model consisting of three levels: (1) multiple on-board sensors, (2) VANET-based V2V communication, (3) long-range (e.g. cellular-based) V2I communication 
-	– There's also an implicit fourth level, which is I2I communication among the infrastructure (RSUs) 
-	– They focus on all three levels, e.g. also measure their regression accuracy etc.
-	– For first level, they use raytracing and linear regression fusion
-	– On second level, vehicles' immediate surroundings are exchanged.
-	– In addition, on third level, they exchange more global, wider-range information based on LTE. Only used for higher-level tasks like traffic re-routing
-	– Main goal is to theoretically present an "obstacle avoidance framework", a delay-sensitive task
-	– Use 802.11p
-	– Does not specify a message format. It is not even made clear, whether only ego state vector is shared or the one of obstacles as well.
-	– Does not evaluate message delays
-	– Use 10 Hz for V2V and 1 Hz for V2I
-	– Bad paper, very fuzzy},
 	author = {Calvo, Jose Angel Leon and Mathar, Rudolf},
 	booktitle = {2017 15th International Conference on ITS Telecommunications (ITST)},
 	doi = {10.1109/ITST.2017.7972193},
-	file = {:home/ferdinand/.local/share/data/Mendeley Ltd./Mendeley Desktop/Downloaded/Calvo, Mathar - 2017 - A multi-level cooperative perception scheme for autonomous vehicles.pdf:pdf},
 	isbn = {978-1-5090-5275-2},
 	keywords = {cite,competition,related{\_}work},
 	mendeley-tags = {cite,competition,related{\_}work},
@@ -76,7 +45,6 @@
 @techreport{Frost&SulivanConsulting2018,
 	address = {Mountain View, CA},
 	author = {{Frost {\&} Sulivan Consulting}},
-	file = {:home/ferdinand/.local/share/data/Mendeley Ltd./Mendeley Desktop/Downloaded/Frost {\&} Sulivan Consulting - 2018 - Global Autonomous Driving Market Outlook, 2018(2).pdf:pdf},
 	institution = {Frost {\&} Sulivan Consulting},
 	keywords = {motivation},
 	mendeley-tags = {motivation},
@@ -86,10 +54,35 @@
 }
 
 @book{Klein,
-	abstract = {First edition. Scope and content: "An intelligent transportation system (ITS) offers considerable opportunities for increasing the safety, efficiency, and predictability of traffic flow and reducing vehicle emissions. Sensors (or detectors) enable the effective gathering of arterial and controlled-access highway information in support of automatic incident detection, active transportation and demand management, traffic-adaptive signal control, and ramp and freeway metering and dispatching of emergency response providers. As traffic flow sensors are integrated with big data sources such as connected and cooperative vehicles, and cell phones and other Bluetooth-enabled devices, more accurate and timely traffic flow information can be obtained. The book examines the roles of traffic management centers that serve cities, counties, and other regions, and the collocation issues that ensue when multiple agencies share the same space. It describes sensor applications and data requirements for several ITS strategies; sensor technologies; sensor installation, initialization, and field-testing procedures; and alternate sources of traffic flow data. The book addresses concerns related to the introduction of automated and connected vehicles, and the benefits that systems engineering and national ITS architectures in the US, Europe, Japan, and elsewhere bring to ITS.". Sensor and data fusion benefits to traffic management are described, while the Bayesian and Dempster-Shafer approaches to data fusion are discussed in more detail. ITS Sensors and Architectures for Traffic Management and Connected Vehicles suits the needs of personnel in transportation institutes and highway agencies, and students in undergraduate or graduate transportation engineering courses."--Provided by publisher. Introduction -- Freeway traffic management centers -- Sensor applications to ITS -- Sensor data requirements -- Modern traffic flow sensor technologies -- Inductive loop installation and loop system sensitivity - Overhead sensor installation and initialization -- Sensor field tests -- Sensor specirication and testing tools -- Alternative sources of navigation and traffic flow data -- Automated vehicles -- Connected vehicles -- Systems engineering process -- National ITS architectures -- Connected vehicle architectures and applications -- Sensor and data fusion in traffic management -- Bayesian inference and Dempster-Shafer evidential reasoning and their application to traffic management},
-	author = {Klein, Lawrence A.},
-	isbn = {1351800973},
-	title = {{ITS Sensors and Architectures for Traffic Management and Connected Vehicles}},
-	url = {https://books.google.de/books?id=yRIwDwAAQBAJ{\&}dq={\%}22disengaged+from+physically+operating+the+vehicle{\%}22{\&}hl=de{\&}source=gbs{\_}navlinks{\_}s}
+	author = {Klein, Lawrence},
+	year = {2018},
+	month = {01},
+	pages = {},
+	title = {ITS Sensors and Architectures for Traffic Management and Connected Vehicles, by Lawrence A. Klein, published by CRC Press (a division of Taylor & Francis) in 2018.},
+	isbn = {13:978-1-138-74737-1}
 }
 
+@inproceedings{Gunther2015,
+	author = {Gunther, Hendrik-jorn and Trauer, Oliver and Wolf, Lars},
+	booktitle = {2015 14th International Conference on ITS Telecommunications (ITST)},
+	doi = {10.1109/ITST.2015.7377190},
+	isbn = {978-1-4673-9382-9},
+	keywords = {justification,motivation},
+	mendeley-tags = {justification,motivation},
+	month = {dec},
+	pages = {1--5},
+	publisher = {IEEE},
+	title = {{The potential of collective perception in vehicular ad-hoc networks}},
+	url = {http://ieeexplore.ieee.org/document/7377190/},
+	year = {2015}
+}
+
+@book{2016transportation,
+	title={Transportation Planning Handbook},
+	author={Meyer, M.D.},
+	isbn={9781118762400},
+	lccn={2016007015},
+	url={https://books.google.de/books?id=MKipDAAAQBAJ},
+	year={2016},
+	publisher={Wiley}
+}
