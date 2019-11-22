@@ -1,13 +1,21 @@
-This chapter briefly introduces the interested reader to the subject area of this thesis and its main purposes and to demonstrate the demand for research on the covered topics. 
+This chapter briefly introduces the interested reader to the subject area of this thesis and its main purposes and demonstrates the demand for research on the covered topics. 
 
 \section{Motivation}
 \label{sec:motivation}
 Public and academic interest in Autonomous Driving (AD) has grown tremendously over the past decade. As a technology that holds great potential to reduce the number of casualties on the road and significantly increase security, efficiency and driver's comfort, it appears to be an inevitable step towards an upcoming revolution in transportation.
+\par
+\bigskip
 
 Although it is still hard to predict when fully self-driving cars will be publicly available \cite{Frost&SulivanConsulting2018}, technological progress is being achieved at an increasingly rapid pace. Primarily enabled through recent advances in Artificial Intelligence, computation hardware and optical sensor technology, AD systems are continuously becoming more robust and accurate.
+\par
+\bigskip
 
-However, perception quality of today's Advanced Driver Assistance Systems (ADASs) is limited by the range of local sensory and a vehicle's line-of-sight (LOS). To be able to safely navigate through complex urban environments, an intelligent vehicle might rely on additional observations obtained by surrounding traffic participants, which it constantly exchanges information with through Vehicle-to-Everything (V2X) communication. Research on this concept of combining sensor information across multiple agents to improve perceptional accuracy and reliability – known as Cooperative Perception (CP) – is gaining momentum recently \cite{Chen2019, Thandavarayan2019, Calvo2017}.
+However, perception quality of today's Advanced Driver Assistance Systems (ADASs) is limited by the range of local sensory and a vehicle's line-of-sight (LOS). To be able to safely navigate through complex urban environments, an intelligent vehicle might rely on additional observations obtained by surrounding traffic participants, which it constantly exchanges information with through Vehicle-to-Everything (V2X) communication. 
+\par
+\bigskip
 
-Most current approaches, presented in Chapter \ref{ch:related_work}, rely on decentralized, ad-hoc communication and lack a uniform, yet flexible format for representing relevant aspects of a traffic scene. This entails a number of limitations, which are discussed in Chapter \ref{ch:problem_description}. Moreover, to the best of out knowledge, no holistic CP system has been presented, yet. 
+Research on this concept of combining sensor information across multiple agents to improve perceptional accuracy and reliability – known as Cooperative Perception (CP) – is gaining momentum recently \cite{Chen2019, Thandavarayan2019, Calvo2017}. Most current approaches, presented in Chapter \ref{ch:related_work}, rely on decentralized, ad-hoc communication and lack a uniform, yet flexible format for representing relevant aspects of a traffic scene. This entails a number of limitations, which are discussed in Chapter \ref{ch:problem_description}. Moreover, to the best of out knowledge, no holistic CP system has been presented, yet. 
+\par
+\bigskip
 
 Primary goal of this thesis is to conceptualize, implement and evaluate a comprehensive, end-to-end Cooperative Perception system using novel techniques. Particular attention is paid to the design of a reliable and scalable software architecture and an appropriate schema to model and exchange a shared environment state. Aspects covered in this context include, among others, the suitability and performance of communication via cellular networks, approaches to high-level fusion of time-delayed sensor data and the modeling of uncertain environments. 
