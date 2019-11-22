@@ -17,6 +17,10 @@
 \usepackage{booktabs}                               % necessary for tabulars
 \usepackage[squaren]{SIunits}
 \usepackage[numbers,square]{natbib}
+
+% https://tex.stackexchange.com/a/140329
+\usepackage{atbegshi}% http://ctan.org/pkg/atbegshi
+\AtBeginDocument{\AtBeginShipoutNext{\AtBeginShipoutDiscard}}
  
 %\usepackage{wrapfig}
 %\usepackage[pdftex]{graphicx}
@@ -62,7 +66,7 @@
 % =====================================================
 % Dokumenten-Platzhalter
 % =====================================================
-\input{00_special_pages/platzhalter-titel}
+\input{00_special_pages/title_placeholders}
 
 % ====================================================
 % Formatierung des Dokuments
@@ -88,27 +92,17 @@ EVITA
 \def\TTra{\textsuperscript{\texttrademark}}
 
 % =====================================================
-% selbs definierte Zeichen
+% selbst definierte Zeichen
 % =====================================================
 \def\zB{z.\,B. }
 \def\uvm{u.\,v.\,m.}
 \begin{document}
 
-% =====================================================
-% Put Titel in English
-% ===================================================== 
-%\input{00_special_pages/titelseite_en}
-%    \parindent=0pt
-%    %\sloppypar
-%    \linespread{1.2}
-%    \thispagestyle{plain}
-%    %\frontmatter
-%    %\maketitle
 
 % =====================================================
-% Put Titel in Deutsch
+% Put title in English
 % ===================================================== 
-\input{00_special_pages/titelseite}
+\input{00_special_pages/titlepage}
     \parindent=0pt
     %\sloppypar
     \linespread{1.2}
@@ -117,17 +111,31 @@ EVITA
     %\maketitle
     \cleardoublepage
     
+\shipout\null
+
+    
 % =====================================================
 % Abstract
 % =====================================================     
-	\begin{abstract}
-		\input{00_special_pages/zusammenfassung}
-	\end{abstract}
-	\cleardoublepage
+\begin{abstract}
+	\input{00_special_pages/abstract_en}
+\end{abstract}
+\cleardoublepage
+
+% =====================================================
+% Zusammenfassung
+% =====================================================     
+\begin{otherlanguage}{ngerman}
+\begin{abstract}
+	\input{00_special_pages/abstract_de}
+\end{abstract}
+\cleardoublepage
+\end{otherlanguage}
+
 % =====================================================
 % Signaturepage
 % ===================================================== 
-    \input{00_special_pages/erklaerung}
+    \input{00_special_pages/signature}
 	\cleardoublepage
 % =====================================================
 % TOC
