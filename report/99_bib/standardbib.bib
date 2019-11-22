@@ -1,11 +1,86 @@
 % This file was created with JabRef 2.4.2.
 % Encoding: Cp1252
 
-@INPROCEEDINGS{bib-lable,
-  author = {Nameofauthor surnameofauthor and Nameofauthor2 surnameofauthor2},
-  title = {titleofpaper},
-  booktitle = {booktitle},
-  year = {2007},
-  pages = {1831-1834},
-  bibsource = {bibsource}
+@article{Chen2019,
+	abstract = {Autonomous vehicles may make wrong decisions due to inaccurate detection and recognition. Therefore, an intelligent vehicle can combine its own data with that of other vehicles to enhance perceptive ability, and thus improve detection accuracy and driving safety. However, multi-vehicle cooperative perception requires the integration of real world scenes and the traffic of raw sensor data exchange far exceeds the bandwidth of existing vehicular networks. To the best our knowledge, we are the first to conduct a study on raw-data level cooperative perception for enhancing the detection ability of self-driving systems. In this work, relying on LiDAR 3D point clouds, we fuse the sensor data collected from different positions and angles of connected vehicles. A point cloud based 3D object detection method is proposed to work on a diversity of aligned point clouds. Experimental results on KITTI and our collected dataset show that the proposed system outperforms perception by extending sensing area, improving detection accuracy and promoting augmented results. Most importantly, we demonstrate it is possible to transmit point clouds data for cooperative perception via existing vehicular network technologies.},
+	annote = {– Perform CP by sharing raw LiDAR point cloud data over V2V network
+	– Explain 3 different abstraction levels of fusion -{\textgreater} I am doing "high-level fusion"
+	– Mentions challenges with CP, including integrity, security, etc.
+	– Evaluate similar improvements: (1) extended range of sight, (2) increased confidence for detections
+	– Mentions drawbacks of high-/object-level fusion -{\textgreater} Include!
+	– Use algorithm to find region of interest (ROI) (e.g. traffic lights, etc.) for which to actually transmit data to save bandwidth
+	– Depending on how ROI is computed, their "messages" are between 80 and 500 kBytes},
+	archivePrefix = {arXiv},
+	arxivId = {1905.05265},
+	author = {Chen, Qi and Tang, Sihai and Yang, Qing and Fu, Song},
+	eprint = {1905.05265},
+	file = {:home/ferdinand/.local/share/data/Mendeley Ltd./Mendeley Desktop/Downloaded/Chen et al. - 2019 - Cooper Cooperative Perception for Connected Autonomous Vehicles based on 3D Point Clouds.pdf:pdf},
+	keywords = {background,motivation,related{\_}work},
+	mendeley-tags = {background,motivation,related{\_}work},
+	month = {may},
+	title = {{Cooper: Cooperative Perception for Connected Autonomous Vehicles based on 3D Point Clouds}},
+	url = {http://arxiv.org/abs/1905.05265},
+	year = {2019}
+}
+
+@article{Thandavarayan2019,
+	annote = {– August 2019
+	– Renders my message format useless, to some extent
+	– Introduces to standard made by ETSI including CAMs, CPMs and CPM generation rules
+	– Precisely describe CPM format
+	– States that the ETSI rules yield to inefficient network usage, because they are sent too frequently with too few new information being transmitted
+	– Based on ITS-G5 802.11p
+	– Introduce enhances heuristics and algorithms for detecting whether a CPM should be sent or not 
+	– Reduce the average required CPM publish rate from {\~{}} 8 Hz to 4.5 Hz (by 42 {\%}), which results in {\~{}} 35 {\%} less busy network},
+	archivePrefix = {arXiv},
+	arxivId = {1908.11151},
+	author = {Thandavarayan, Gokulnath and Sepulcre, Miguel and Gozalvez, Javier},
+	eprint = {1908.11151},
+	file = {:home/ferdinand/.local/share/data/Mendeley Ltd./Mendeley Desktop/Downloaded/Thandavarayan, Sepulcre, Gozalvez - 2019 - Generation of Cooperative Perception Messages for Connected and Automated Vehicles.pdf:pdf},
+	keywords = {message format,modeling,related{\_}work},
+	mendeley-tags = {message format,modeling,related{\_}work},
+	month = {aug},
+	title = {{Generation of Cooperative Perception Messages for Connected and Automated Vehicles}},
+	url = {https://arxiv.org/abs/1908.11151},
+	year = {2019}
+}
+
+@inproceedings{Calvo2017,
+	annote = {– Propose a model consisting of three levels: (1) multiple on-board sensors, (2) VANET-based V2V communication, (3) long-range (e.g. cellular-based) V2I communication 
+	– There's also an implicit fourth level, which is I2I communication among the infrastructure (RSUs) 
+	– They focus on all three levels, e.g. also measure their regression accuracy etc.
+	– For first level, they use raytracing and linear regression fusion
+	– On second level, vehicles' immediate surroundings are exchanged.
+	– In addition, on third level, they exchange more global, wider-range information based on LTE. Only used for higher-level tasks like traffic re-routing
+	– Main goal is to theoretically present an "obstacle avoidance framework", a delay-sensitive task
+	– Use 802.11p
+	– Does not specify a message format. It is not even made clear, whether only ego state vector is shared or the one of obstacles as well.
+	– Does not evaluate message delays
+	– Use 10 Hz for V2V and 1 Hz for V2I
+	– Bad paper, very fuzzy},
+	author = {Calvo, Jose Angel Leon and Mathar, Rudolf},
+	booktitle = {2017 15th International Conference on ITS Telecommunications (ITST)},
+	doi = {10.1109/ITST.2017.7972193},
+	file = {:home/ferdinand/.local/share/data/Mendeley Ltd./Mendeley Desktop/Downloaded/Calvo, Mathar - 2017 - A multi-level cooperative perception scheme for autonomous vehicles.pdf:pdf},
+	isbn = {978-1-5090-5275-2},
+	keywords = {cite,competition,related{\_}work},
+	mendeley-tags = {cite,competition,related{\_}work},
+	month = {may},
+	pages = {1--5},
+	publisher = {IEEE},
+	title = {{A multi-level cooperative perception scheme for autonomous vehicles}},
+	url = {http://ieeexplore.ieee.org/document/7972193/},
+	year = {2017}
+}
+
+@techreport{Frost&SulivanConsulting2018,
+	address = {Mountain View, CA},
+	author = {{Frost {\&} Sulivan Consulting}},
+	file = {:home/ferdinand/.local/share/data/Mendeley Ltd./Mendeley Desktop/Downloaded/Frost {\&} Sulivan Consulting - 2018 - Global Autonomous Driving Market Outlook, 2018(2).pdf:pdf},
+	institution = {Frost {\&} Sulivan Consulting},
+	keywords = {motivation},
+	mendeley-tags = {motivation},
+	title = {{Global Autonomous Driving Market Outlook, 2018}},
+	url = {https://info.microsoft.com/rs/157-GQE-382/images/K24A-2018 Frost {\%}26 Sullivan - Global Autonomous Driving Outlook.pdf},
+	year = {2018}
 }
