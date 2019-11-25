@@ -10,12 +10,12 @@ With reference to self-driving cars, a distinction is usually made between five 
 
 \begin{samepage}
 \begin{itemize}
-	\item \textbf{Level 0:} No computer assistance of any kind. A car is completely controlled by its human driver.
-	\item \textbf{Level 1:} Basic assistance, e.g. adaptive cruise control. While most functions are controlled by the driver, the car might take responsibility of a single task, e.g. accelerating and decelerating in certain scenarios.
-	\item \textbf{Level 2:} Partial automation, e.g. cruise control and lane centering. At this level, a car is able to take over multiple driving tasks in combination. While the driver is still required to monitor the roadway, she is "'disengaged from physically operating the vehicle"' \cite{Klein} and may keep her hands of the steering wheel and feet of the pedals. To ensure that a driver is still pays full attention and is able to intervene in case of system failures or critical situations, various methods of \textit{Driver Monitoring} are employed. Such include to visually observe a driver's face using cameras or to measure the force applied to the steering wheel.
-	\item \textbf{Level 3:} High degree of automation. At this level, a driver might fully rely on a car's self-driving under most conditions, delegating all safety-critical function to the ADAS. Usually, it would maintain a comprehensive awareness of its environment and is able to react on it. Although a driver still has to be present and prepared to take occasional control, she is not required to constantly monitor the traffic. 
-	\item \textbf{Level 4:} Full automation. This refers to a system that is able to "'perform all safety-critical driving functions and monitor roadway conditions for an entire trip."' \cite{2016transportation} At this level, there is no necessity for a driver to actually occupy the vehicle.Driving performance of Level 4 autonomous cars is at least equal to human level and would generally even surpass it. 
-	\item \textbf{Level 5:} Full autonomy. The highest level of automation describes a system that is capable of driving under any conditions, even extreme ones. Its performance is expected to be at least human-like or even surpass human driving capabilities. 
+	\item \textbf{Level 0 ("'Active driver"'):} No computer assistance of any kind. A car is completely controlled by its human driver.
+	\item \textbf{Level 1 ("'Feet off"'):} Basic assistance, e.g. adaptive cruise control. While most functions are controlled by the driver, the car might take responsibility of a single task, e.g. accelerating and decelerating in certain scenarios.
+	\item \textbf{Level 2 ("'Hands off"'):} Partial automation, e.g. cruise control and lane centering. At this level, a car is able to take over multiple driving tasks in combination. While the driver is still required to monitor the roadway, she is "'disengaged from physically operating the vehicle"' \cite{Klein} and may keep her hands of the steering wheel and feet of the pedals. To ensure that a driver is still pays full attention and is able to intervene in case of system failures or critical situations, various methods of \textit{Driver Monitoring} are employed. Such include to visually observe a driver's face using cameras or to measure the force applied to the steering wheel.
+	\item \textbf{Level 3 ("'Eyes off"'):} High degree of automation. At this level, a driver might fully rely on a car's self-driving under most conditions, delegating all safety-critical function to the ADAS. Usually, it would maintain a comprehensive awareness of its environment and is able to react on it. Although a driver still has to be present and prepared to take occasional control, she is not required to constantly monitor the traffic. 
+	\item \textbf{Level 4 ("'Attention off"'):} Full automation. This refers to a system that is able to "'perform all safety-critical driving functions and monitor roadway conditions for an entire trip."' \cite{2016transportation} At this level, there is no necessity for a driver to actually occupy the vehicle.Driving performance of Level 4 autonomous cars is at least equal to human level and would generally even surpass it. 
+	\item \textbf{Level 5 ("'Passive passenger"'):} Full autonomy. The highest level of automation describes a system that is capable of driving under any conditions, even extreme ones. Its performance is expected to be at least human-like or even surpass human driving capabilities. 
 \end{itemize}
 \end{samepage}
 
@@ -24,9 +24,41 @@ With this classification, it is worth noting that only the highest level actuall
 
 \subsection{State of the Art}
 \label{subsec:background:state_of_the_art}
+Many of the major car brands have Level 2 vehicles in production today and some already offer models with experimental Level 3 technology \cite{Frost&SulivanConsulting2018}. One of the most famous examples is Tesla's AutoPilot \footnote{https://www.tesla.com/autpilot}, which is able to follow a route on the highway towards a given destination autonomously, while keeping and changing lanes on its own. According to \cite{Frost&SulivanConsulting2018}, \textit{"'China is expected to lead North America and Europe by the number of automated vehicles sold, whereas technology penetration wise, Europe is expected to lead the market for autonomous driving globally [by 2025]"'}. By 2015, 2 million Level 4 vehicles could be sold in Europe, while the first Level 5 vehicles could reach production readiness by 2030 \cite{McKinseyCenterforFutureMobility2019}. 
+
+Market revenue for ADAS is expected to double by 2021 to reach \$35 million \cite{McKinseyCenterforFutureMobility2019}. Accordingly, many OEMs, including \textit{General Motors} and \textit{Volkswagen}, invest in acquiring AD start-up companies to extend their technological know-how to gain competitive advantages \cite{Korosec, Korosec2019}. In addition, big players from the tech industry push into the market with self-driving car fleets and shuttle services, including Uber \footnote{https://www.uber.com}, Lyft \footnote{https://self-driving.lyft.com/} and Waymo \footnote{https://www.waymo.com/}. 
+
+On the technological side, hardware manufacturers like Nvidia \footnote{https://developer.nvidia.com/drive} and Qualcomm \footnote{https://www.qualcomm.com/invention/5g/cellular-v2x} invest in research on AD- and V2X-specific chips and machine learning hardware. Moreover, online education platforms like Coursera \footnote{https://www.coursera.org/lecture/machine-learning/autonomous-driving-zYS8T} and Udacity \footnote{https://www.udacity.com/course/self-driving-car-engineer-nanodegree--nd013} offer specific courses on AD to target the increasing demand for experts on these subjects. 
 
 \subsection{Sensor Fusion}
 \label{subsec:background:sensor_fusion}
+Additional sensors compared to non-autonomous cars are mainly required for two purposes: perception and localization. The former refers to the vehicle acquiring a detailed model of its surrounding, including type, position and speed of other traffic participants, traffic light state and more. The latter means to accurately find the vehicle's own position on a map. Current Level 2 vehicles already have a multitude of different sensors and \cite{Frost&SulivanConsulting2018} predict that future Level 5 cars might even have between 28 and 32 different sensors. 
+
+\subsubsection{Sensors}
+For \textbf{localization}, mainly GPS (Global Positioning System) and IMU (Inertial Measurement Unit) sensors are used. The latter usually consists of a combination of accelerometers and gyroscopes and helps to locate the vehicle even when no GPS connection is available. Occasionally, laser sensors (LiDAR) and radar technology is used in addition more more accurate positioning. 
+
+For \textbf{perception}, most current approaches rely on (stereo) cameras, ultrasound sensors and radar. Some manufacturers consider LiDAR crucial in addition, while others, e.g. Tesla and Nissan \cite{McKinseyCenterforFutureMobility2019}, strictly oppose its use for perception or localization tasks. Comma.ai \footnote{https://comma.ai} even followed the approach of solely employing cameras for perception, arguing that, given the human example, decent driving performance can be achieved with only optical sensory. 
+
+\subsubsection{Fusion}
+\textbf{Sensor Fusion} \textit{"'is the combining of sensory data or data derived from sensory data such that the resulting information is in some sense better than would be possible when these sources were used individually"'} \cite{elmenreich2002sensor}. This also includes data normalization and temporal alignment.
+
+\cite{Chen2019} differentiates between three levels (depicted in figure  \ref{fig:fusion_levels}) on which sensor fusion can happen, whereas the data subject to a fusion process is increasingly abstract at higher levels. 
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.5\textwidth]{98_images/fusion_levels.png}
+	\caption{Levels of Sensor Fusion}
+	\label{fig:fusion_levels}
+\end{figure}
+
+\begin{itemize}
+	\item \textbf{Low Level Fusion:} Raw sensor data is subject to the fusion process. Input might be LiDAR point clouds, RGB camera images, etc. Commonly used algorithms are Kalman filters, Bayesian networks and more recently also Neural networks.
+	\item \textbf{Feature Level Fusion:} Before fusion, certain features are extracted from the raw data. For instance, if some component within the AD stack is responsible for lane keeping, lane markings could be extracted from raw RGB images for this purpose, e.g. using a Canny filter. Input might either be raw sensor data or the outputs from a subsequent low-level fusion step.
+	\item \textbf{High Level Fusion:} High-level operates on the level of objects, which are extracted from sensor data. In the context of Cooperative Perception these object might usually be other traffic participants with their respective properties. Input will usually be the outputs of some form of subsequent low- or feature-level fusion.
+\end{itemize}
+
+As explained in greater detail in later chapters, this work will mostly deal with high-/object-level fusion. 
+
 
 \subsection{Autonomous Driving Pipeline}
 \label{subsec:background:autonomous_driving_pipeline}
