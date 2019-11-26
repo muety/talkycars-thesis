@@ -74,9 +74,9 @@ The process from sensing the environment to controlling a self-driving car can b
 
 \begin{enumerate}
 	\item \textbf{Localization:} Often implemented as a combined \textit{Simultaneous Localization and Mapping} (SLAM) problem, goal is to determine the vehicle's current position on a map with high precision. Common algorithms and sensors used in this step were described in \ref{subsec:background:sensor_fusion}.
-	\item \textbf{Perception:} A crucial step towards AD is to perceive a vehicle's current environment. That includes to recognize, classify and locate other traffic participants and their static and dynamic properties as well as any other surrounding obstacles. In this thesis, the Perception step is of primary interest. Common algorithms and sensors used in this step were described in \ref{subsec:background:sensor_fusion}.
-	\item \textbf{Prediction:} Prediction builds on the outcome of the subsequent perception step and aims to estimate a future state $\hat{\theta}\textsubscript{t+1}$ of the vehicle's surrounding environment, given an observation $\theta\textsubscript{t}$ at present time. For instance, the future trajectory of a nearby car might be approximated.
-	\item \textbf{Planning:} Given the vehicle's own current position as well as estimations for the future state of all other nearby traffic participants, the planning step aims to find an appropriate trajectory that satisfies certain requirements and minimizes a given cost metrics. For instance, given a global target position, a collision-free trajectory might be found that is physically feasible, compliant with traffic rules, minimizes \textit{jerk} (the accumulated magnitude of the acceleration change \cite{paden2016survey}), a maximizes the average distance to all obstacles. Planning can be divided into the sub problems of (1) Routing, (2) Behavior Planning (e.g. choose an action $a \in \{ "'keep\_lane"', "'change\_lane"', "'stop"', "'accelerate"', ... \}$) and (3) Motion Planning. (3) again, usually is solved in two steps, namely (3.1) Path Planning and (3.2) Trajectory Planning. (3.1) is considered to be PSPACE-complete \cite{paden2016survey}. Commonly used algorithms include, but are not limited to A* and RRT*.
+	\item \textbf{Perception:} A crucial step towards AD is to perceive a vehicle's current environment, where perception is defined as the \textit{"'process of maintaining an internal description of the external environment"'} \cite{Crowley1993}. That includes to recognize, classify and locate other traffic participants and their static and dynamic properties as well as any other surrounding obstacles. In this thesis, the perception step is of primary interest. Common algorithms and sensors used in this step were described in \ref{subsec:background:sensor_fusion}.
+	\item \textbf{Prediction:} Prediction builds on the outcome of the subsequent perception step and aims to estimate a future state $\hat{\theta}\textsubscript{t+1}$ of the vehicle's surrounding environment, given an observation $\theta\textsubscript{t}$ at present time. For instance, the future trajectory of a nearby car might be approximated. The problem of \textbf{tracking} objects over multiple frames / multiple, repeated executions of the AD pipeline can also be considered part of the prediction step. 
+	\item \textbf{Planning:} Given the vehicle's own current position as well as estimations for the future state of all other nearby traffic participants, the planning step aims to find an appropriate trajectory that satisfies certain requirements and minimizes a given cost metrics. For instance, given a global target position, a collision-free trajectory might be found that is physically feasible, compliant with traffic rules, minimizes \textit{jerk} (the accumulated magnitude of the acceleration change \cite{paden2016survey}), a maximizes the average distance to all obstacles. Planning can be divided into the sub problems of \textbf{(1) Routing}, \textbf{(2) Behavior Planning} (e.g. choose an action $a \in \{ "'keep\_lane"', "'change\_lane"', "'stop"', "'accelerate"', ... \}$) and \textbf{(3) Motion Planning}. (3) again, usually is solved in two steps, namely (3.1) Path Planning and (3.2) Trajectory Planning. (3.1) is considered to be PSPACE-complete \cite{paden2016survey}. Commonly used algorithms include, but are not limited to A* and RRT*.
 	\item \textbf{Control:} Eventually, planning output needs to be translated into actual brake- throttle- and steering commands to physically control the vehicle through its actuators. 
 \end{enumerate}
 
@@ -104,6 +104,40 @@ This thesis mainly addresses V2V and V2I use cases.
 \label{subsec:background:communication}
 There are two types of V2X communication technology depending on the underlying technology being used, namely \textit{Dedicated Short-Range Communications} (DSRC) and Cellular-V2X (C-V2X)-based approaches. Each of them imply different communication patterns.
 
-Today, DSRC is more common. It usually relies on WiFi-based communication using the IEEE 802.11p standard and implies \textit{Vehicular Ad-Hoc Networks} (VANETs) as communication topology. In the case of VANETs, vehicles and infrastructure devices (or road-units (RSUs)) in range form pairwise connections among each other and build up a peet-to-peer (P2P) network. Besides direct message exchange, VANETs usually also support multi-hop communication to reach out to further distant actors beyond WiFi range and line-of-sight. The European version of DSRC, standardized by CEN \footnote{\url{https://www.cen.eu}}, is also referred to as ITS-G5 to avoid confusion. 
+Today, DSRC is more common. It usually relies on WiFi-based communication using the IEEE 802.11p standard and implies \textit{Vehicular Ad-Hoc Networks} (VANETs) as communication topology. In the case of VANETs, vehicles and infrastructure devices (or road-units (RSUs)) in range form pairwise connections among each other and build up a peer-to-peer (P2P) network. Besides direct message exchange, VANETs usually also support multi-hop communication to reach out to further distant actors beyond WiFi range and line-of-sight. The European version of DSRC, standardized by CEN \footnote{\url{https://www.cen.eu}}, is also referred to as ITS-G5 to avoid confusion. 
 
 In 2016, a first specification of C-V2X technology using Long-Term Evolution (LTE) networks was published by 3GPP \footnote{\url{https://www.3gpp.org}}. Especially with the upcoming establishment of 5G networks, C-V2X is becoming increasingly attractive as dramatically improved latency and throughput allow for high-performance applications. With C-V2X, both P2P-based- as well as centralized, wide-area communication are possible. 
+
+\section{Cooperative Perception}
+\label{sec:cooperative_perception}
+
+\subsection{Concept \& Motivation}
+\label{subsec:background:concept_motivation}
+Although perception accuracy and reliability have greatly improved over time, current systems still fail to completely comprehend complex situations occasionally. This may lead to incorrect decisions and potentially to collisions. Consequently, relying on local sensors only is insufficient under certain circumstances, especially in situations with very limited line-of-sight (LOS).
+
+Using V2X communication, next generation vehicles might be able to extend their perception range vastly. More precisely, they might be enabled to exchange information about their own state in combination with sensor data or a higher-level local environment model. Connected cars could become an additional, virtual sensor to each other. Accordingly, cooperative (or collective) perception can be viewed as a sensor fusion problem, whereas a "'cooperative"' sensor network is characterized as such that \textit{"'[...] uses the information provided by two independent sensors to derive information that would not be available from the single sensors."'} \cite{Elmenreich2002}. The different fusion levels introduced in chapter \ref{subsec:background:sensor_fusion} apply analogously with respect to the data being shared among CP-enabled vehicles (e.g. raw sensor measurements or high-level objects).
+
+However, as already found by \cite{Gunther2015}, a drawback of CP – as with any other system relying on the presence of a network – is the network effect: a CP system is only useful once the number of participants exceeds a certain critical mass. Accordingly, for CP to succeed, it is crucial to follow a rather aggressive market penetration strategy during its introduction. Preferably, different OEMs would collaborate to build one unified system.
+
+\subsection{Use Cases}
+\label{subsec:background:use_cases}
+Cooperative Perception is expected to bring two essential improvements. First, vehicles' field-of-view is extended virtually (\textbf{Non Line-of-Sight Sensing [NLOS]}). Second, \textbf{confidence} for observations within an area, that is overlapped by the perception range of two or more connected cars, can be improved through "'voting"'.
+
+\begin{figure}[h]
+	
+	\begin{subfigure}{0.5\textwidth}
+		\includegraphics[width=1.0\linewidth, height=5cm]{98_images/nloss_2.png} 
+		\caption{Opposing traffic out of sight}
+		\label{fig:cp_use_cases_1}
+	\end{subfigure}
+	\begin{subfigure}{0.5\textwidth}
+		\includegraphics[width=1.2\linewidth, height=5cm]{98_images/nloss_3.png}
+		\caption{Vehicle behind a curve}
+		\label{fig:cp_use_cases_2}
+	\end{subfigure}
+	
+	\caption{Exemplary non line-of-sight scenes. Source: \cite{QualcommTechnologiesInc.2017}}
+	\label{fig:cp_use_cases}
+\end{figure}
+
+Figure \ref{fig:cp_use_cases} depicts two traffic situations in which CP can greatly help to improve safety. In scene \ref{fig:cp_use_cases_1}, the leftmost vehicle is about to overtake, but cannot see the opposing traffic, because its sight is restricted by the vehicle in front. However, since both other cars are broadcasting their own state and their perceptions, it is virtually moved into range of sight. Similarly, in \ref{fig:cp_use_cases_2}, the blue could can only recognize the stopped car once it has already passed the curve and might have do brake sharply without CP.5
