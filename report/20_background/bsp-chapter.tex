@@ -28,19 +28,19 @@ Many of the major car brands have Level 2 vehicles in production today and some 
 
 Market revenue for ADAS is expected to double by 2021 to reach \$35 million \cite{McKinseyCenterforFutureMobility2019}. Accordingly, many OEMs, including \textit{General Motors} and \textit{Volkswagen}, invest in acquiring AD start-up companies to extend their technological know-how to gain competitive advantages \cite{Korosec, Korosec2019}. In addition, big players from the tech industry push into the market with self-driving car fleets and shuttle services, including Uber \footnote{\url{https://www.uber.com}}, Lyft \footnote{\url{https://self-driving.lyft.com/}} and Waymo \footnote{\url{https://www.waymo.com/}}. 
 
-On the technological side, hardware manufacturers like Nvidia \footnote{\url{https://developer.nvidia.com/drive}} and Qualcomm \footnote{\url{https://www.qualcomm.com/invention/5g/cellular-v2x}} invest in research on AD- and V2X-specific chips and machine learning hardware. Moreover, online education platforms like Coursera \footnote{\url{https://www.coursera.org/lecture/machine-learning/autonomous-driving-zYS8T}} and Udacity \footnote{\url{https://www.udacity.com/course/self-driving-car-engineer-nanodegree--nd013}} offer specific courses on AD to target the increasing demand for experts on these subjects. 
+On the technological side, hardware manufacturers like Nvidia \footnote{\url{https://developer.nvidia.com/drive}} and Qualcomm \footnote{\url{https://www.qualcomm.com/invention/5g/cellular-v2x}} invest in research on AD- and V2X-specific chips and machine learning hardware. Moreover, online education platforms like Coursera \footnote{\url{https://www.coursera.org/lecture/machine-learning/autonomous-driving-zYS8T}} and Udacity \footnote{\url{https://www.udacity.com/course/self-driving-car-engineer-nanodegree--nd013}} offer specific courses on AD to target the increasing demand for experts on these subjects. With Baidu Apollo \footnote{\url{https://github.com/ApolloAuto/apollo}} and Autoware.AI \footnote{\url{https://gitlab.com/autowarefoundation/autoware.ai}} there are even comprehensive, end-to-end AD platforms available as open-source software to be used in simulation or installed on a real car. 
 
 \subsection{Sensor Fusion}
 \label{subsec:background:sensor_fusion}
 Additional sensors compared to non-autonomous cars are mainly required for two purposes: perception and localization. The former refers to the vehicle acquiring a detailed model of its surrounding, including type, position and speed of other traffic participants, traffic light state and more. The latter means to accurately find the vehicle's own position on a map. Current Level 2 vehicles already have a multitude of different sensors and \cite{Frost&SulivanConsulting2018} predict that future Level 5 cars might even have between 28 and 32 different sensors. 
 
 \subsubsection{Sensors}
-For \textbf{localization}, mainly GPS (Global Positioning System) and IMU (Inertial Measurement Unit) sensors are used. The latter usually consists of a combination of accelerometers and gyroscopes and helps to locate the vehicle even when no GPS connection is available. Occasionally, laser sensors (LiDAR) and radar technology are used in addition for more accurate positioning. 
+For \textbf{localization}, mainly GPS (Global Positioning System) and IMU (Inertial Measurement Unit) sensors are used. The latter usually consists of a combination of accelerometers and gyroscopes and helps to locate the vehicle even when no GPS connection is available. Occasionally, laser sensors (LiDAR) and radar technology are used in addition for more accurate positioning. While some approaches tend to rely on detailed, high-definition maps for even more precise positioning, others oppose the necessity of a car to know its position at centimeter-level accuracy \cite{Friedman2019}. When using high-precision sensory, the sole localization problem is often extended to \textit{Simultaneous Localization and Mapping} (SLAM).
 
 For \textbf{perception}, most current approaches rely on (stereo) cameras, ultrasound sensors and radar. Some manufacturers consider LiDAR crucial in addition, while others, e.g. Tesla and Nissan \cite{McKinseyCenterforFutureMobility2019}, strictly oppose its use for perception or localization tasks. Comma.ai \footnote{\url{https://comma.ai}} even followed the approach of solely employing cameras for perception, arguing that, given the human example, decent driving performance can be achieved with only optical sensory. 
 
 \subsubsection{Fusion}
-\textbf{Sensor Fusion} \textit{"'is the combining of sensory data or data derived from sensory data such that the resulting information is in some sense better than would be possible when these sources were used individually"'} \cite{elmenreich2002sensor}. This also includes data normalization and temporal alignment.
+\textbf{Sensor Fusion} \textit{"'is the combining of sensory data or data derived from sensory data such that the resulting information is in some sense better than would be possible when these sources were used individually"'} \cite{Elmenreich2002}. This also includes data normalization and temporal alignment.
 
 \cite{Chen2019} differentiates between three levels (depicted in figure  \ref{fig:fusion_levels}) on which sensor fusion can happen, whereas the data subject to a fusion process is increasingly abstract at higher levels. 
 
@@ -62,3 +62,48 @@ As explained in greater detail in later chapters, this work will mostly deal wit
 
 \subsection{Autonomous Driving Pipeline}
 \label{subsec:background:autonomous_driving_pipeline}
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=\textwidth]{98_images/ad_pipeline.png}
+	\caption{Autonomous Driving Pipeline}
+	\label{fig:autonomous_driving_pipeline}
+\end{figure}
+
+The process from sensing the environment to controlling a self-driving car can be categorized into steps of a pipeline, that is repeatedly run. 
+
+\begin{enumerate}
+	\item \textbf{Localization:} Often implemented as a combined \textit{Simultaneous Localization and Mapping} (SLAM) problem, goal is to determine the vehicle's current position on a map with high precision. Common algorithms and sensors used in this step were described in \ref{subsec:background:sensor_fusion}.
+	\item \textbf{Perception:} A crucial step towards AD is to perceive a vehicle's current environment. That includes to recognize, classify and locate other traffic participants and their static and dynamic properties as well as any other surrounding obstacles. In this thesis, the Perception step is of primary interest. Common algorithms and sensors used in this step were described in \ref{subsec:background:sensor_fusion}.
+	\item \textbf{Prediction:} Prediction builds on the outcome of the subsequent perception step and aims to estimate a future state $\hat{\theta}\textsubscript{t+1}$ of the vehicle's surrounding environment, given an observation $\theta\textsubscript{t}$ at present time. For instance, the future trajectory of a nearby car might be approximated.
+	\item \textbf{Planning:} Given the vehicle's own current position as well as estimations for the future state of all other nearby traffic participants, the planning step aims to find an appropriate trajectory that satisfies certain requirements and minimizes a given cost metrics. For instance, given a global target position, a collision-free trajectory might be found that is physically feasible, compliant with traffic rules, minimizes \textit{jerk} (the accumulated magnitude of the acceleration change \cite{paden2016survey}), a maximizes the average distance to all obstacles. Planning can be divided into the sub problems of (1) Routing, (2) Behavior Planning (e.g. choose an action $a \in \{ "'keep\_lane"', "'change\_lane"', "'stop"', "'accelerate"', ... \}$) and (3) Motion Planning. (3) again, usually is solved in two steps, namely (3.1) Path Planning and (3.2) Trajectory Planning. (3.1) is considered to be PSPACE-complete \cite{paden2016survey}. Commonly used algorithms include, but are not limited to A* and RRT*.
+	\item \textbf{Control:} Eventually, planning output needs to be translated into actual brake- throttle- and steering commands to physically control the vehicle through its actuators. 
+\end{enumerate}
+
+\section{Vehicle-to-X Communication}
+\label{sec:background:v2x_communication}
+Vehicle-to-X, or Vehicle-to-Everything, communication generally describes the Internet Of Things (IoT) approach of having (autonomous) vehicles exchange information with other actors in their local environment through messaging.
+
+\subsection{Application Types}
+\label{subsec:background:application_types}
+A V2X communication system can have different constellations, depending on what participants are involved.
+
+\begin{itemize}
+	\item \textbf{Vehicle-to-Vehicle (V2V):} The ability of cars to communicate with each other. This is among the most common instantiations of Vehicle-to-Everything communication. 
+	\item  \textbf{Vehicle-to-Infrastructure (V2I):} The ability to cars to communicate with any type of traffic infrastructure. Most commonly, vehicles bilaterally exchange information with traffic lights to optimize traffic flow. Further examples include automated fare collection or emergency vehicles path cleaning.
+	\item \textbf{Vehicle-to-Pedestrian (V2P):} The ability of cars to indirectly communicate with nearby pedestrians, mainly used to prevent collision. Pedestrians need to be equipped with smartphones or wearable devices to take part in the communication.
+	\item \textbf{Vehicle-to-Grid (V2G):} The ability of cars to communicate with entities of the electrical power grid. With this approach, \textit{"'[...] plug-in electric vehicles, such as battery electric vehicles (BEV), plug-in hybrids (PHEV) or hydrogen fuel cell electric vehicles (FCEV), communicate with the power grid to sell demand response services by either returning electricity to the grid or by throttling their charging rate."'} \cite{wiki:v2g}
+	\item \textbf{Vehicle-to-Cloud (V2C):} The ability of cars to communicate with all kinds of cloud services, e.g. to get real-time traffic information, find parking spots, receive over-the-air software updates from its vendor or consume multi-media entertainment.
+\end{itemize}
+
+Especially V2I and V2G patterns will likely emerge as "'Smart Cities"' establish in the near future.
+
+This thesis mainly addresses V2V and V2I use cases.
+
+\subsection{Communication}
+\label{subsec:background:communication}
+There are two types of V2X communication technology depending on the underlying technology being used, namely \textit{Dedicated Short-Range Communications} (DSRC) and Cellular-V2X (C-V2X)-based approaches. Each of them imply different communication patterns.
+
+Today, DSRC is more common. It usually relies on WiFi-based communication using the IEEE 802.11p standard and implies \textit{Vehicular Ad-Hoc Networks} (VANETs) as communication topology. In the case of VANETs, vehicles and infrastructure devices (or road-units (RSUs)) in range form pairwise connections among each other and build up a peet-to-peer (P2P) network. Besides direct message exchange, VANETs usually also support multi-hop communication to reach out to further distant actors beyond WiFi range and line-of-sight. The European version of DSRC, standardized by CEN \footnote{\url{https://www.cen.eu}}, is also referred to as ITS-G5 to avoid confusion. 
+
+In 2016, a first specification of C-V2X technology using Long-Term Evolution (LTE) networks was published by 3GPP \footnote{\url{https://www.3gpp.org}}. Especially with the upcoming establishment of 5G networks, C-V2X is becoming increasingly attractive as dramatically improved latency and throughput allow for high-performance applications. With C-V2X, both P2P-based- as well as centralized, wide-area communication are possible. 
