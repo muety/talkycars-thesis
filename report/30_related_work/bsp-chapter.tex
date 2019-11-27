@@ -2,11 +2,11 @@ This chapter aims to provide the reader with an overview of current research and
 \par
 \bigskip
 
-In accordance with the multiple goals of this thesis introduced in chapter \ref{ch:introduction} and \ref{ch:problem_description}, related work can, in the broadest sense, be separated into two sections. On the one hand, relevant publications about \textbf{environment modeling, traffic scene representation and message exchange formats} for Cooperative Perception are examined in section \ref{sec:related_work:environment_modeling_state_representation}. Secondly, a overview of existing \textbf{(C-)V2X and Cooperative Perception systems} is presented and different approaches are discussed in view of this work in section \ref{sec:related_work:v2x_cooperative_perception}.
+In accordance with the multiple goals of this thesis introduced in \autoref{ch:introduction} and \autoref{ch:problem_description}, related work can, in the broadest sense, be separated into two sections. On the one hand, relevant publications about \textbf{environment modeling, traffic scene representation and message exchange formats} for Cooperative Perception are examined in \autoref{sec:related_work:environment_modeling_state_representation}. Secondly, a overview of existing \textbf{(C-)V2X and Cooperative Perception systems} is presented and different approaches are discussed in view of this work in \autoref{sec:related_work:v2x_cooperative_perception}.
 
 \section{Environment Modeling \& State Representation}
 \label{sec:related_work:environment_modeling_state_representation}
-An essential requirement for high-level CP is to have a uniform way to first model the current environment state and second represent that information. It is worth noting that this does not necessarily hold true for low- or feature level CP (see chapter \ref{subsec:background:sensor_fusion}), where either raw sensor readings or only basic information is shared.
+An essential requirement for high-level CP is to have a uniform way to first model the current environment state and second represent that information. It is worth noting that this does not necessarily hold true for low- or feature level CP (see \autoref{subsec:background:sensor_fusion}), where either raw sensor readings or only basic information is shared.
 
 An appropriate state representation should, at a minimum, include information about position and dynamics of the sender vehicle as well as of all other surrounding traffic participants. For the former, the European Telecommunications Standards Institute (ETSI) has defined a standard for so called \textbf{Cooperative Awareness Messages} (CAM) \cite{EuropeanTelecommunicationsStandardsInstituteETSI2011}, which is, among others, used by \cite{Rauch2011}. It includes, among others, the sender vehicle's type, its dimensions, position, heading, speed and acceleration as well as respective confidences.
 
@@ -22,5 +22,5 @@ Despite pure object lists, an additional way to share the perception of one's lo
 
 In summary, the previously mentioned takes on modeling and representation of road scenes constitute great building blocks for a CP system. This work aims to combine some of their conceptions to come up with a holistic way to (1) model a traffic scene by all relevant aspects, (2) represent it in an appropriate format and (3) define in what form to efficiently transfer it over the wire (or wirelessly). 
 
-\section{V2X and Cooperative Perception}
+\section{V2X \& Cooperative Perception}
 \label{sec:related_work:v2x_cooperative_perception}
