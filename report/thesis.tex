@@ -26,6 +26,8 @@
 
 \usepackage{subcaption}
 
+\usepackage[acronym]{glossaries}
+
 % https://tex.stackexchange.com/a/140329
 \usepackage{atbegshi}% http://ctan.org/pkg/atbegshi
 \AtBeginDocument{\AtBeginShipoutNext{\AtBeginShipoutDiscard}}
@@ -58,7 +60,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
 \usepackage{nomencl}
 \let\abbrev\nomenclature
-\renewcommand{\nomname}{Abkürzungsverzeichnis}
+\renewcommand{\nomname}{Abbreviations}
 \setlength{\nomlabelwidth}{.25\hsize}
 \renewcommand{\nomlabel}[1]{#1 }%\dotfill}
 \setlength{\nomitemsep}{-\parsep}
@@ -105,7 +107,7 @@ EVITA
 \def\zB{z.\,B. }
 \def\uvm{u.\,v.\,m.}
 \begin{document}
-
+	
 
 % =====================================================
 % Put title in English
@@ -213,6 +215,9 @@ EVITA
     % use external Bib-File, 
 		\bibliography{99_bib/standardbib}		
 		\cleardoublepage
+
+\input{00_special_pages/abbreviations}
+
 % =====================================================
 % Appendix
 % ===================================================== 
@@ -228,7 +233,7 @@ EVITA
     \printindex
     	\cleardoublepage
     \printnomenclature
-    \renewcommand{\leftmark}{\uppercase{Abkürzungsverzeichnis}}
+    \renewcommand{\leftmark}{\uppercase{Abbreviations}}
     	\cleardoublepage
 
 \end{document}
