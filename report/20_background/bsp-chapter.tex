@@ -26,7 +26,7 @@ With this classification, it is worth noting that only the highest level actuall
 \label{subsec:background:state_of_the_art}
 Many of the major car brands have Level 2 vehicles in production today and some already offer models with experimental Level 3 technology \cite{Frost&SulivanConsulting2018}. One of the most famous examples is Tesla's AutoPilot \footnote{\url{https://www.tesla.com/autpilot}}, which is able to follow a route on the highway towards a given destination autonomously, while keeping and changing lanes on its own. According to \cite{Frost&SulivanConsulting2018}, \textit{"'China is expected to lead North America and Europe by the number of automated vehicles sold, whereas technology penetration wise, Europe is expected to lead the market for autonomous driving globally [by 2025]"'}. By 2015, 2 million Level 4 vehicles could be sold in Europe, while the first Level 5 vehicles could reach production readiness by 2030 \cite{McKinseyCenterforFutureMobility2019}. 
 
-Market revenue for ADAS is expected to double by 2021 to reach \$35 million \cite{McKinseyCenterforFutureMobility2019}. Accordingly, many OEMs, including \textit{General Motors} and \textit{Volkswagen}, invest in acquiring AD start-up companies to extend their technological know-how to gain competitive advantages \cite{Korosec, Korosec2019}. In addition, big players from the tech industry push into the market with self-driving car fleets and shuttle services, including Uber \footnote{\url{https://www.uber.com}}, Lyft \footnote{\url{https://self-driving.lyft.com/}} and Waymo \footnote{\url{https://www.waymo.com/}}. 
+Market revenue for ADAS is expected to double by 2021 to reach \$35 million \cite{McKinseyCenterforFutureMobility2019}. Accordingly, many OEMs, including \textit{General Motors} and \textit{Volkswagen}, invest in acquiring AD start-up companies to extend their technological know-how to gain competitive advantages \cite{Korosec, Korosec2019}. In addition, big players from the tech industry and disruptive mobility suppliers push into the market with self-driving car fleets and shuttle services, including Uber \footnote{\url{https://www.uber.com}}, Lyft \footnote{\url{https://self-driving.lyft.com/}} and Waymo \footnote{\url{https://www.waymo.com/}}. 
 
 On the technological side, hardware manufacturers like Nvidia \footnote{\url{https://developer.nvidia.com/drive}} and Qualcomm \footnote{\url{https://www.qualcomm.com/invention/5g/cellular-v2x}} invest in research on AD- and V2X-specific chips and machine learning hardware. Moreover, online education platforms like Coursera \footnote{\url{https://www.coursera.org/lecture/machine-learning/autonomous-driving-zYS8T}} and Udacity \footnote{\url{https://www.udacity.com/course/self-driving-car-engineer-nanodegree--nd013}} offer specific courses on AD to target the increasing demand for experts on these subjects. With Baidu Apollo \footnote{\url{https://github.com/ApolloAuto/apollo}} and Autoware.AI \footnote{\url{https://gitlab.com/autowarefoundation/autoware.ai}} there are even comprehensive, end-to-end AD platforms available as open-source software to be used in simulation or installed on a real car. 
 
@@ -63,6 +63,12 @@ As explained in greater detail in later chapters, this work will mostly deal wit
 \subsection{Autonomous Driving Pipeline}
 \label{subsec:background:autonomous_driving_pipeline}
 
+As stated by \cite{Codevilla2018} and \cite{Friedman2019}, there are two opposing sides from which the problem of autonomously driving a car could be approached. The first one is a \textbf{modular} system, in which a multitude of different components and sensors perform various kinds of tasks to create a model of the environment and use it for planning and control. This is the most widely used approach and subject of the majority of today's research on AD. However, especially recent advances in the field of deep-learning gave rise to a second paradigm: \textbf{end-to-end} techniques. Such attempt to \textit{"'train function approximators to map sensory input to control commands"'} \cite{Codevilla2018}.
+
+Both strategies come with their own advantages and downsides, but since the modular approach is more transparent and well understood it is the only one to be subject of further discussion.
+
+Following a modular approach, the process from sensing the environment to controlling a self-driving car can be categorized into steps of a pipeline, that is repeatedly run. 
+
 \begin{figure}[H]
 	\centering
 	\includegraphics[width=\textwidth]{98_images/ad_pipeline.png}
@@ -70,13 +76,11 @@ As explained in greater detail in later chapters, this work will mostly deal wit
 	\label{fig:autonomous_driving_pipeline}
 \end{figure}
 
-The process from sensing the environment to controlling a self-driving car can be categorized into steps of a pipeline, that is repeatedly run. 
-
 \begin{enumerate}
 	\item \textbf{Localization:} Often implemented as a combined \textit{Simultaneous Localization and Mapping} (SLAM) problem, goal is to determine the vehicle's current position on a map with high precision. Common algorithms and sensors used in this step were described in \ref{subsec:background:sensor_fusion}.
 	\item \textbf{Perception:} A crucial step towards AD is to perceive a vehicle's current environment, where perception is defined as the \textit{"'process of maintaining an internal description of the external environment"'} \cite{Crowley1993}. That includes to recognize, classify and locate other traffic participants and their static and dynamic properties as well as any other surrounding obstacles. In this thesis, the perception step is of primary interest. Common algorithms and sensors used in this step were described in \ref{subsec:background:sensor_fusion}.
 	\item \textbf{Prediction:} Prediction builds on the outcome of the subsequent perception step and aims to estimate a future state $\hat{\theta}\textsubscript{t+1}$ of the vehicle's surrounding environment, given an observation $\theta\textsubscript{t}$ at present time. For instance, the future trajectory of a nearby car might be approximated. The problem of \textbf{tracking} objects over multiple frames / multiple, repeated executions of the AD pipeline can also be considered part of the prediction step. 
-	\item \textbf{Planning:} Given the vehicle's own current position as well as estimations for the future state of all other nearby traffic participants, the planning step aims to find an appropriate trajectory that satisfies certain requirements and minimizes a given cost metrics. For instance, given a global target position, a collision-free trajectory might be found that is physically feasible, compliant with traffic rules, minimizes \textit{jerk} (the accumulated magnitude of the acceleration change \cite{paden2016survey}), a maximizes the average distance to all obstacles. Planning can be divided into the sub problems of \textbf{(1) Routing}, \textbf{(2) Behavior Planning} (e.g. choose an action $a \in \{ "'keep\_lane"', "'change\_lane"', "'stop"', "'accelerate"', ... \}$) and \textbf{(3) Motion Planning}. (3) again, usually is solved in two steps, namely (3.1) Path Planning and (3.2) Trajectory Planning. (3.1) is considered to be PSPACE-complete \cite{paden2016survey}. Commonly used algorithms include, but are not limited to A* and RRT*.
+	\item \textbf{Planning:} Given the vehicle's own current position as well as estimations for the future state of all other nearby traffic participants, the planning step aims to find an appropriate trajectory that satisfies certain requirements and minimizes a given cost metrics. For instance, given a global target position, a collision-free trajectory might be found that is physically feasible, compliant with traffic rules, minimizes \textit{jerk} (the accumulated magnitude of the acceleration change \cite{paden2016survey}), a maximizes the average distance to all obstacles. Planning can be divided into the sub problems of \textbf{(1) Routing}, \textbf{(2) Behavior Planning} (e.g. choose an action $a \in \{ "'keep\_lane"', "'change\_lane"', "'stop"', "'accelerate"', ... \}$) and \textbf{(3) Motion Planning}. (3) again, usually is solved in two steps, namely \textbf{(3.1) Path Planning} and \textbf{(3.2) Trajectory Planning}. Problem (3.1) is considered PSPACE-complete \cite{paden2016survey}. Commonly used algorithms include, but are not limited to A* and RRT*.
 	\item \textbf{Control:} Eventually, planning output needs to be translated into actual brake- throttle- and steering commands to physically control the vehicle through its actuators. 
 \end{enumerate}
 
@@ -88,15 +92,29 @@ Vehicle-to-X, or Vehicle-to-Everything, communication generally describes the In
 \label{subsec:background:application_types}
 A V2X communication system can have different constellations, depending on what participants are involved.
 
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=1.0\textwidth]{98_images/v2x_types.png}
+	\caption{Types of Vehicle-to-Everything Applications \cite{5GAutomotiveAssociation2016}}
+	\label{fig:v2x_types}
+\end{figure}
+
 \begin{itemize}
 	\item \textbf{Vehicle-to-Vehicle (V2V):} The ability of cars to communicate with each other. This is among the most common instantiations of Vehicle-to-Everything communication. 
 	\item  \textbf{Vehicle-to-Infrastructure (V2I):} The ability to cars to communicate with any type of traffic infrastructure. Most commonly, vehicles bilaterally exchange information with traffic lights to optimize traffic flow. Further examples include automated fare collection or emergency vehicles path cleaning.
 	\item \textbf{Vehicle-to-Pedestrian (V2P):} The ability of cars to indirectly communicate with nearby pedestrians, mainly used to prevent collision. Pedestrians need to be equipped with smartphones or wearable devices to take part in the communication.
+	\item \textbf{Vehicle-to-Network (V2N):} The ability of cars to communicate with network services over a macro cell, as opposed to communication to smaller RSUs in the case of V2I \cite{Abou-zeid19}. 
 	\item \textbf{Vehicle-to-Grid (V2G):} The ability of cars to communicate with entities of the electrical power grid. With this approach, \textit{"'[...] plug-in electric vehicles, such as battery electric vehicles (BEV), plug-in hybrids (PHEV) or hydrogen fuel cell electric vehicles (FCEV), communicate with the power grid to sell demand response services by either returning electricity to the grid or by throttling their charging rate."'} \cite{wiki:v2g}
 	\item \textbf{Vehicle-to-Cloud (V2C):} The ability of cars to communicate with all kinds of cloud services, e.g. to get real-time traffic information, find parking spots, receive over-the-air software updates from its vendor or consume multi-media entertainment.
 \end{itemize}
 
 Especially V2I and V2G patterns will likely emerge as "'Smart Cities"' establish in the near future.
+\par
+\bigskip
+
+Given the above classification it is worth noting that, in a strict sense, V2V, V2I and V2P only describe direct communication between the participants (e.g. car and car or car and RSU). If there is an intermediary, like a cell tower, involved, proper terminology is to speak of, for instance, Vehicle-to-Network-to-Vehicle (\textbf{V2N2V}) \cite{5GAutomotiveAssociation2019}. However, for the sake of simplicity, terminology in this thesis will neglect the presence of an intermediary, i.e. V2N2V (and similar) will be named just V2V. 
+\par
+\bigskip
 
 This thesis mainly addresses V2V and V2I use cases.
 
@@ -136,11 +154,13 @@ Cooperative Perception is expected to bring two essential improvements. First, v
 		\label{fig:cp_use_cases_2}
 	\end{subfigure}
 	
-	\caption{Exemplary non line-of-sight scenes (source: \cite{QualcommTechnologiesInc.2017})}
+	\caption{Exemplary non line-of-sight scenes \cite{QualcommTechnologiesInc.2017}}
 	\label{fig:cp_use_cases}
 \end{figure}
 
-Figure \ref{fig:cp_use_cases} depicts two traffic situations in which CP can greatly help to improve safety. In scene \ref{fig:cp_use_cases_1}, the leftmost vehicle is about to overtake, but cannot see the opposing traffic, because its sight is restricted by the vehicle in front. However, since both other cars are broadcasting their own state and their perceptions, it is virtually moved into range of sight. Similarly, in \ref{fig:cp_use_cases_2}, the blue could can only recognize the stopped car once it has already passed the curve and might have do brake sharply without CP
+Figure \ref{fig:cp_use_cases} depicts two traffic situations in which CP can greatly help to improve safety. In scene \ref{fig:cp_use_cases_1}, the leftmost vehicle is about to overtake, but cannot see the opposing traffic, because its sight is restricted by the vehicle in front. However, since both other cars are broadcasting their own state and their perceptions, it is virtually moved into range of sight. Similarly, in \ref{fig:cp_use_cases_2}, the blue could can only recognize the stopped car once it has already passed the curve and might have do brake sharply without CP.
+
+Since Cooperative Perception can be seen as a subset of V2X in general, all known benefits with V2X systems can be incorporated into a CP system as well. Those include additional safety through \textbf{intent announcements} and \textbf{automated emergency brake lights} as well as traffic flow optimization through \textbf{situation-aware signal phase timing} \cite{5GAutomotiveAssociation2019b}.
 
 \section{Edge Computing}
 \label{sec:background:edge_computing}
@@ -148,7 +168,7 @@ Figure \ref{fig:cp_use_cases} depicts two traffic situations in which CP can gre
 \begin{figure}
 	\centering
 	\includegraphics[width=0.8\textwidth]{98_images/edge.png}
-	\caption{Architecture of Edge Computing (source: \cite{Bischoff2019})}
+	\caption{Architecture of Edge Computing \cite{Bischoff2019}}
 	\label{fig:edge_computing}
 \end{figure}
 
@@ -170,7 +190,7 @@ Geo tiling, or \textit{hierarchical binning}, is a strategy to represent, unique
 \begin{figure}[H]
 	\centering
 	\includegraphics[width=0.8\textwidth]{98_images/quadkeys.jpg}
-	\caption{Geo tiling with QuadKeys (source: \cite{wiki:quadtiles})}
+	\caption{Geo tiling with QuadKeys \cite{wiki:quadtiles}}
 	\label{fig:quadkeys}
 \end{figure}
 
@@ -184,4 +204,4 @@ As an alternative to representing a QuadKey as a string, where, in case of using
 \par
 \bigskip
 
-In the course if this thesis, QuadKeys are used to uniquely and uniformly reference geographical locations. 
+In the course of this thesis, QuadKeys are used to uniquely and uniformly reference geographical locations. 
