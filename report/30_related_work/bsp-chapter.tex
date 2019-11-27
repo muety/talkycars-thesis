@@ -1,0 +1,26 @@
+This chapter aims to provide the reader with an overview of current research and state-of-the-art in the field of Cellular V2X communication and Cooperative Perception.
+\par
+\bigskip
+
+In accordance with the multiple goals of this thesis introduced in chapter \ref{ch:introduction} and \ref{ch:problem_description}, related work can, in the broadest sense, be separated into two sections. On the one hand, relevant publications about \textbf{environment modeling, traffic scene representation and message exchange formats} for Cooperative Perception are examined in section \ref{sec:related_work:environment_modeling_state_representation}. Secondly, a overview of existing \textbf{(C-)V2X and Cooperative Perception systems} is presented and different approaches are discussed in view of this work in section \ref{sec:related_work:v2x_cooperative_perception}.
+
+\section{Environment Modeling \& State Representation}
+\label{sec:related_work:environment_modeling_state_representation}
+An essential requirement for high-level CP is to have a uniform way to first model the current environment state and second represent that information. It is worth noting that this does not necessarily hold true for low- or feature level CP (see chapter \ref{subsec:background:sensor_fusion}), where either raw sensor readings or only basic information is shared.
+
+An appropriate state representation should, at a minimum, include information about position and dynamics of the sender vehicle as well as of all other surrounding traffic participants. For the former, the European Telecommunications Standards Institute (ETSI) has defined a standard for so called \textbf{Cooperative Awareness Messages} (CAM) \cite{EuropeanTelecommunicationsStandardsInstituteETSI2011}, which is, among others, used by \cite{Rauch2011}. It includes, among others, the sender vehicle's type, its dimensions, position, heading, speed and acceleration as well as respective confidences.
+
+To share information about surrounding obstacles in addition, the simplest way is to send \textbf{object lists} that include such. For this purpose, \cite{Rauch2011} defined the \textbf{Cooperative Perception Message} (CPM) in 2011. Since 2017, the ETSI is working on similar specification with the same name \cite{EuropeanTelecommunicationsStandardsInstituteETSI2019}. It is worth noting that CAMs and CPMs define both \textit{model} as well as the \textit{representation format}. However, none of both specifications is publicly accessible, yet, though the latter is expected to include an object list of up to 255 traffic participants with attributes similar to those included in CAMs. Because the exact specification is unknown, it can not serve as a basis for this thesis.
+
+Despite pure object lists, an additional way to share the perception of one's local environment is to model it in the form of \textbf{occupancy grids} or \textit{driveable area} maps \cite{pieringermodellierung}. Because no known CP solution relies on exchanging occupancy grid, no reference can be provided on how to best represent them for CP.
+
+\cite{Stiller2012} follows a different approach and showed a way to represent the current local world state as the instantiation of a \textbf{Markov Logic Network}, in which weights represent uncertainty about the true state of an observation. This representation is inherently graphical and by incorporating first-order logic, the underlying model also allows for basic inference, in theory. A specification of what objects and relations to include to comprehensively model a traffic scene is not provided.
+
+\cite{Kohlhaas2014} first introduced the concept of \textbf{semantic scene representation} (or \textit{semantic state representation}), which is built up on by \cite{Wolf2018} to \textit{"'combine low level attributes with high level relational knowledge in a generic way"'}. They explain several advantages of including semantic, relational information about the traffic scene over exchanging plain object lists or occupancy grids. In \cite{Petrich2018}, semantic modeling is picked up again and combined with the idea to use \textbf{Probabilistic Entity Relationship} models for state representation under uncertainty. For none of these three approaches did the authors share a complete meta-model or ontology for traffic scenes.
+\par
+\bigskip
+
+In summary, the previously mentioned takes on modeling and representation of road scenes constitute great building blocks for a CP system. This work aims to combine some of their conceptions to come up with a holistic way to (1) model a traffic scene by all relevant aspects, (2) represent it in an appropriate format and (3) define in what form to efficiently transfer it over the wire (or wirelessly). 
+
+\section{V2X and Cooperative Perception}
+\label{sec:related_work:v2x_cooperative_perception}
