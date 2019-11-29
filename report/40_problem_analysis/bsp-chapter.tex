@@ -59,7 +59,7 @@ In addition, the total length of driveable lanes is:
 $$l_{road} = \frac{\SI{159.13}{\km}}{\SI{21.25}{\square\km}} * 2.4 = \SI{17.97}{\km\per\square\km}$$
 
 Accordingly, the maximum possible amount of concurrent cars within an area of 1 km² is:
-$$N_{max} = \frac{\SI{17.97}{\km}}{\SI{0.0162}{\km}} = \textbf{1109 [\si[detect-weight]{cars\per\km}]}$$
+$$N_{max} = \frac{\SI{17.97}{\km}}{\SI{0.0162}{\km}} = \textbf{1109 [\si[detect-weight]{cars\per\square\km}]}$$
 
 \subsubsection{Step 2: Normalization with estimated average load factor}
 While the previous value of 1109 concurrent connected cars per km² is a worst-case assumption, Berlin's latest traffic census \cite{VerkehrslenkungBerlinVLB2014} can be used as ground truth for estimating an average \textbf{load factor}. 
@@ -99,8 +99,8 @@ N_{pot\_5} = 142,220; \  \lambda_5 = 16.9 \% \\
 \end{gather*}
 and an average load factor of $\lambda_{avg} = 18.19 \%$.
 
-It can be concluded that, given the average load factor, an optimistic estimate for the average number of concurrent cars in Berlin Mitte might be given by $$N_{norm} = N_{max} * \lambda_{avg} = \SI[detect-weight]{1109}{cars\per\km} * 0.1819 = \textbf{\SI[detect-weight]{202}{cars\per\km}}$$.
+It can be concluded that, given the average load factor, an optimistic estimate for the average number of concurrent cars in Berlin Mitte might be given by $$N_{norm} = N_{max} * \lambda_{avg} = \SI[detect-weight]{1109}{cars\per\square\km} * 0.1819 = \textbf{\SI[detect-weight]{202}{cars\per\square\km}}$$.
 
 \subsection{Conclusion}
 \label{subsec:problem_analysis:conclusion}
-Assuming that all cars were connected and participating in cooperative perception, \textbf{$N_{norm} = \SI[detect-weight]{202}{cars\per\km}$} is the amount of vehicles the system should, at minimum, be able to handle. A more pessimistic value, while neglecting the participation of pedestrians and road infrastructure for simplicity, is given by \textbf{$N_{max} = \SI[detect-weight]{1109}{cars\per\km}$}.
+Assuming that all cars were connected and participating in cooperative perception, \textbf{$N_{norm} = \SI[detect-weight]{202}{cars\per\square\km}$} is the amount of vehicles the system should, at minimum, be able to handle. A more pessimistic value, while neglecting the participation of pedestrians and road infrastructure for simplicity, is given by \textbf{$N_{max} = \SI[detect-weight]{1109}{cars\per\square\km}$}.
