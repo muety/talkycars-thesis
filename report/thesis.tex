@@ -1,12 +1,15 @@
 %##################################################################################
  
 \documentclass[12pt,a4paper,twoside]{report}
-%\documentclass[12pt,a4paper,oneside]{report}
+
+\ProvidesFile{ifplatform.sty}
+\newif\ifwindows\windowsfalse
+\usepackage{minted}
+
+\usepackage{shellesc}
 \usepackage{graphicx}
 \usepackage[english]{babel} %-- uncomment this to get english titles
 \usepackage{german,a4}
-%\usepackage{picins}
-%\usepackage{epsfig}
 \usepackage{fancyhdr}			% for nice header and footer
 \usepackage{hyperref}			% references in pdf
 \usepackage[sf]{titlesec}	%customization of \chapter Titles for appendices
@@ -15,36 +18,33 @@
 \usepackage{ngerman}			% german Umlauts
 \usepackage[utf8]{inputenc}
 \usepackage{booktabs}                               % necessary for tabulars
-\usepackage[squaren]{SIunits}
 \usepackage[numbers,square]{natbib}
+\usepackage{float}
+\usepackage{subcaption}
+\usepackage[acronym]{glossaries}
+
+\usepackage{siunitx}
+\sisetup{
+	per-mode=fraction,
+	fraction-function=\tfrac
+}
 
 \usepackage{url}
 \def\UrlBreaks{\do-}
 \def\UrlNoBreaks{\do\:}
 
-\usepackage{float}
-
-\usepackage{subcaption}
-
-\usepackage[acronym]{glossaries}
-
 % https://tex.stackexchange.com/a/140329
 \usepackage{atbegshi}% http://ctan.org/pkg/atbegshi
 \AtBeginDocument{\AtBeginShipoutNext{\AtBeginShipoutDiscard}}
  
-%\usepackage{wrapfig}
-%\usepackage[pdftex]{graphicx}
-%\usepackage{ifthen}  
-%\usepackage{booktabs} % fancy tables
-%\usepackage[titletoc]{appendix} % custom naming of appendices
+\usepackage[titletoc]{appendix} % custom naming of appendices
 \usepackage{amssymb, amsmath, amsthm} % for equations & eqref
-%\usepackage{listings} \lstset{basicstyle=\tiny\ttfamily, numbers=left, escapeinside={(*}{*)}, captionpos=b}
-%\usepackage{dirtree}
+\usepackage{listings} \lstset{basicstyle=\tiny\ttfamily, numbers=left, escapeinside={(*}{*)}, captionpos=b}
 
 %get bigger \par with one empty line
 \newcommand{\mypar}{\par\medskip}
 
-%TODO line
+%To-Do line
 \newcommand{\writeTodo}{1}
 \newcommand{\todo}[1]{
 	\ifdefined \writeTodo
@@ -90,9 +90,7 @@
 \makeindex
 \newcommand{\Idx}[1]{#1 \index{#1}}
 
-\hyphenation{
-EVITA
-}
+\hyphenation{EVITA}
 
 % =====================================================
 % Zeichen für Copyright, Trademark, Registerd, ...
@@ -101,13 +99,8 @@ EVITA
 \def\TCop{\textsuperscript{\textcopyright}}
 \def\TTra{\textsuperscript{\texttrademark}}
 
-% =====================================================
-% selbst definierte Zeichen
-% =====================================================
-\def\zB{z.\,B. }
-\def\uvm{u.\,v.\,m.}
+
 \begin{document}
-	
 
 % =====================================================
 % Put title in English
@@ -123,7 +116,6 @@ EVITA
     
 \shipout\null
 
-    
 % =====================================================
 % Abstract
 % =====================================================     
@@ -147,94 +139,87 @@ EVITA
 % ===================================================== 
     \input{00_special_pages/signature}
 	\cleardoublepage
+	
 % =====================================================
 % TOC
 % ===================================================== 
-    \tableofcontents
-    %\clearpage
-    \cleardoublepage
+\tableofcontents
+%\clearpage
+\cleardoublepage
 
 % =====================================================
 % Main Chapters
 % ===================================================== 
-    %\mainmatter
-    \pagenumbering{arabic}
-    \setcounter{page}{1}
-    \pagestyle{fancy}
- \normalsize
+%\mainmatter
+\pagenumbering{arabic}
+\setcounter{page}{1}
+\pagestyle{fancy}
+\normalsize
 
-    
-    \chapter{Introduction}
-    \label{ch:introduction}    
-    	\input{10_introduction/bsp-chapter.tex}
-    \cleardoublepage
-    
-    \chapter{Background}
-    \label{ch:background}
-		\input{20_background/bsp-chapter.tex}
-    \cleardoublepage
 
-	\chapter{Related Work}
-	\label{ch:related_work}  	
-		\input{30_related_work/bsp-chapter.tex}
-    \cleardoublepage    
-    
-    \chapter{Problem Description}
-    \label{ch:problem_description}   
-   		\input{40_problem_description/bsp-chapter.tex}
-   		
-    \chapter{Design \& Implementation}
-	\label{ch:design_implementaion}  
-		\input{50_design_implementation/bsp-chapter.tex}
-    \cleardoublepage    
+\chapter{Introduction}
+\label{ch:introduction}    
+	\input{10_introduction/bsp-chapter.tex}
+\cleardoublepage
 
-	\chapter{Evaluation}
-	\label{ch:evaluation}  
+\chapter{Background}
+\label{ch:background}
+	\input{20_background/bsp-chapter.tex}
+\cleardoublepage
+
+\chapter{Related Work}
+\label{ch:related_work}  	
+	\input{30_related_work/bsp-chapter.tex}
+\cleardoublepage    
+
+\chapter{Problem Analysis}
+\label{ch:problem_analysis}   
+  		\input{40_problem_analysis/bsp-chapter.tex}
+  		
+\chapter{Design \& Implementation}
+\label{ch:design_implementaion}  
+	\input{50_design_implementation/bsp-chapter.tex}
+\cleardoublepage    
+
+\chapter{Evaluation}
+\label{ch:evaluation}  
 	\input{60_evaluation/bsp-chapter.tex}
-	\cleardoublepage  
-	
-	\chapter{Conclusion \& Future Work}
-	\label{ch:conclusion_future_work}  
+\cleardoublepage  
+
+\chapter{Conclusion \& Future Work}
+\label{ch:conclusion_future_work}  
 	\input{70_conclusion_future_work/bsp-chapter.tex}
-	\cleardoublepage  
+\cleardoublepage  
 
     
 % =====================================================
 % Bibliography
 % ===================================================== 
 \nocite{*}
-%\addcontentsline{toc}{chapter}{Literaturverzeichnis, in ToC löschen}
-%\addcontentsline{toc}{chapter}{Literature}
-%\bibliographystyle{dinat}        % use a DIN style for the bibliography
-%\bibliographystyle{plain}        % use a DIN style for the bibliography
-%\bibliographystyle{abbrv}			%mit nummern in []
-%\bibliographystyle{plain}			%mit nummern in []
-%\bibliographystyle{alpha}			%3 Buchstaben + Jahr
 \bibliographystyle{alphadin}
 
-    % use external Bib-File, 
-		\bibliography{99_bib/standardbib}		
-		\cleardoublepage
+\bibliography{99_bib/standardbib}		
+\cleardoublepage
 
 \input{00_special_pages/abbreviations}
 
 % =====================================================
 % Appendix
 % ===================================================== 
-    \appendix
+\begin{appendices}
+	\input{95_appendix/bsp-chapter}
+	\cleardoublepage
+\end{appendices}
 
-%    \input{95_anhang/anhang}
-		\cleardoublepage
-
-    \listoftables
-    	\cleardoublepage
-    \listoffigures
-    	\cleardoublepage
-    \printindex
-    	\cleardoublepage
-    \printnomenclature
-    \renewcommand{\leftmark}{\uppercase{Abbreviations}}
-    	\cleardoublepage
+\listoftables
+\cleardoublepage
+\listoffigures
+\cleardoublepage
+\printindex
+\cleardoublepage
+\printnomenclature
+\renewcommand{\leftmark}{\uppercase{Abbreviations}}
+\cleardoublepage
 
 \end{document}
 

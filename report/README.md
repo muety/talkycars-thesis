@@ -7,3 +7,4 @@
 * Add TeXstudio [config](/report/texstudio) files
 * Add user command to `Options -> Build -> User Commands`:
   * `user0:Make Nomenclature` `makeindex -s nomencl.ist -t %.nlg -o %.nls %.nlo`
+* Add `-shell-escape` flag to `Options -> Commands -> PdfLaTeX`
