@@ -104,3 +104,56 @@ It can be concluded that, given the average load factor, an optimistic estimate 
 \subsection{Conclusion}
 \label{subsec:problem_analysis:conclusion}
 Assuming that all cars were connected and participating in cooperative perception, \textbf{$N_{norm} = \SI[detect-weight]{202}{cars\per\square\km}$} is the amount of vehicles the system should, at minimum, be able to handle. A more pessimistic value, while neglecting the participation of pedestrians and road infrastructure for simplicity, is given by \textbf{$N_{max} = \SI[detect-weight]{1109}{cars\per\square\km}$}.
+
+\section{Goals \& Requirements}
+\label{sec:problem_analysis:goals_requirements}
+Overall goal of this thesis is to propose, implement and evaluate a cooperative perception system, that facilitates the improvement of connected, autonomous vehicles' average perception quality. However, it is crucial that CP is only to be used as extension for an already working, reliably and secure AD system. \textbf{The presence of cooperative perception must under no circumstances be required for the proper functioning of a self-driving car.}
+
+The presented architecture is supposed to overcome previous systems' limitation discussed in \autoref{sec:problem_analysis:current_limitations} and be able to handle, at minimum, the average expected load determined in \autoref{sec:problem_analysis:traffic_volume_estimation}.
+
+As this work mainly separates into two aspects, we define functional (\textbf{F}) and non-functional (\textbf{NF}) requirements for both parts.
+
+\subsection{Environment Modeling \& State Representation}
+\label{subsec:problem_analysis:environment_modeling_state_representation}
+
+Goal is to propose a modeling approach for traffic scenes, that fulfills the following requirements. 
+
+\begin{enumerate}[F1:\ \ ]
+	\item \textbf{Expressiveness.} The model should be expressive enough to capture all relevant information about a traffic scene, that is necessary to re-construct it with sufficient precision.
+	\item \textbf{Openness.} The model should be open to include information on different levels of abstraction and allow for extension.
+\end{enumerate}
+\begin{enumerate}[NF1:]
+	\item \textbf{Universality.} The model should be universal in such that it is independent of type (e.g. vehicle, pedestrian, RSUs, ...) and sensory of its observer and the involved fusion algorithms.
+	\item \textbf{Perspicuity.} The model should be globally valid and understandable, without requiring additional information about the observer.
+	\item \textbf{Efficiency.} The model should be efficient in terms of size.
+\end{enumerate}
+
+\subsection{Cooperative Perception System}
+\label{subsec:problem_analysis:cooperative_perception_system}
+
+Goal is to propose an end-to-end solution for a cooperative perception system architecture and implementation, that fulfills the following requirements. 
+
+\begin{enumerate}[F1:\ \ ]
+	\item \textbf{Holism.} The system enable for end-to-end cooperative perception, including message exchange and sensor fusion, for different network patterns, including V2V, V2I and V2P.
+	\end{enumerate}
+\begin{enumerate}[NF1:]
+	\item \textbf{Range.} The system should enable for communication over at least 600 m NLOS.
+	\item \textbf{Scalability.} The system should be able to handle at least 202 concurrent network participants per km² (see \autoref{sec:problem_analysis:traffic_volume_estimation}) at a tick rate of 10 Hz (considered sufficient by \cite{Rauch2011, Thandavarayan2019})
+	\item \textbf{Efficiency.} The system should aim for low latency and low on-vehicle computation load.
+	\item \textbf{Reliability.} The system should avoid to have a single-point-of-failure. 
+\end{enumerate}
+
+\section{Scope}
+\label{sec:problem_analysis:scope}
+As states in \autoref{sec:problem_analysis:goals_requirements}, it is within the scope of this thesis to design a comprehensive proposal, functioning implementation and realistic simulation of cooperative perception..
+
+However, the following is explicitly \textbf{out of scope}.
+\begin{itemize}
+	\item The implementation does not have the extent and quality of a production-ready, well-tested system.
+	\item While the proposed meta model allows for easy extension, for the sake of briefness, it is not complete in a sense that all potentially relevant classes, entities, attributes and relations are specified and implemented.
+	\item Any aspects related to security, authentication, data integrity and extensive validation are disregarded.
+	\item This thesis does conduct experiments or low-level investigations about 5G-, LTE- or DSRC network characteristics. Existing publications are used for reference instead.
+	\item While a working proof-of-concept system is proposed that fulfills the stated requirements (see \autoref{sec:problem_analysis:goals_requirements}), elaborate (performance-related) optimizations of particular aspects (e.g. fusion, message generation, compression, ...) are out of scope.
+	\item For the sake of simplicity, only two-dimensional environments are assumed, that is, vertically overlapping road scenes (e.g. with highway bridges) are not supported. However, the system could be extended to do so.
+	\item Since detailed, realistic, 3D simulations are used for evaluation, no additional real-world experiments are conducted.
+\end{itemize}
