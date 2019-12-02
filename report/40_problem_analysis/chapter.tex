@@ -1,7 +1,7 @@
 This chapter first outlines limitations of current approaches in the field of cooperative perception and motivates this work's contributions to overcome them. Second, goals and conceptual requirements are presented as a guideline for later system design. Finally, it is made clear which, aspects are in or out of scope of this thesis.
 
-\section{Current Limitations}
-\label{sec:problem_analysis:current_limitations}
+\section{Limitations of Prior Work}
+\label{sec:problem_analysis:limitations_of_prior_work}
 
 Existing work in the field of cooperative perception, as presented in \autoref{ch:related_work}, faces several limitations.
 \par
@@ -23,7 +23,7 @@ Despite limited performance of DSRC, VANET-topology-based CP systems face anothe
 
 Due to these inherent restrictions of DSRC, recent publications tend to favor upcoming 5G technology \cite{Briegleb2019, 5GAutomotiveAssociation2016}, e.g. \cite{Wevers2017} claims that \textit{"'development of V2X services in 5G makes much sense, and holds promises for the future"'}.
 
-A more detailed comparison between DSRC and 5G is presented in \autoref{ch:design_implementaion}.
+A more detailed comparison between DSRC and 5G is presented in \autoref{ch:concept_design}.
 
 \section{Traffic Volume Estimation}
 \label{sec:problem_analysis:traffic_volume_estimation}
@@ -67,7 +67,7 @@ While the previous value of 1109 concurrent connected cars per km² is a worst-c
 \begin{figure}[H]
 	\centering
 	\includegraphics[width=1.0\linewidth]{98_images/berlin_traffic_map_2}
-	\caption{Traffic Census Map for Berlin Mitte \cite{VerkehrslenkungBerlinVLB2014}}
+	\caption[Traffic Census Map for Berlin Mitte]{Traffic Census Map for Berlin Mitte \cite{VerkehrslenkungBerlinVLB2014}}
 	\label{fig:berlin_traffic_map}
 \end{figure}
 
@@ -109,7 +109,7 @@ Assuming that all cars were connected and participating in cooperative perceptio
 \label{sec:problem_analysis:goals_requirements}
 Overall goal of this thesis is to propose, implement and evaluate a cooperative perception system, that facilitates the improvement of connected, autonomous vehicles' average perception quality. However, it is crucial that CP is only to be used as extension for an already working, reliably and secure AD system. \textbf{The presence of cooperative perception must under no circumstances be required for the proper functioning of a self-driving car.}
 
-The presented architecture is supposed to overcome previous systems' limitation discussed in \autoref{sec:problem_analysis:current_limitations} and be able to handle, at minimum, the average expected load determined in \autoref{sec:problem_analysis:traffic_volume_estimation}.
+The presented architecture is supposed to overcome previous systems' limitation discussed in \autoref{sec:problem_analysis:limitations_of_prior_work} and be able to handle, at minimum, the average expected load determined in \autoref{sec:problem_analysis:traffic_volume_estimation}.
 
 As this work mainly separates into two aspects, we define functional (\textbf{F}) and non-functional (\textbf{NF}) requirements for both parts.
 
@@ -118,11 +118,11 @@ As this work mainly separates into two aspects, we define functional (\textbf{F}
 
 Goal is to propose a modeling approach for traffic scenes, that fulfills the following requirements. 
 
-\begin{enumerate}[F1:\ \ ]
+\begin{enumerate}[F-M1:\ \ ]
 	\item \textbf{Expressiveness.} The model should be expressive enough to capture all relevant information about a traffic scene, that is necessary to re-construct it with sufficient precision.
 	\item \textbf{Openness.} The model should be open to include information on different levels of abstraction and allow for extension.
 \end{enumerate}
-\begin{enumerate}[NF1:]
+\begin{enumerate}[NF-M1:]
 	\item \textbf{Universality.} The model should be universal in such that it is independent of type (e.g. vehicle, pedestrian, RSUs, ...) and sensory of its observer and the involved fusion algorithms.
 	\item \textbf{Perspicuity.} The model should be globally valid and understandable, without requiring additional information about the observer.
 	\item \textbf{Efficiency.} The model should be efficient in terms of size.
@@ -133,10 +133,10 @@ Goal is to propose a modeling approach for traffic scenes, that fulfills the fol
 
 Goal is to propose an end-to-end solution for a cooperative perception system architecture and implementation, that fulfills the following requirements. 
 
-\begin{enumerate}[F1:\ \ ]
+\begin{enumerate}[F-C1:\ \ ]
 	\item \textbf{Holism.} The system enable for end-to-end cooperative perception, including message exchange and sensor fusion, for different network patterns, including V2V, V2I and V2P.
 	\end{enumerate}
-\begin{enumerate}[NF1:]
+\begin{enumerate}[NF-C1:]
 	\item \textbf{Range.} The system should enable for communication over at least 600 m NLOS.
 	\item \textbf{Scalability.} The system should be able to handle at least 202 concurrent network participants per km² (see \autoref{sec:problem_analysis:traffic_volume_estimation}) at a tick rate of 10 Hz (considered sufficient by \cite{Rauch2011, Thandavarayan2019})
 	\item \textbf{Efficiency.} The system should aim for low latency and low on-vehicle computation load.
