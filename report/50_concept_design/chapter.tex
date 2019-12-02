@@ -54,7 +54,7 @@ Especially the inclusion of semantic, relational information – originally prop
 	
 	\begin{enumerate}[\ \ P1:]
 		\item Entities in the world model should be expressed as a \textbf{set of properties}.
-		\item Observation and Model should be expressed in a \textbf{common coordinate system}.
+		\item Observation and model should be expressed in a \textbf{common coordinate system}.
 		\item Observation and model should be expressed in a \textbf{common vocabulary}.
 		\item Properties should include an \textbf{explicit representation of uncertainty}.
 		\item Entities should be accompanied by a \textbf{confidence factor}.
@@ -83,7 +83,7 @@ When attempting to model one's neighboring traffic environment, a mental distinc
 
 The very base of our proposed model is made up of cells of an \textbf{occupancy grid} with fixed dimensions. Such can be constructed by any observer (vehicle, RSU, etc.) and derived from any kind of perceptual sensor data. This simplification facilitates universality \textbf{(NF-M1)}. However, these basic information can be enriched with more complex features easily to support expressiveness \textbf{(F-M1)}. This is achieved through the use of a graph-based meta model, as explained in \autoref{subsec:concept_design:probabilistic_entity_relationship_model_for_cooperative_perception}.
 
-To work towards the perspicuity \textbf{(NF-M2)} requirement and to follow the principle of using a common coordinate system (\textbf{P2}), every cell is identified by a \textbf{QuadKey}. As a consequence, a referring to a cell's position is independent from local, per-vehicle coordinates systems and from the GNSS / GPS coordinate frames alike. This prevents network participants from a multitude of expensive transformation operations.
+To work towards the perspicuity \textbf{(NF-M2)} requirement and to follow the principle of using a common coordinate system (\textbf{P2}), every cell is identified by a \textbf{QuadKey}. As a consequence, referring to a cell's position is independent from local, per-vehicle coordinates systems and from the GNSS / GPS coordinate frames alike. This prevents network participants from a multitude of expensive transformation operations.
 
 Following this concept, the entire world map is recursively split into QuadTiles (see \autoref{sec:background:geo_tiling}) of a certain precision level (e.g. level 24, corresponding to square tiles of \textasciitilde\SI{2.39}{\square\meter}). Each cell of the occupancy grid – one of which is observed locally by every connected participant – then corresponds to a certain QuadTile. Besides its occupancy state, every tile can be augmented with information like the corresponding occupant actor, its relation to the overall road topology, etc. 
 
