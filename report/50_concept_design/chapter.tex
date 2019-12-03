@@ -4,9 +4,10 @@ Throughout this chapter, requirements from \autoref{sec:problem_analysis:goals_r
 
 \section{Environment Modeling \& State Representation}
 \label{sec:concept_design:environment_modeling_state_representation}
-As stated in \autoref{sec:problem_analysis:goals_requirements}, a major goal of this thesis is to propose a common way to model and represent dynamic traffic scenes with the purpose of being used for cooperative perception. The following sections present challenges, requirements, design designs and eventually a holistic concept.
+As stated in \autoref{sec:problem_analysis:goals_requirements}, a major goal of this thesis is to propose a common way to model and represent dynamic traffic scenes with the purpose of being used for cooperative perception. The following sections present challenges, requirements, design decisions and eventually a holistic concept.
 
-In \autoref{subsec:concept_design:object_level_representation_fusion}, the decision for high-level fusion is motivated and an overview of information to be included in the proposed model is outlined. In \autoref{subsec:concept_design:principle_of_dynamic_world_modeling}, modeling principles to be respected during the design phase are presented. Then, a basic structure / framework is proposed in \autoref{subsec:concept_design:discrete_environment_model_with_occupancy_tiles}, before \autoref{subsec:concept_design:probabilistic_entity_relationship_model_for_traffic_scenes} unveils the complete meta model. 
+In \autoref{subsec:concept_design:object_level_representation_fusion}, the decision for using high-level fusion is motivated and an overview of information to be included in the proposed model is outlined. In \autoref{subsec:concept_design:principle_of_dynamic_world_modeling}, modeling principles to be respected during the design phase are presented. Then, a basic structure / framework is proposed in \autoref{subsec:concept_design:discrete_environment_model_with_occupancy_tiles}, before \autoref{subsec:concept_design:probabilistic_entity_relationship_model_for_traffic_scenes} unveils the complete meta model. 
+In \autoref{subsec:concept_design:object_level_representation_fusion}, the decision for using high-level fusion is motivated and an overview of information to be included in the proposed model is outlined. In \autoref{subsec:concept_design:principle_of_dynamic_world_modeling}, modeling principles to be respected during the design phase are presented. Then, a basic structure / framework is proposed in \autoref{subsec:concept_design:discrete_environment_model_with_occupancy_tiles}, before \autoref{subsec:concept_design:probabilistic_entity_relationship_model_for_traffic_scenes} unveils the complete meta model. 
 
 \subsection{Object-Level Representation \& Fusion}
 \label{subsec:concept_design:object_level_representation_fusion}
@@ -86,9 +87,9 @@ To work towards the \textbf{perspicuity (NF-M2)} requirement and to follow the p
 
 Following this concept, the entire world map is recursively split into QuadTiles (see \autoref{sec:background:geo_tiling}) of a certain precision level (e.g. level 24, corresponding to square tiles of \textasciitilde\SI{2.39}{\square\meter}). Each cell of the occupancy grid – one of which is observed locally by every connected participant – then corresponds to a certain QuadTile. Besides its occupancy state, every tile can be augmented with information like the corresponding occupant actor, its relation to the overall road topology, etc. 
 
-\autoref{fig:tiling1} illustrates the proposed \textit{occupancy tile} concept. The blue grid is within the observation range of the turquoise vehicle and inherently part of larger tiles. Each cell's (= each tile's) state is determined through local sensor fusion involving different types of sensors and can be extended by additional information. Eventually, that grid, entailing all relevant information, is shared with other CP participants.
+\autoref{fig:tiling1} illustrates the proposed \textit{occupancy tile} concept. The blue grid is within the observation range of the turquoise vehicle and inherently part of larger tiles. Each cell's (= each tile's) state is determined through local sensor fusion involving different types of in-vehicle sensors and can be extended by additional information. Eventually, that grid, entailing all relevant information, is shared with other CP participants.
 
-\begin{figure}
+\begin{figure}[h]
 	\centering
 	\includegraphics[width=1.0\linewidth]{98_images/geo_subscription_schema_1}
 	\caption{Illustration of an Occupancy Grid using QuadTiles}
@@ -98,3 +99,29 @@ Following this concept, the entire world map is recursively split into QuadTiles
 
 \subsection{Probabilistic Entity Relationship Model for Traffic Scenes}
 \label{subsec:concept_design:probabilistic_entity_relationship_model_for_traffic_scenes}
+
+In the simplest case, each observed cell of the previously introduced occupancy holds only information on whether it is occupied or not. However, this binary piece of data is usually insufficient to extensively describe a road scene. In addition, object-level static- (e.g. type, color and extent) and dynamic (e.g. velocity- and acceleration) information are desirable, e.g. about the occupying obstacle. This is in line with the requirements to support \textbf{expressiveness (F-M1)} \textbf{openness (F-M2)} and can be taken even one step further. To do so, \cite{Kohlhaas2014, Petrich2018} motivate the idea to also include high-level semantic information about the relationships between different entities in a scene to reduce complexity and help generalization. 
+
+Up to this point, it is coarsely specified \textit{what} to incorporate into the model: static and dynamic properties of each entity within the scene on different levels of abstraction – including semantics – using occupancy tiles as base- or root entities. The second step is to specify \textit{how} to represent these. Previous requirements imply a structure in which \textbf{entities} have \textbf{attributes} (or properties, see principle \textbf{P1}) and \textbf{relations} of various types among different entities can exist. Additionally, in order to appropriately meet the inherently uncertain nature of a partially observable environment using imperfect sensory and to comply with principles \textbf{P4} and \textbf{P5}, some notion of \textbf{confidence} needs to be incorporated into the model. A way is needed to probabilistically model an observer's belief in the truthfulness of a particular property value or the existence of a certain relation between entities. 
+
+These needs lead to the introduction of \textbf{Probabilistic Entity Relationship Models} (PER models). Such are already used by \cite{Petrich2018} for traffic scene representation and can be seen as an extension to regular Entity Relationship Models (ER models). Correspondingly, they incorporate the notion of entities, which have attributes and inherently define entity-entity relations. Entity-attribute combinations and entity-entity relations can be represented as $\langle subject, predicate, object \rangle$ triples:
+
+$$r \in \{ \langle e_1, r, e_2 \rangle | e_{\{1,2\}} \in E, r \in R \} \cup \{ \langle e, a, \mathcal{L} \rangle | e \in E, a \in A \}$$
+
+$E$ is the set of all entities, $A$ is the set of all attributes, $R$ is the set of all entity-entity relations and $\mathcal{L}$ is a literal, i.e. a number, boolean value or string.
+
+With PER models, every triple is extended with an additional confidence parameter and therefore becomes a \textbf{quadruple} of $\langle subject, predicate, object, \textit{conf} \rangle$: 
+
+$$r \in \{ \langle e_1, r, e_2, \gamma \rangle | e_{\{1,2\}} \in E, r \in R, \gamma \in [0, 1] \} \cup \{ \langle e, a, \mathcal{L}, \gamma \rangle | e \in E, a \in A, \gamma \in [0, 1] \}$$
+
+For example, an excerpt of a PER model instance, that was observed by some ego vehicle, might potentially look like this:
+
+\begin{gather*}
+	\langle \textit{obstacle\_25}, \textit{isOfType}, \textit{"'small\_car"'}, 0.921 \rangle \\
+	\langle \textit{obstacle\_25}, \textit{hasVelocity}, (0.65, 0.42, 0), 0.448 \rangle \\
+	\langle \textit{obstacle\_25}, \textit{isStoppedAt}, \textit{traffic\_light\_190}, 0.995 \rangle
+\end{gather*}
+
+In the example, $\textit{obstacle\_25}$ and $\textit{traffic\_light\_190}$ are entities, which were perceived, identified and tracked by an intelligent vehicle's sensory. $\textit{isOfType}$ and $\textit{hasVelocity}$ are attribute relations with literal attributes (string and three-dimensional numeric vector) and $\textit{isStoppedAt}$ describes an entity-entity relation.
+
+Using quadruples, a PER model is representable as a graph and thus can quite easily be searched, transformed and extended by inserting new relations. This allows for a variety of potential future work, e.g. concerning with efficient graph representation as tensors \cite{Petrich2018}. The graphical representation also allows for different types of inference. New facts about the local world could be inferred when used in combination with first-order logic. Also, situations might easily be compared for case-based reasoning. \cite{Nickel2016} presents a multitude of further techniques to perform relational machine-learning on knowledge graphs, which might prove advantageous in AD contexts as well. 
