@@ -106,13 +106,16 @@ Up to this point, it is coarsely specified \textit{what} to incorporate into the
 
 These needs lead to the introduction of \textbf{Probabilistic Entity Relationship Models} (PER models). Such are already used by \cite{Petrich2018} for traffic scene representation and can be seen as an extension to regular Entity Relationship Models (ER models). Correspondingly, they incorporate the notion of entities with attributes and inherently define entity-entity relations. Both entity-attribute combinations and entity-entity relations can be represented as $\langle subject, predicate, object \rangle$ triples:
 
-$$r \in \{ \langle e_1, r, e_2 \rangle | e_{\{1,2\}} \in E, r \in R \} \cup \{ \langle e, a, \mathcal{L} \rangle | e \in E, a \in A \}$$
+$$r \in \{ \langle \mathcal{E} \times \mathcal{A} \cup \mathcal{R} \times \mathcal{E} \cup \mathcal{L} \rangle \}$$
 
-$E$ is the set of all entities, $A$ is the set of all attributes, $R$ is the set of all entity-entity relations and $\mathcal{L}$ denotes a literal, i.e. a number, boolean value or string.
+$\mathcal{E}$ is the set of all entities, $\mathcal{A}$ is the set of all attributes, $\mathcal{R}$ is the set of all entity-entity relations and $\mathcal{L}$ denotes a literal, i.e. a number, boolean value or string.
 
 With PER models, every triple is extended with an additional confidence parameter and thus becomes a \textbf{quadruple} $r$ of $\langle subject, predicate, object, \textit{conf} \rangle$: 
 
-$$r \in \{ \langle e_1, r, e_2, \gamma \rangle | e_{\{1,2\}} \in E, r \in R, \gamma \in [0, 1] \} \cup \{ \langle e, a, \mathcal{L}, \gamma \rangle | e \in E, a \in A, \gamma \in [0, 1] \}$$
+\begin{gather*}
+	r \in \{ \langle \mathcal{E} \times \mathcal{A} \cup \mathcal{R} \times \mathcal{E} \cup \mathcal{L} \times \Gamma \rangle \} \\
+	\text{with} \  \Gamma := \{ \gamma \in [0, 1] \subset \mathbb{R}^+ \} \\
+\end{gather*}
 
 \cite{Petrich2018} distinguishes between \textit{attribute-} and \textit{structure uncertainty}, where the first describes sensor noise and the latter reflects uncertainty in the relational data. This is analogous to principles \textbf{P4} and \textbf{P5}, which suggest to model uncertainty for properties on the one hand and a confidence factor for entities on the other. However, this distinction is not considered useful in the context of this work and thus both probabilities are subsumed under a single notion of confidence.
 
