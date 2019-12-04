@@ -181,7 +181,95 @@ A minimal instantiation of this model has to include an \textit{OccupancyGrid} i
 \end{sidewaysfigure}
 
 \subsection{Summary}
-\label{subsec:concept_design:summary}
+\label{subsec:concept_design:modeling:summary}
 In the previous sections a comprehensive, yet not complete, model for dynamic traffic scenes and with a focus on cooperative perception use cases was presented (see \autoref{fig:final_model}). It fulfills the requirements stated in \autoref{sec:problem_analysis:goals_requirements} and follows the modeling principles introduced in \autoref{subsec:concept_design:principle_of_dynamic_world_modeling}.
 
 As a result, it is capable of uniformly and universally modeling road scenarios at a high degree of expressiveness, while embracing a notion of uncertainty or confidence and information on different abstraction levels. Key concepts used include \textbf{Geo tiling} – based on \textbf{QuadKeys} – for spatially referencing cells of an \textbf{occupancy grid} and \textbf{Probabilistic Entity Relationship models} as a structural framework.
+
+\section{Cellular Communication}
+\label{sec:concept_design:cellular_communication}
+Various downsides of DSRC-based ad-hoc networks for cooperative perception use cases were already discussed in \autoref{sec:problem_analysis:limitations_of_prior_work}. They include issues arising from limited throughput and comparatively short range of IEEE 802.11p and similar technologies. Furthermore, P2P topologies usually imply a large communication overhead and result in high computational load for each participant. To overcome these limitations, an alternative approach is proposed that builds on 5G networks and a client-server topology.
+
+This section briefly presents characteristics, key benefits and implications of 5G technology for V2X communication and motivates the decision for its use in the present CP system.
+
+\subsection{5G Characteristics \& Advantages}
+\label{subsec:concept_design:5g_characteristics_advantages}
+5G stands for the fifth generation cellular network standard and is the successor of 4G, or LTE. It may be operated on a variety of different spectrums, ranging from low-band (\textasciitilde 600 Mhz) over mid-band (2.4 to 4.2 \si{\giga\hertz}) to millimeter waves in the high-band spectrum ranging from 24 to 72 \si{\giga\hertz}. Which spectrum is used depends mainly on the character and has direct influence on communication range and speed.
+
+In networks based on the most widely used mid-band spectrum, average throughput is between 100 and 400 \si{\mega\bit\per\second}, while it can increase up to \SI{2}{\giga\bit\per\second} with millimeter waves \cite{wiki:5g}.
+
+Typical round-trip (RTT) were measured to range from 25-35 \si{\milli\second} and might be improved to 10-20 \si{\milli\second} when employing an \textit{Edge Node} (see \autoref{sec:background:edge_computing}) close to a cell tower \cite{wiki:5g}. Under lab conditions, even less than \SI{1}{\milli\second} latencies were observed.
+
+According to \cite{Singh2018}, 5G networks allow up to \SI{900000}{vehicles\per\square\km} and they may have a speed of up to \SI{500}{\km\per\hour}.
+
+Like 4G, 5G is based on network cells between which moving mobile clients are handed over. Generally, network cells are smaller with 5G than with 4G, especially in densely populated areas.
+
+\cite{5GAutomotiveAssociation2016} presents a detailed, technical discussion of 5G vs DSRC for V2X, while a higher-level comparison with respect to key implications for CP is presented in \autoref{tab:5g_dsrc_comparison}.
+\par
+\bigskip
+
+ETSI identified three different main usage scenarios for 5G \cite{ETSI5G}, all of which require different key capabilities, as shown in \autoref{fig:5g_capabilities}. The different usage scenarios are:
+
+\begin{itemize}
+	\item \textbf{Enhanced Mobile Broadband (eMBB)} to be used for high-definition, low-latency multimedia content and mobile games on end-user devices and smartphones.
+	\item \textbf{Massive Machine-type Communications (mMTC)} for the Internet of Things, which is characterized by low-power devices and low data rates.
+	\item \textbf{Ultra-reliable and Low Latency Communications (URLLC)} for safety- and mission-critical applications, like autonomous driving. 
+\end{itemize}
+
+Cooperative perception requires URLLC and thus especially low latency and high throughput.
+
+\begin{figure}[h]
+	\centering
+	\includegraphics[width=0.75\linewidth]{98_images/5g_spider_chart}
+	\caption[Key Capability Requirements for 5G]{Key Capability Requirements for 5G in different Scenarios \cite{ETSI5G}}
+	\label{fig:5g_capabilities}
+\end{figure}
+
+\subsection{Vehicle-to-Network-to-Everything Communication Topology}
+\label{subsec:concept_design:communication_topology}
+Most prior work on V2X employs ad-hoc networks (VANETs) between participants, many of which imply a peer-to-peer network topology, i.e. every participant connects to every other participant, following \textit{Metcalfe's Law}. Downsides of such approaches were briefly outlined in \autoref{sec:problem_analysis:limitations_of_prior_work} and mainly refer to scalability and communication overhead.
+
+In order to unburden participant vehicles (or pedestrian smartphones, RSUs, etc.), this work proposes the use of a \textbf{client-server architecture}. Every client connects to a central server instance, that is responsible for its current geographical area, which performs all computation tasks (mainly high-level sensor data fusion) and is responsible for collecting and broadcasting their messages. While the server node has to be very strong in terms of computational capacity, every client now only has to maintain one bi-directional connection and process (e.g. fuse) messages from one sender. \autoref{fig:communication_topology} illustrates both patterns in a scenario of $n = 4$ vehicles. The pattern of V2X now becomes, strictly speaking, V2N2X, as an intermediate network is involved. However, for the sake of simplicity, the term \textit{V2X} will still be used to describe this new pattern. 
+
+Although 5GAA specify multiple transmission modes for 5G \cite{5GAutomotiveAssociation2016} – including \textbf{direct communication} between network clients (V2V in the narrow sense ot the word) – this thesis focuses on V2N-based communication to best counter the previously mentioned drawbacks. 
+
+\begin{figure}[h]
+	\centering
+	\includegraphics[width=0.9\linewidth]{98_images/topology_comparison}
+	\caption{VANET vs. Client-Server Communication Topology}
+	\label{fig:communication_topology}
+\end{figure}
+
+
+\subsection{Summary}
+\label{subsec:concept_design:5g:summary}
+In contrast to most prior work, the CP system developed in the context of this thesis does not rely on DSRC-based VANETs, but on cellular 5G communication with centralized server instances instead. Motivation for this decision was given in previous sections and is additionally summarized in \autoref{tab:5g_dsrc_comparison}.
+
+\begin{table}[H]
+	\begin{tabular}{|p{7.6cm}|p{7.6cm}|}
+		\hline
+		\textbf{VANETs + DSRC}                & \textbf{Client-Server + 5G cellular}                                                 \\ \hline
+		\rowcolor[HTML]{9AFF99} 
+		+ Works anywhere                      & \cellcolor[HTML]{FFCCC9}– Requires network infrastructure and -coverage              \\ \hline
+		\rowcolor[HTML]{9AFF99} 
+		+ Free of charge                      & \cellcolor[HTML]{FFCCC9}– Implies variable costs (e.g. data plan)                    \\ \hline
+		\rowcolor[HTML]{9AFF99} 
+		+ Network is solely dedicated for V2X & \cellcolor[HTML]{FFCCC9}– Potentially shared network, e.g. with end-user smartphones \\ \hline
+		\rowcolor[HTML]{FFCCC9} 
+		– Superlinear communication effort    & \cellcolor[HTML]{9AFF99}+ Linear communication effort                                \\ \hline
+		\rowcolor[HTML]{FFCCC9} 
+		– Linear computation effort for CP    & \cellcolor[HTML]{9AFF99}+ Constant communication effort for CP                       \\ \hline
+		\rowcolor[HTML]{FFCCC9} 
+		– 2.7-11 Mbps throughput \cite{Chen2016, Wang2013}              & \cellcolor[HTML]{9AFF99}+ \textgreater \ 65 Mbps throughput \cite{Kavanagh2019, wiki:5g}                          \\ \hline
+		\rowcolor[HTML]{9AFF99} 
+		+ 3-22 ms latency \cite{Rauch2011}                     & \cellcolor[HTML]{FFCCC9}– 10-20 ms latency (with Edge Node) \cite{wiki:5g, QualcommTechnologiesInc.2018}                          \\ \hline
+		\rowcolor[HTML]{FFCCC9} 
+		– $\sim$ 300 m NLOS range \cite{5GAutomotiveAssociation2018}              & \cellcolor[HTML]{9AFF99}+ $\sim$ 800 m NLOS range \cite{5GAutomotiveAssociation2018}                                     \\ \hline
+		\rowcolor[HTML]{FFCCC9} 
+		– P2P topology                        & \cellcolor[HTML]{9AFF99}+ P2P ("'direct communication"') or V2N topologies             \\ \hline            
+	\end{tabular}
+	\caption{Comparison of DSRC-based VANETs and 5G-based Client-Server V2X Networks}
+	\label{tab:5g_dsrc_comparison}
+\end{table}
+
+In conclusion, 5G is a highly promising technology for cooperative perception and V2X communication in general. However, since it is a crucial requirement for the functioning of cellular V2X networks, their adoption will heavily depend on the market introduction of 5G. At the time of writing, 5G is still in its infancy. However, its expansion is being driven forward vigorously. For instance, German network operators are required to provide 5G coverage to 98 \% of all households by 2022 \cite{DeutscheWelle2019}. The authors of \cite{CCSInsight2018}, in turn, consider the market introduction of V2X applications an enabler for the establishment of 5G technology for mission-critical (URLCC, see \autoref{subsec:concept_design:5g_characteristics_advantages}) usage scenarios and estimate them to take off from 2025 on. However, they put the usage of 4G Advanced, or 4.5G, as a fallback mechanism in perspective.
