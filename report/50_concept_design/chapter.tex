@@ -199,15 +199,13 @@ This section briefly presents characteristics, key benefits and implications of 
 
 \subsection{5G Characteristics \& Advantages}
 \label{subsec:concept_design:5g_characteristics_advantages}
-5G stands for the fifth generation cellular network standard and is the successor of 4G, or LTE. It may be operated on a variety of different spectrums, ranging from low-band (\textasciitilde 600 Mhz) over mid-band (2.4 to 4.2 \si{\giga\hertz}) to millimeter waves in the high-band spectrum ranging from 24 to 72 \si{\giga\hertz}. Which spectrum is used depends mainly on the character and has direct influence on communication range and speed.
+5G stands for the fifth generation cellular network standard and is the successor of 4G, or LTE. It may be operated on a variety of different spectrums, ranging from low-band (\textasciitilde 600 Mhz) over mid-band (2.4 to 4.2 \si{\giga\hertz}) to millimeter waves in the high-band spectrum ranging from 24 to 72 \si{\giga\hertz}. Which spectrum is used depends mainly on the carrier and has direct influence on communication range and speed. While millimeter wave frequencies will mainly be used in North America, Europe will rely on the low- and mid-range bands.
 
 In networks based on the most widely used mid-band spectrum, average throughput is between 100 and 400 \si{\mega\bit\per\second}, while it can increase up to \SI{2}{\giga\bit\per\second} with millimeter waves \cite{wiki:5g}.
 
 Typical round-trip (RTT) were measured to range from 25-35 \si{\milli\second} and might be improved to 10-20 \si{\milli\second} when employing an \textit{Edge Node} (see \autoref{sec:background:edge_computing}) close to a cell tower \cite{wiki:5g}. Under lab conditions, even less than \SI{1}{\milli\second} latencies were observed.
 
-According to \cite{Singh2018}, 5G networks allow up to \SI{900000}{vehicles\per\square\km} and they may have a speed of up to \SI{500}{\km\per\hour}.
-
-Like 4G, 5G is based on network cells between which moving mobile clients are handed over. Generally, network cells are smaller with 5G than with 4G, especially in densely populated areas.
+Like 4G, 5G is based on network cells between which moving mobile clients are handed over. Generally, network cells are smaller with 5G than with 4G, especially in densely populated areas. Depending on which frequency band is used, cell towers may need to be placed every few hundred meters to achieve full coverage.
 
 \cite{5GAutomotiveAssociation2016} presents a detailed, technical discussion of 5G vs DSRC for V2X, while a higher-level comparison with respect to key implications for CP is presented in \autoref{tab:5g_dsrc_comparison}.
 \par
@@ -278,3 +276,43 @@ In contrast to most prior work, the CP system developed in the context of this t
 \end{table}
 
 In conclusion, 5G is a highly promising technology for cooperative perception and V2X communication in general. However, since it is a crucial requirement for the functioning of cellular V2X networks, their adoption will heavily depend on the market introduction of 5G. At the time of writing, 5G is still in its infancy. However, its expansion is being driven forward vigorously. For instance, German network operators are required to provide 5G coverage to 98 \% of all households by 2022 \cite{DeutscheWelle2019}. The authors of \cite{CCSInsight2018}, in turn, consider the market introduction of V2X applications an enabler for the establishment of 5G technology for mission-critical (URLCC, see \autoref{subsec:concept_design:5g_characteristics_advantages}) usage scenarios and estimate them to take off from 2025 on. However, they put the usage of 4G Advanced, or 4.5G, as a fallback mechanism in perspective.
+
+\section{System Architecture}
+\label{sec:concept_design:system_architecture}
+In \autoref{sec:concept_design:environment_modeling_state_representation} a comprehensive environment model and a uniform representation was developed before the use of 5G cellular networks was motivated in \autoref{sec:concept_design:cellular_communication}. In this section, the overall system architecture and all of its components are elaborated.
+
+\subsection{Central Fusion Nodes}
+\label{subsec:concept_design:central_fusion_nodes}
+As mentioned earlier, most existing cooperative perception solutions utilize VANETs between their participants. Downsides of this concept were presented in \autoref{sec:problem_analysis:limitations_of_prior_work}. Only Ko-HAF \cite{Hohm2019} constitutes an exception in that the proposed system is based on cellular network and involves a central server instance, the \textit{Safety Server}.
+
+Following their approach with the goal to overcome the limitations of P2P ad-hoc networks, this system's architecture will fundamentally be based on \textbf{central server components}, also called or fusion nodes or RSUs in the following. Instead of P2P connections, the proposed system's topology follows a \textbf{client-server} pattern, potentially involving multiple servers. These will act as a data broker, that is responsible for \textbf{(1) data collection}, \textbf{(2) fusion} and \textbf{(3) redistribution} (or broadcasting). Each of these steps is discussed in the following sections.
+
+The approach to have multiple servers is essentially different from Ko-HAF and results from the increased requirements for computation performance due to higher frequency and accuracy. While the goal of Ko-HAF is to maintain an always-up-to-date traffic map including static information and incidents, the amount of information exchanged per time is much higher with the present CP system, in which traffic situations are continuously being described and shared in high detail. In Ko-HAF, the amount of data transmitted per kilometer is 14-33 \si{\kilo\byte} \cite{Hohm2019}, while the data rate required for CP is potentially orders of magnitude higher (see \autoref{ch:evaluation}). Therefore, one central, global server instance is not sufficient to handle the system's high load.
+
+\subsection{Geographical Sharding}
+\label{subsec:conept_design:geographical_sharding}
+To meet the demand for high scalability, the concept of geographical sharding, or \textbf{geo distribution}, is introduced. It is mainly enabled through the use of geo tiling (see \autoref{sec:background:geo_tiling}) and QuadKeys. While QuadKeys are already used in the model to represent cells of an occupancy grid (see \autoref{sec:concept_design:environment_modeling_state_representation}), they also make up an essential part of the system architecture. Instead of having one global fusion node, e.g. per city, per district or per country, there is going to be \textbf{one fusion node per tile}. A tile, in the sense of QuadKeys, could be of arbitrary size. For instance, a common setup could be to use level 16 tiles for geo distribution. That is, one fusion node / RSU would be deployed per $\sim$ \SI{611}{\square\meter}. All network participants within that area – and potentially those of all adjacent tiles – connect to this server instance and send and receive their data from and to it. When entering one of the adjacent tiles, the connection would be updated to use that corresponding node. Accordingly, a fusion node only has to handle a limited number of vehicles (pedestrians, etc.). With this techniques, the density of nodes might be adapted to the expected average traffic density within that area. Usually, the number of fusion nodes per area will be higher in dense, urban areas than on the countryside. \autoref{fig:geo_distribution_schema} schematically depicts the concept of geo distribution.
+
+Overall, tiles of three different levels ($\lambda$) are used throughout the system.
+
+\begin{itemize}
+	\item \textbf{Type 1} (typically $\lambda_1 \in [22, 24] \subset \mathbb{Z}$): Tiles used for cells of observed occupancy grids.
+	\item \textbf{Type 2} (typically $\lambda_2 \in [17, 20] \subset \mathbb{Z}$): Tiles used for a participant's range of interest, i.e. while a vehicle sends only its own occupancy grid, it received data for a wider range to extend its perception.
+	\item \textbf{Type 3} (typically $\lambda_3 \in [14, 16] \subset \mathbb{Z}$): Tiles used for geographical sharding, i.e. one fusion node (or server, broker, RSU) per each of these tiles.
+\end{itemize}
+
+In addition, there is a fourth type of geographical area to be considered: the occupancy grid. An occupancy grid does not correspond to tiles of a specific level, because its center position is continuous and its size depends on the observers' sensor range. The occupancy grid's size is larger than type 1 tiles (i.e. larger than its contained cells), but usually smaller than type 2 cells, because otherwise CP would be useless. 
+\par
+\bigskip
+
+\textbf{Example:} A vehicles perceptual sensors have a total range of \SI{100}{\meter} and the occupancy cells (type 1 tiles) are configured to $\lambda_1 = 24$ ($\sim$ \SI{2.4}{\square\meter}). Accordingly, the grid size will be $\diameter_{grid} = \floor*{\frac{\SI{100}{\meter}}{\SI{2.4}{\meter}}} = 41$ cells. Of course, the vehicle is interested in observations beyond its \SI{100}{\meter} range, so it receives data from all its adjacent type 2 tiles, which are configured with $\lambda_2 = 19$ ($\sim$ \SI{76.4}{\square\meter}) in the example. Its range of sight has expanded to $\diameter_{virt} = 3 * \SI{76.4}{\meter} = \SI{229.2}{\meter}$. The size of type 3 tiles is set to $\lambda_3 = 16$ ($\sim$ \SI{611.5}{\square\meter}), i.e. the vehicle will connect to a new fusion node every 612 meters. Each of these nodes is responsible to manage data for $4^{19-16} = 4^3 = 64$ type 2 tiles (or $4^{24-16} = 4^8 = 65536$ type 1 tiles).
+
+\begin{figure}
+	\centering
+	\includegraphics[width=0.9\linewidth]{98_images/geo_subscription_schema}
+	\caption[Schematic Illustration of Geographical Sharding]{Schematic Illustration of Geographical Sharding \\ Blue cells (= type 1 tiles) are part of the vehicle's observed occupancy grid. \\ Orange cells (= type 2 tiles) are part of the vehicle's range of interest. \\ Green cells (=type 3 tiles) are subject to geo distribution.}
+	\label{fig:geo_distribution_schema}
+\end{figure}
+
+\subsection{Messaging \& Further Considerations}
+\label{subsec:concept_design:messaging_further_considerations}
