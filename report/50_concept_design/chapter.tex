@@ -348,12 +348,84 @@ After a high-level system architecture and respective communication patterns wer
 \begin{figure}
 	\centering
 	\includegraphics[width=1\linewidth]{98_images/components_plain}
-	\caption{UML Components Diagram}
+	\caption{UML Component Diagram – System Architecture}
 	\label{fig:components_plain}
 \end{figure}
 
-\begin{itemize}
+\begin{enumerate}[C1: ]
 	\item \textbf{Simulation Server.} An integral part of this work is to integrate, test and evaluate the proposed solution with a simulator. Although the choice of which particular simulator to use is deferred to \autoref{ch:implementation}, we early agreed on employing a photo-realistic 3D simulator with a programmable interface. All existing solutions follow a client-server model, i.e. the simulation is executed on a central software component which is controlled by one or more clients through an API. The environment, weather, physics, traffic, sensory and more are simulated on this central server and usually it is also responsible for 3D rendering the scenes. Naturally, this component is only required for research purposes and would be omitted in a real-world deployment of the system.
-	\item \textbf{Simulation Client.} This component lives within the \textbf{OBU subsystem}, i.e. is part of the collection of software that runs on-board of vehicles and other connected traffic participants. It belongs to the simulation infrastructure and is the counter-part of the previously mentioned simulation server, whose API it uses. This client acts as an intermediary between simulation environment and the actual CP system and is responsible for receiving and converting sensor- and meta data and sending control commands. It might be implemented as a separate software component or integrated into the on-board software suite as a module. Usually, this component would be implemented following the \textit{Bridge} and \textit{Facade} design patterns (cf. \cite{EricFreemanElisabethFreemanBertBates2013}).
-\end{itemize}
+	\item \textbf{Simulation Client.} This component lives within the \textbf{OBU subsystem}, i.e. is part of the collection of software that runs on-board of vehicles and other connected traffic participants. It belongs to the simulation infrastructure and is the counter-part of the previously mentioned simulation server, whose API it uses. This client acts as an intermediary between simulation environment and the actual CP system and is responsible for receiving and converting sensor- and meta data and sending control commands. It might be implemented as a separate software component or integrated into the on-board software suite as a module and is supposed to be implemented in a way that it abstracts from an actual underlying perception system from the Talky client's (see below) perspective. In other words, it simulates a real in-vehicle perception system and therefore is also responsible for low-level sensor fusion. Ideally, the interface, including inputs and outputs, is so generic that the fact of it being part of a simulation is transparent from the outside. Therefore, this component would be best realized following the \textit{Bridge} and \textit{Facade} design patterns (cf. \cite{EricFreemanElisabethFreemanBertBates2013}).
+	\item \textbf{Talky Client.} As a core part of the actual CP system on the vehicle side, this component fulfills a variety of tasks. First, it is responsible for reading locally fused sensor data from the simulation client and building an occupancy grid from it. After being augmented with additional meta information about the observer and context, the grid is eventually embedded into an instance of the previously mentioned PER model, then serialized and sent to the currently responsible message broker. Simultaneously, the Talky client listens for new incoming messages from that broker, i.e. new cooperative perception messages originating from surrounding network participants, that were aggregated and fused at the server. These messages are then deserialized into a PER model instance again to reconstruct the shared scene representation and then, once again, fused with the latest local observation. Details on how the fusion process exactly looks like are presented in \autoref{sec:concept_design:fusion}. In a real-world use case, the resulting fused scene representation would eventually be input to the planning module within the AD pipeline (cf. \autoref{subsec:background:autonomous_driving_pipeline}) to help control the car more reliably. In this work, it is instead fed into the evaluation system to get insights about CP performance and more.
+	\item \textbf{Message Broker.} The message broker is the first component to "'sit"' on the server-side of the system, i.e. "'on the other side"' of the intermediary 5G connection. That is, the \textbf{RSU subsystem} in the above schema. It should be physically close to both the cell tower and the edge node (see below) to achieve low latency. In pub/sub systems a message broker is commonly employed in the middle between multiple applications that communicate among each other via messaging. In essence, it is responsible for maintaining layer 4 network connections with all connected devices and receiving and properly forwarding messaging according to pre-defined policies. It abstracts low-level, messaging-related tasks, including authentication and authorization, from business applications. Several implementations already exist, however, which one to use usually depends on which pub/sub protocol is chosen. Examples include, but are not limited to different AMQP\footnote{http://www.amqp.org}- and MQTT\footnote{http://mqtt.org} brokers and are discussed in greater detail in \autoref{ch:implementation}.
+	\item \textbf{Talky Edge Node.} Also referred to as fusion node or RSU, this component implements the concept of an edge server in the sense of edge computing \autoref{sec:background:edge_computing} and is the second core part of the presented CP system besides the above mentioned Talky client. It is the central server instance that is deployed once per type 3 tile as a \textit{geo shard}. Its core responsibilities include to aggregate every connected participant's state representation (via the message broker), fuse all of them to a single, combined state representation, which is then published back to all connected Talky clients again. As all PER models produced within the corresponding type 3 tile at a rate of 5-20 \si{\hertz} are gathered here, this component has to be highly available, reliable, performant and equipped with a fast network connection.
+	\item \textbf{Talky Cloud Node.} This component is part of a further level of abstraction on top of the previously presented edge node. Although it is optional and was not implemented as part of this thesis, it might be desirable in a real-world scenario. Similar to what the authors of \cite{Calvo2017} presented as third level of their multi-level cooperative perception scheme, the cloud node might be used for high-level tasks like navigation, traffic reporting or further analyses based on aggregated data from a multitude of different type 3 tiles. It could also be used as a central data lake for persistence. As the name suggests, this component would usually be deployed as one or few instances on the cloud and is another integral part of a typical edge computing architecture. 
+\end{enumerate}
 
+\section{Fusion}
+\label{sec:concept_design:fusion}
+In addition to a model specification (\autoref{sec:concept_design:environment_modeling_state_representation}), a communication- (\autoref{sec:concept_design:cellular_communication}) and overall system architecture (\autoref{sec:concept_design:system_architecture}), a concept on how to perform high-level sensor data fusion is required. Although this part is not particularly focused on in this work and might be elaborated in much greater detail and with more advanced methods in future research, basic considerations are still being discussed and an elementary concept is proposed. For the sake of clarity it is worth emphasizing that this section only concerns about the high-level fusion performed on client (C3) and edge node (C5), as opposed to low-level sensor fusion within the on-board perception module or, in this case, the simulation client (C1).
+
+\subsection{Goals}
+\label{subsec:concept_design:fusion_goals}
+Essentially, the goals of fusion in a cooperative perception system are (1) to \textbf{supplement or impute missing data} and (2) to \textbf{increase the confidence} for existing data. The latter also includes to \textbf{resolve conflicts} and contradictory observations. (1) is essential for virtually perceiving a scene beyond the observer's own line of sight. (2) helps to increase accuracy and overcome sensor noise. \autoref{fig:fusion_goals_1} and \autoref{fig:fusion_goals_2} depict simplified examples, respectively, in which the occupancy state of cells are subject to fusion.
+\par
+\bigskip
+
+\begin{figure}[h]
+	\centering
+	\begin{subfigure}[b]{1\textwidth}
+		\includegraphics[width=0.9\linewidth]{98_images/fusion_goals_ex1}
+		\caption{Schematic Example for Supplementation through Fusion}
+		\label{fig:fusion_goals_1}
+	\end{subfigure}
+	
+	\begin{subfigure}[b]{1\textwidth}
+		\includegraphics[width=0.89\linewidth]{98_images/fusion_goals_ex2}
+		\caption{Schematic Example for Conflict Resolution through Fusion}
+		\label{fig:fusion_goals_2}
+	\end{subfigure}
+\end{figure}
+
+In \autoref{fig:fusion_goals_1}, vehicle X observes the occupancy grid on the left and vehicle Y the one on the right. Green cells are considered free, red cells are considered occupied and for gray cells no state could be determined, e.g. due to sensor noise or because they were out of sight. Vehicle X failed to estimate the state for cell H, while vehicle Y measured it to be occupied. Accordingly, the fused grid includes cell H with a state of being occupied.
+
+While confidences were omitted for the sake of simplicity in the first example, \autoref{fig:fusion_goals_2} includes them as well. In this scenario, emphasis is to be placed on cells C and E. While vehicle X is only 80 \% confident about the state of cell C, vehicle Y is perfectly sure about it being free. Accordingly, the resulting state has an average confidence of 90 \%. Moreover, a conflict exists for cell E. Vehicle X is 60 \% confident, that it is occupied, while vehicle Y is 80 \% confident of it being free. When neglecting all other factors (like time), the average confidence for each cells state might be used during the fusion to get a result of cell E being free with a confidence of 40 \%. Please note that these examples are drastically simplified.
+
+\subsection{Problem Statement}
+\label{subsec:concept_design:fusion_problem_statement}
+Complementing the previous section, which informally stated the goals of fusion in the context of CP and provided two illustrative examples, a bit more formal problem definition is presented in the following.
+
+As already mentioned in \autoref{subsec:background:sensor_fusion}, Elmenreich et al. define the problem of sensor fusion as \textit{"'the combining of sensory data or data derived from sensory data such that the resulting information is in some sense better than would be possible when these sources were used individually"'} \cite{Elmenreich2002}.
+
+% TODO !!!
+
+\subsection{Scope}
+\label{subsec:concept_design:scope}
+Before introducing the high-level fusion concept, the scope of fusion needs to be set. In principle, \textbf{all attributes and relations} in the model (see \autoref{subsec:concept_design:the_final_model}) can be subject to fusion. To fuse attributes means to "'merge"' or aggregate multiple values for the same attribute, as demonstrated for the \textit{state} attribute in \autoref{fig:fusion_goals_2}. To fuse relations means to reason about their existence between two given entities. Naturally, this requires some kind of tracking and matching to uniquely identify entities across multiple observers, which is non-trivial problem and subject to current research.
+
+Attributes and relations might be categorized as clusters, for each of which a separate fusion mechanism applies. For instance, when fusing cell occupancy states, a potential fusion technique might be to take a weighted average for the binary truthfulness of every possible state and determine the argmax subsequently. Similarly, when attempting to merge different values for an attribute that describes a spatial position, one might use the weighted average Euclidean distance during fusion. However, one might also come up with more advanced mechanisms. For the sake of simplicity, only the fusion of cell occupancy states is implemented in this work. However, the given framework can easily be extended to support more fusion subjects and mechanisms. The exact procedure of fusing cell states is presented in \autoref{subsec:concept_design:fusion_mechanism}.
+
+\subsection{Open- \& Closed World Assumption}
+\label{subsec:concept_design:fusion_open_closed_world_assumption}
+As explained in the previous section, all attributes and relations of the model might be fused in principle. However, different fusion mechanisms and functions need to be implemented for different types of attributes (e.g. numerical vs. categorical or temporal vs. spatial). Moreover, a major distinction has to be made for what to assume as an attribute's domain. Depending on the type or category of attribute, either the  \textbf{Open World Assumption (OWA)} or the \textbf{Closed World Assumption (CWA)} is appropriate. Which one is used has fundamental influence on the fusion result.
+
+% TODO !!! 
+
+As mentioned earlier, only the fusion of occupancy states is implemented in this thesis, which the CWA assumption is used for.
+
+\subsection{Mechanism: Time-Decayed Weighted Average}
+\label{subsec:concept_design:fusion_mechanism}
+
+% TODO !!!
+
+\subsection{Architecture: Doubly Updated Merging}
+\label{subsec:concept_design:fusion_architecture}
+
+\begin{figure}
+	\centering
+	\includegraphics[width=1\linewidth]{98_images/sequence}
+	\caption{UML Sequence Diagram – High-Level Fusion}
+	\label{fig:sequence}
+\end{figure}
+
+
+% TODO !!!
