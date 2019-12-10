@@ -108,16 +108,20 @@ Up to this point, it is coarsely specified \textit{what} to incorporate into the
 
 These needs lead to the introduction of \textbf{Probabilistic Entity Relationship Models} (PER models). Such are already used by \cite{Petrich2018} for traffic scene representation and can be seen as an extension to regular Entity Relationship Models (ER models). Correspondingly, they incorporate the notion of entities with attributes and inherently define entity-entity relations. Both entity-attribute combinations and entity-entity relations can be represented as $\langle subject, predicate, object \rangle$ triples:
 
-$$r \in \{ \langle \mathcal{E} \times \mathcal{A} \cup \mathcal{R} \times \mathcal{E} \cup \mathcal{L} \rangle \}$$
+\begin{gather}
+	r \in \{ \langle \mathcal{E} \times \mathcal{A} \cup \mathcal{R} \times \mathcal{E} \cup \mathcal{L} \rangle \}
+\end{gather}
+\label{eq:triples}
 
 $\mathcal{E}$ is the set of all entities, $\mathcal{A}$ is the set of all attributes, $\mathcal{R}$ is the set of all entity-entity relations and $\mathcal{L}$ denotes a literal, i.e. a number, boolean value or string.
 
 With PER models, every triple is extended with an additional confidence parameter and thus becomes a \textbf{quadruple} $r$ of $\langle subject, predicate, object, \textit{conf} \rangle$: 
 
-\begin{gather*}
+\begin{gather}
 	r \in \{ \langle \mathcal{E} \times \mathcal{A} \cup \mathcal{R} \times \mathcal{E} \cup \mathcal{L} \times \Gamma \rangle \} \\
 	\text{with} \  \Gamma := \{ \gamma \in [0, 1] \subset \mathbb{R}^+ \} \\
-\end{gather*}
+\end{gather}
+\label{eq:quadruples}
 
 \cite{Petrich2018} distinguishes between \textit{attribute-} and \textit{structure uncertainty}, where the first describes sensor noise and the latter reflects uncertainty in the relational data. This is analogous to principles \textbf{P4} and \textbf{P5}, which suggest to model uncertainty for properties on the one hand and a confidence factor for entities on the other. However, this distinction is not considered useful in the context of this work and thus both probabilities are subsumed under a single notion of confidence.
 
@@ -341,7 +345,7 @@ The system proposed in the context of Ko-HAF \cite{Hohm2019} utilizes both: req/
 Another important aspect to be agreed upon is the representation format of data on the wire, or, in this case, on a wireless connection. Although \autoref{subsec:concept_design:probabilistic_entity_relationship_model_for_cooperative_perception} defined the environment model to be represented in form of a PER graph, no details have been provided on how to present that graph as a data structure. Since bandwidth is limited and latency must be kept low, a highly efficient (\textbf{NF-M3}, cf. \autoref{subsec:problem_analysis:environment_modeling_state_representation}) serialization format should be used. While the choice for a concrete technology is done in \autoref{ch:implementation}, a \textbf{binary serialization format} might be favored over more verbose, text-based formats like XML or JSON. 
 
 
-\subsection{Components Overview}
+\subsection{Components Overview \& Summary}
 \label{subsec:concept_design:components_overview}
 After a high-level system architecture and respective communication patterns were elaborated, this section aims to provide an overview of all involved software components. \autoref{fig:components_plain} shows a schematic overview of all components and relations among them. Each of these parts either already exists or is implemented in the course of \autoref{ch:implementation}.
 
@@ -409,13 +413,13 @@ More formally, for every type 3 tile with $n$ participants (e.g. vehicles), let 
 The goal of fusion is, given every participants local model $M^{loc}_i$, to get an augmented model $M^{aug}_i$ that involves all other participants' relevant observations as well.
 
 \begin{gather*}
-	\text{Given\ } M^{loc}_0(t-1) \text{\ and\ } \{M^{loc}_i(t - \delta t^{min}_i)\ |\ i > 0, \delta t^{min}_i > 1\} \\
+	\text{Given\ } M^{loc}_0(t-1) \text{\ and\ } \{M^{loc}_i(t - \Delta t^{min}_i)\ |\ i > 0, \Delta t^{min}_i > 1\} \\
 	\text{we look for\ } M^{aug}_0(t) \\ 
 	\text{\ s.t.\ } \bigl|  M^{aug}_0(t) \bigl| > \bigl| M^{loc}_0(t-1) \bigl| \\
 	\text{\ and\ } \psi(M^{aug}_0(t), M^{*}_0(t)) > \psi(M^{loc}_0(t-1), M^{*}_0(t))
 \end{gather*}
 
-$\psi$ denotes the evaluation or scoring function that compares the latent true environment state $M^*$ to the observed one. $\delta t^{min}_i$ denotes the minimum fusion- and transmission latency for participant $i$, i.e. the temporally closest timestamp greater than $t$. 
+$\psi$ denotes the evaluation or scoring function that compares the latent true environment state $M^*$ to the observed one. $\Delta t^{min}_i$ denotes the minimum fusion- and transmission latency for participant $i$, i.e. the temporally closest timestamp greater than $t$. 
 
 A more detailed description of how this augmented model is gained through fusion is given in \autoref{subsec:concept_design:fusion_architecture}.
 
@@ -465,7 +469,7 @@ As mentioned earlier, only the fusion of occupancy states is implemented in this
 This section describes how multiple observations for a single discrete, categorical attribute are fused. For the sake of simplicity, continuous attributes are disregarded and the focus is placed particularly on the fusion of cells' occupancy states. This state attribute's domain is discrete and finite (ternary). For instance, the statement that a cells is \textit{free} is binary, i.e. either true or false and an additional notion of uncertainty is incorporated by passing along a confidence value. The confidence values represents either attribute- or structure uncertainty (cf. \autoref{subsec:concept_design:probabilistic_entity_relationship_model_for_cooperative_perception}).
 Despite this confidence, a fusion function also needs to respect the observation's temporal delay, i.e. its "'age"'. In a cooperative perception system, the presence of a transmission lag is inevitable and mainly arises from network latency. Accordingly, an observation is always outdated already when being fused. This degree of "'outdatedness"' is referred to as \textit{Reliability of Perception} by \cite{liu2013motion}, whose authors suggest to exponentially decrease it with increasing transmission lag. While the description of a scene that is a few millisecond old might still be quite accurate, but as it gets older, potentially several seconds, the scene has most likely changed too much to still rely on that state representation. 
 
-We define the fusion function $\phi$ as a mapping from a set of model instances $\mathcal{M}$ (cf. \autoref{subsec:concept_design:probabilistic_entity_relationship_model_for_cooperative_perception}) and a real-valued temporal delay $\delta t = t_{now} - t_{obs}$ to a new model instance.
+We define the fusion function $\phi$ as a mapping from a set of model instances $\mathcal{M}$ (cf. \autoref{subsec:concept_design:probabilistic_entity_relationship_model_for_cooperative_perception}) and a real-valued temporal delay $\Delta t = t_{now} - t_{obs}$ to a new model instance.
 
 \begin{gather}
 	\phi: \mathcal{M} \times \mathbb{R}^+ \mapsto \mathcal{M}
@@ -505,19 +509,37 @@ $$
 	\end{cases}
 $$
 
-and $m$ is the number of observations to be included into the current fusion that hold a quadruple containing $e$ at subject- and $a$ at predicate position.
+and $m$ is the number of observations to be included into the current fusion that hold a quadruple containing $e$ at subject- and $a$ at predicate position. Moreover, sticking to the previous notation, $r$ denotes a relation quadruple as part of a model instance $M$.
 
 Accordingly, the fused quadruple for this specific $\langle e, a \rangle$-combination would be $r_{i,fused} = \langle e, a, \textit{maxval}_{e,a}, \textit{maxconf}_{e,a} \rangle$.
 
 \subsection{Architecture: Doubly Updated Merging}
 \label{subsec:concept_design:fusion_architecture}
 
-\begin{figure}
+While the previous section gave an in-depth description of how a single entity-attribute combination might be fused, this section returns back to a higher-level perspective and examines the fusion process in its whole again.
+
+The concept of \textit{doubly updated merging} is introduced as a technique to address the fact that an observation is delayed twice on its way through the CP system. First, as a local observation $M^{loc}_i(t)$, it experiences a transmission lag $\Delta t_1$ while being transferred from the on-board Talky client via the message broker to the fusion- / or edge node. After it was fused at the server and became part of $M^{glob}(t+\Delta t_1+\epsilon_1)$ it is transmitted all the way back to the client, which causes another delay $\Delta t_2$. While the server considered $\Delta t_1$ as a decay factor during fusion, the client needs to incorporate $\Delta t_2$ as well. Therefore, the client performs another round of fusion, in which $M^{glob}(t+\Delta t_1+\epsilon_1)$ and its latest local $M^{loc}_i(t+\Delta t_1+\epsilon_1+\Delta t_2+\epsilon_2)$ are merged into the final $M^{aug}_i$. This process is depicted as a sequential schema in \autoref{fig:sequence}.
+
+\begin{figure}[H]
 	\centering
 	\includegraphics[width=1\linewidth]{98_images/sequence}
 	\caption{UML Sequence Diagram – High-Level Fusion}
 	\label{fig:sequence}
 \end{figure}
 
+Given the definition of relation quadruples $r$ in \autoref{eq:quadruples}, the three different state representations (or model instances) produced in the course of one iteration of \textit{doubly updated merging} can be formally stated as follows.
 
-% TODO !!!
+\begin{align}
+	\textbf{Local:\ } &\  M^{loc}_i(t_0) = \{ r_{i,0}(t_0)\ ...\ r_{i,j}(t_0)\} \\
+	\textbf{Globally Fused:\ } &\  M^{glob}(t_1) = \phi(\bigcup^n_{i = 0} \bigcup^{t_1}_{t = t_1 - \delta t^{max}} M^{loc}_i(t), t-t_i) \\
+	\textbf{Locally Double-Fused:\ } &\  M^{aug}_i(t_2) = \phi(\{ M^{loc}_i(t_2), M^{glob}(t_1) \}, t_2 - t_1)
+\end{align}
+\begin{gather*}
+	\text{with\ } \delta t^{max} > 0, t_2 > t_1 > t_0
+\end{gather*}
+
+\subsection{Summary}
+\label{subsec:concept_design:fusion_summary}
+Previous section presented a very basic concept of how to perform high-level sensor fusion in a cooperative perception system, which is later implemented an evaluated in \autoref{ch:implementation} and \autoref{ch:evaluation}. 
+
+However, since fusion is not the core aspect of this thesis, the previously presented techniques are only rudimentary and could be advanced dramatically. Current limitations include that the above fusion approach assumes that every time lag is precisely known, i.e. all involved devices' clocks are perfectly synchronized and additional delays (e.g. from sensor to controller) are disregarded. Elaborate methods to account for unknown time already exist in literature \cite{Julier}. Moreover, tracking and matching of entities across multiple frames and multiple observers is not considered at all. Finally, while the taken approach to decrease the influence of temporally "'old"' observations is the simple, better performance might be achieved through imputation of missing data or extrapolation of past measurements to current time \cite{Chen2019}. 
