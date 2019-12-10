@@ -395,8 +395,29 @@ While confidences were omitted for the sake of simplicity in the first example, 
 Complementing the previous section, which informally stated the goals of fusion in the context of CP and provided two illustrative examples, a bit more formal problem definition is presented in the following.
 
 As already mentioned in \autoref{subsec:background:sensor_fusion}, Elmenreich et al. define the problem of sensor fusion as \textit{"'the combining of sensory data or data derived from sensory data such that the resulting information is in some sense better than would be possible when these sources were used individually"'} \cite{Elmenreich2002}.
+\par
+\bigskip
 
-% TODO !!!
+More formally, for every type 3 tile with $n$ participants (e.g. vehicles), let $M^{loc}_i(t), i \in [0..n]$ denote the model instance that was obtained at vehicle $i$ at time $t$ and assume the participant with $i = 0$ is the ego vehicle, whose perspective is taken in the following. As explained in \autoref{subsec:concept_design:probabilistic_entity_relationship_model_for_cooperative_perception}, the model $M$ essentially consist of a set of quadruples $r$, which correspond to probabilistic relations of a graph. That is:
+
+\begin{gather*}
+	M^{loc}_i(t) := \{r_{i,0}(t) \ .. \ r_{i,m}(t)\} \\ 
+	\text{with\ } r_{i,j}(t) \in \{ \langle \mathcal{E} \times \mathcal{A} \cup \mathcal{R} \times \mathcal{E} \cup \mathcal{L} \times \Gamma \rangle \} \\
+	\text{and} \  \Gamma := \{ \gamma \in [0, 1] \subset \mathbb{R}^+ \} \\
+\end{gather*}
+
+The goal of fusion is, given every participants local model $M^{loc}_i$, to get an augmented model $M^{aug}_i$ that involves all other participants' relevant observations as well.
+
+\begin{gather*}
+	\text{Given\ } M^{loc}_0(t-1) \text{\ and\ } \{M^{loc}_i(t - \delta t^{min}_i)\ |\ i > 0, \delta t^{min}_i > 1\} \\
+	\text{we look for\ } M^{aug}_0(t) \\ 
+	\text{\ s.t.\ } \bigl|  M^{aug}_0(t) \bigl| > \bigl| M^{loc}_0(t-1) \bigl| \\
+	\text{\ and\ } \psi(M^{aug}_0(t), M^{*}_0(t)) > \psi(M^{loc}_0(t-1), M^{*}_0(t))
+\end{gather*}
+
+$\psi$ denotes the evaluation or scoring function that compares the latent true environment state $M^*$ to the observed one. $\delta t^{min}_i$ denotes the minimum fusion- and transmission latency for participant $i$, i.e. the temporally closest timestamp greater than $t$. 
+
+A more detailed description of how this augmented model is gained through fusion is given in \autoref{subsec:concept_design:fusion_architecture}.
 
 \subsection{Scope}
 \label{subsec:concept_design:scope}
@@ -406,16 +427,87 @@ Attributes and relations might be categorized as clusters, for each of which a s
 
 \subsection{Open- \& Closed World Assumption}
 \label{subsec:concept_design:fusion_open_closed_world_assumption}
-As explained in the previous section, all attributes and relations of the model might be fused in principle. However, different fusion mechanisms and functions need to be implemented for different types of attributes (e.g. numerical vs. categorical or temporal vs. spatial). Moreover, a major distinction has to be made for what to assume as an attribute's domain. Depending on the type or category of attribute, either the  \textbf{Open World Assumption (OWA)} or the \textbf{Closed World Assumption (CWA)} is appropriate. Which one is used has fundamental influence on the fusion result.
+As explained in the previous section, all attributes and relations of the model can be fused in principle. However, different fusion mechanisms and functions need to be implemented for different types of attributes (e.g. numerical vs. categorical or temporal vs. spatial). Moreover, a major distinction has to be made for what to assume as an attribute's domain. Depending on the type or category of attribute, either the  \textbf{Open World Assumption (OWA)} or the \textbf{Closed World Assumption (CWA)} is appropriate. Which one is used has fundamental influence on the fusion result.
 
-% TODO !!! 
+Taking a CWA means that – generally speaking – a logical statement, that is not known to be true, is considered false. Contrary to that, the OWA "'allows"' to have incomplete knowledge and does not consider \textit{negation as failure} \cite{wiki:neaf}. 
 
-As mentioned earlier, only the fusion of occupancy states is implemented in this thesis, which the CWA assumption is used for.
+With respect to high-level fusion for CP, OWA vs. CWA plays an essential role when deciding what kind of fusion mechanism to use for different attribute classes. More precisely, it influences the way how confidences for entity-attribute- or entity-entity relations are interpreted. 
+
+Generally, one could distinguish between attributes, whose domain is known and such, whose domain is not known. For the former, one could apply either CWA or OWA, while for the latter, the OWA has to be taken as a basis. For instance, while the domain for a ternary occupancy state is completely known (\textit{free}, \textit{occupied} and \textit{unknown}), the number of possible "'attribute"' values (i.e. entities as objects in a quadruple) is infinite for an entity-entity relation between different road participants. During the fusion, it is unknown how many potential vehicles, pedestrians and other traffic participants are in a scene and could potentially occupy a certain cell or not.
+
+\subsubsection{Example}
+Assume the observations from two different observers for the same situation are present and we want to fuse their estimations of the occupancy state of a certain cell. According to our model definition, both observers report exactly one quadruple for this cell's state each. Observer A reports $r_{1,A} = \langle \textit{cell}_i, \textit{hasState}, \textit{free}, 0.9 \rangle$ and observer B reports $r_{1,B} = \langle \textit{cell}_i, \textit{hasState}, \textit{occupied}, 0.8 \rangle$. Taking the CWA, the reported confidences may be interpreted as probabilities and since all possible states are known, the trivial assumption could be made that the two remaining unknown state values equally share the remaining probability mass. As a consequence, the following quadruples could be inferred:
+
+\begin{gather*}
+	r_{2,A} = \langle \textit{cell}_i, \textit{hasState}, \textit{occupied}, 0.05 \rangle \\
+	r_{3,A} = \langle \textit{cell}_i, \textit{hasState}, \textit{unknown}, 0.05 \rangle \\
+	r_{2,B} = \langle \textit{cell}_i, \textit{hasState}, \textit{free}, 0.1 \rangle \\
+	r_{3,B} = \langle \textit{cell}_i, \textit{hasState}, \textit{unknown}, 0.1 \rangle \\
+\end{gather*}
+
+Applying a simple arithmetic average over the confidences of all observations for each possible state yields:
+
+\begin{gather*}
+	r_{1,\text{fused}} = \langle \textit{cell}_i, \textit{hasState}, \textit{free}, \gamma_1 \rangle \\
+	r_{2,\text{fused}} = \langle \textit{cell}_i, \textit{hasState}, \textit{occupied}, \gamma_2 \rangle \\
+	r_{3,\text{fused}} = \langle \textit{cell}_i, \textit{hasState}, \textit{unknown}, \gamma_3 \rangle \\
+	\text{with\ } \gamma_1 = 0.5, \gamma_2 = 0.425, \gamma_3 = 0.075 \\
+\end{gather*}
+
+Taking the OWA, confidences can not be interpreted as probabilities, as the potential number of values is infinite. Instead, the trivial fusion approach from above would yield these quadruples when assuming an open world:
+
+$$\gamma_1 = 0.45, \gamma_2 = 0.4, \gamma_3 = 0$$
+
+As mentioned earlier, only the fusion of occupancy states is implemented in this thesis, for which the open-world assumption is used consistently.
 
 \subsection{Mechanism: Time-Decayed Weighted Average}
 \label{subsec:concept_design:fusion_mechanism}
+This section describes how multiple observations for a single discrete, categorical attribute are fused. For the sake of simplicity, continuous attributes are disregarded and the focus is placed particularly on the fusion of cells' occupancy states. This state attribute's domain is discrete and finite (ternary). For instance, the statement that a cells is \textit{free} is binary, i.e. either true or false and an additional notion of uncertainty is incorporated by passing along a confidence value. The confidence values represents either attribute- or structure uncertainty (cf. \autoref{subsec:concept_design:probabilistic_entity_relationship_model_for_cooperative_perception}).
+Despite this confidence, a fusion function also needs to respect the observation's temporal delay, i.e. its "'age"'. In a cooperative perception system, the presence of a transmission lag is inevitable and mainly arises from network latency. Accordingly, an observation is always outdated already when being fused. This degree of "'outdatedness"' is referred to as \textit{Reliability of Perception} by \cite{liu2013motion}, whose authors suggest to exponentially decrease it with increasing transmission lag. While the description of a scene that is a few millisecond old might still be quite accurate, but as it gets older, potentially several seconds, the scene has most likely changed too much to still rely on that state representation. 
 
-% TODO !!!
+We define the fusion function $\phi$ as a mapping from a set of model instances $\mathcal{M}$ (cf. \autoref{subsec:concept_design:probabilistic_entity_relationship_model_for_cooperative_perception}) and a real-valued temporal delay $\delta t = t_{now} - t_{obs}$ to a new model instance.
+
+\begin{gather}
+	\phi: \mathcal{M} \times \mathbb{R}^+ \mapsto \mathcal{M}
+\end{gather}
+
+Accordingly, a fused model instance at time $t$ is given as:
+
+\begin{gather}
+	M^{fused}(t) = \phi(\bigcup^n_{i = 0} \bigcup^t_{u = t - \delta t^{max}} M^{loc}_i(u), t-t_i)
+\end{gather}
+
+$n$ denotes the number of observers and $\delta t^{max}$ is a user-defined parameter that specifies the maximum age of observations to include during fusion. Consequently, the input to the fusion function are all present observations (= PER model instances) from all present observers within the last $t - \delta t^{max}$ time steps.
+
+Evaluating $\phi$ involves to evaluate the respective "'sub-"'functions to fuse the values of all certain entity-attribute ($\langle e, a \rangle$) or entity-entity (($\langle e1, e2 \rangle$)) combinations. Let these sub-functions be named $\varphi_{e,a}$ or $\varphi_{e1,e2}$, respectively. Moreover, the following function is defined to determine a \textbf{temporal decay factor} for every observation to weigh it by its degree of "'outdatedness"', just a proposed above.
+
+\begin{gather}
+	\textit{decay}(t_i) = \exp^{-\lambda * \Delta t} = \exp^{-\lambda * (t_{now} - t_i)}
+\end{gather}
+
+In this thesis, the above function is used globally throughout the entire fusion procedure to incorporate transmission lag.
+\par
+\bigskip
+
+For a $\langle e, a \rangle$-combination whose value domain is categorical and finite, the \textbf{weighted arithmetic mean} can be used to aggregate (i.e. fuse) multiple evidences or observations. This is the method of choice implemented in this work to fuse occupancy states. Further fusion mechanisms for other types of $\langle e, a \rangle$- or $\langle e1, e2 \rangle$ combinations are considered to be out of scope and are not explicitly defined. In search for fill the placeholders $b$ an $\gamma$ of a $\langle e, a, b, \gamma \rangle$-tuple, one could follow a two-step procedure to determine the aggregated confidence value and actual attribute value.
+
+\begin{gather*}
+	\textit{maxconf}_{e,a} = \underset{b \in \textit{dom}(\langle e, a \rangle)}{\max} \frac{\sum_{j = 0}^{m} \textit{val}_b(r_j) * \textit{decay}(t_j)}{\sum_{i = 0}^{m} \textit{decay}(t_j)} \\\textit{maxval}_{e,a} = \underset{b \in \textit{dom}(\langle e, a \rangle)}{\arg\max} \frac{\sum_{j = 0}^{n} \textit{val}_b(r_j) * \textit{decay}(t_j)}{\sum_{j = 0}^{n} \textit{decay}(t_j)} \\
+\end{gather*}
+
+In the above equation, $\textit{val}_b$ is defined as
+
+$$
+\textit{val}_b(r) = 
+	\begin{cases}
+	\gamma \in r & b \in r \\
+	0 & else
+	\end{cases}
+$$
+
+and $m$ is the number of observations to be included into the current fusion that hold a quadruple containing $e$ at subject- and $a$ at predicate position.
+
+Accordingly, the fused quadruple for this specific $\langle e, a \rangle$-combination would be $r_{i,fused} = \langle e, a, \textit{maxval}_{e,a}, \textit{maxconf}_{e,a} \rangle$.
 
 \subsection{Architecture: Doubly Updated Merging}
 \label{subsec:concept_design:fusion_architecture}
