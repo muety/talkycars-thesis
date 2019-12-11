@@ -1,0 +1,12 @@
+$ go test -bench=.
+
+goos: linux
+goarch: amd64
+BenchmarkGob-12             5172            222607 ns/op
+BenchmarkCapnp-12           4129            317576 ns/op
+BenchmarkProto-12           7460            169135 ns/op
+PASS
+ok      _/home/ferdinand/dev/talkycars-thesis/src/evaluation/serialization
+CreateGob:       0.5322 ms/msg,         8.9372 KB/msg
+CreateCapnp:     0.5907 ms/msg,         15.8170 KB/msg
+CreateProto:     0.4396 ms/msg,         8.3755 KB/msg

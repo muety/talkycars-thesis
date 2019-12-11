@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+enum OccupancyState {
+    FREE = 0;
+    OCCUPIED = 1;
+    UNKNOWN = 2;
+}
+
+message OccupancyStateRelation {
+    float confidence = 1;
+    OccupancyState object = 2;
+}
+
+message OccupancyCell {
+    uint64 hash = 1;
+    OccupancyStateRelation state = 2;
+}
+
+message OccupancyGrid {
+    repeated OccupancyCell cells = 1;
+}
