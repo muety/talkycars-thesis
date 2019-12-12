@@ -147,7 +147,7 @@ The simulator bridge (or simulation client) communicates to the simulation serve
 
 A particular emphasis is placed on the low-level sensor fusion tasks of detection (5) and tracking (6) of an object in the following. While this would be taken care of by certain dedicated steps within the AD pipeline, it needs to be implemented manually here as part of the simulation client.
 
-In order for a vehicle to construct an occupancy grid model or driveability map, detailed information on all surrounding obstacles is needed. Such include dynamic obstacles, like other traffic participants as well static obstacles, like curbstones, ground-mounted traffic signs, buildings, etc. The first step is to recognize them, also referred to as detection in the following, and a second step is to track them. That is, a detected object in one iteration or frame needs to be associated with the same instance of itself in subsequent frames. Both problems are subject to current research and only covered in a very basic manner here.
+In order for a vehicle to construct an occupancy grid model or driveability map, detailed information on all surrounding obstacles is needed. Such include dynamic obstacles, like other traffic participants as well static obstacles, like curbstones, ground-mounted traffic signs, buildings, etc. The first step is to recognize them, also referred to as detection in the following, and a second step is to match and track them. That is, a detected object in one iteration or frame needs to be associated with the same instance of itself in subsequent frames. Both problems are subject to current research and only covered in a very basic manner here.
 
 While Carla offers a variety of sensors, including camera and LiDAR, unfortunately, there is no mechanism to directly retrieve all static and dynamic obstacles from the simulation\footnote{\url{https://github.com/carla-simulator/carla/issues/1832}}. Thus, they need to be derived from actual sensor data. 
 \par
@@ -165,8 +165,12 @@ $$
 $$
 
 The implementation of \textit{contains()} is trivial and for \textit{intersects()} the ray casting algorithm shown in \autoref{sec:appendix:source_code:ray_casting_intersection_algorithm} was ported to Python. After Python's performance for this algorithm turned out to be comparatively poor, it was re-implemented in Cython\footnote{\url{https://cython.org/}}. Cython is an extension to the Python language and offers support to compile Python-like code to native C code and include it as a module. For computation intense algorithms, this usually improves performance dramatically. In the example of ray casting, the difference in performance between a Python- and C++ implementation of the exact same algorithm can be up to multiple orders of magnitude high \cite{Novak2017}.
+\par
+\bigskip
 
-% TODO: Tracking
+The second low-level fusion-related task mentioned above is \textbf{tracking}, which usually goes together with \textbf{matching}. However, for the sake of simplicity and in order to stay within the defined scope, an actual matching mechanism was not implemented. Instead, dynamic objects are identified by their IDs in the simulation. Cells are, trivially, identified by their position, i.e. their QuadKey. Basic tracking is based on the suggestion by \cite{Crowley1993}, the authors of which stated that "'\textit{[n]ewly observed segments enter the model with a low confidence. Successive observations permit the confidence to increase, where as if the segment is not observed in the succeeding cycles, it is considered as noise and removed from the model. Once the system has become confident in a segment, the confidence factor permits a segment to remain in existence for several cycles}"'. Accordingly, a hash map is used to count the number of occurrences of a certain fact, e.g. the state of a specific cell or the presence of a certain car, in subsequent frames. The confidence of the corresponding relation is then set proportionally to its relative presence over the last few (e.g. 10) frames. If it was not seen over a certain number of subsequent frames, it is removed from the hash map and not "'tracked"' anymore. This rudimentary type of tracking was realized as a \texttt{LinearObservationTracker} module and is the central source of confidence values to be used as fourth parameter in the previously defined model's quadruples. 
+
+% TODO: Mention other sub-modules and separation between client, ego and scene
 
 \subsection{Talky Client}
 \label{subsec:implementation:talky_client}
