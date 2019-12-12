@@ -69,3 +69,32 @@ Since the integration and evaluation with an autonomous driving simulator is one
 Mainly because of its extraordinarily rich and intuitive API, the large number of simulated sensors and the inherent multi-agent support, Carla was chosen to be used as a simulation environment in this work. In addition to the features mentioned above, it also includes seven pre-defined high-detail maps, each of which represents a different scenario (e.g. urban or rural environments). Maps can be exported in the OpenDrive format and thanks to an integration with the RoadRunner\footnote{\url{https://www.vectorzero.io/}} software suite, custom maps can be created and imported easily. In addition to vehicles, pedestrians and cyclists are supported as traffic participants as well and the open-source community has provided automated controllers and navigation script for each of these actor types.
 
 The screenshot in \autoref{fig:carla_sceenshot_1} depicts an exemplary rural scene in Carla, involving two vehicles. It was recorded at development stage when the simulation client already supported to compute and render the occupancy grid corresponding to an ego vehicle's observations. Green cells are considered free, red cells are occupied and the state of blue cells is unknown, e.g. due to sensor noise or because they are out of sight.
+
+\section{Server-Side Software Components}
+\label{sec:implementation:server_side_software_components}
+The following two sections discuss the implementation or integration process and respective details of the software components outlined in \autoref{subsec:concept_design:components_overview}, starting with server-side components. These constitute the central processing instance that all participants within certain geographical area connect to and exchange information with. 
+
+\subsection{Message Broker}
+\label{subsec:implementation:message_broker}
+A message broker's responsibility as part of a publish-subscribe (or messaging)-based software system is to maintain connections to all clients, receive and re-distribute their messages according to certain rules. Usually this involves the notion of a \textit{queue}, \textit{topic} or \textit{subject} as a basic routing mechanism for messages. Producers publish messages to a certain queue, which are then received by all consumers that had subscribed to that queue upfront. \autoref{fig:pubsub_topics} depicts this mechanism schematically. 
+
+\begin{figure}
+	\centering
+	\includegraphics[width=0.7\linewidth]{98_images/pubsub}
+	\caption[Schema of Publish-Subscribe Communication with Topics]{Schema of Publish-Subscribe Communication with Topics \cite{Collison2019}}
+	\label{fig:pubsub_topics}
+\end{figure}
+
+
+A variety of messaging solutions and corresponding brokers already exists. When attempting to evaluate such, one has to distinguish between protocol and implementation. While the use of a messaging-based architecture has already been motivated in \autoref{subsec:concept_design:messaging_further_considerations}, a concrete protocol and a corresponding software implementation need to be chosen in addition. 
+
+Publish-subscribe protocols for data streaming include AMQP, the Apache Kafka messaging protocol\footnote{\url{https://kafka.apache.org/protocol}}, MQTT, NATS\footnote{\url{https://nats.io}} and more. Without conducting an in-depth evaluation of these alternatives, it can be concluded that each solution has various advantages and drawbacks with respect to different use cases. However, MQTT is the de-facto standard protocol for IoT applications and most widely spread. Accordingly, it has already proven effective and a variety of different proprietary and open-source implementations exist. Major benefits of MQTT include its low footprint in terms of messaging overhead and computational efficiency as well as the support for different quality of service (QoS) levels. QoS essentially allows the user to define the reliability of delivery for a certain message and has an impact on performance. Due to these benefits, MQTT is chosen as the pub/sub messaging protocol to be used for the present CP system. 
+
+In addition to deciding for a protocol, a corresponding message broker implementation needs to be picked. For MQTT, a variety of different implementations in different programming languages and with varying feature sets exist. The most common ones are Apache ActiveMQ\footnote{\url{http://activemq.apache.org/}} (Java), HiveMQ\footnote{\url{https://www.hivemq.com/}}, Mosca\footnote{\url{http://www.mosca.io/}} (JavaScript), Eclipse Mosquitto\footnote{\url{https://mosquitto.org/}} (C) and RabbitMQ\footnote{\url{http://rabbitmq.io/}} (Erlang). A basic performance comparison between different brokers was conducted by \cite{Mutsch2019} and the results are depicted in \autoref{fig:mqtt_benchmarks}. Due to its good performance and easy setup procedure, Mosquitto was chosen for this work. However, since this thesis' implementation only uses standard MQTT features, the broker could easily be switched by any other one, as it is a modular, stand-alone software component.
+
+\begin{figure}
+	\centering
+	\includegraphics[width=0.9\linewidth]{98_images/mqtt_bench_2}
+	\caption{Basic Performance Benchmark of Different MQTT Brokers}
+	\label{fig:mqtt_benchmarks}
+\end{figure}
