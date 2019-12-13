@@ -42,6 +42,9 @@ class TalkyClient:
         self.ego_id: str = str(for_subject_id)
         self.dialect: ClientDialect = dialect
         self.om: ObservationManager = ObservationManager()
+        # Please Note: The occupancy grid manager might also be part of the simulation-related code, e.g. as a
+        # virtual sensor of the ego vehicle. The current implementation assumes that a vehicle can only deliver
+        # low-level fused raw sensor data and does not know about occupancy grids or object lists
         self.gm: OccupancyGridManager = OccupancyGridManager(OCCUPANCY_TILE_LEVEL, grid_radius)
         self.inbound: InboundController = InboundController(self.om, self.gm)
         self.outbound: OutboundController = OutboundController(self.om, self.gm)

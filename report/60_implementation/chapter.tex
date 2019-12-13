@@ -1,8 +1,15 @@
 The previous chapter addressed different aspects of a cooperative perception system conceptually. First, a uniform, expressive and extensible way to model traffic scenes for cooperative perception was proposed alongside an appropriate representation format for it. Different characteristics and benefits of 5G cellular networks were discussed before a high-level system architecture, involving a multitude of different modular software components was elaborated. Eventually, a concept was presented on how to combine observations from different actors, while taking temporal delay and uncertainty into account. 
 \par
 \bigskip
- 
-The purpose of this chapter is to pick up the previously presented concepts and techniques and explain how they were implemented in software. This includes a discussion about various technological choices, the use of appropriate software design patterns and essential performance-related considerations.
+
+The purpose of this chapter is to pick up the previously presented concepts and techniques and explain how they were implemented in software. This includes a discussion about various technological choices, the use of appropriate software design patterns and essential performance-related considerations. \autoref{fig:components_full} picks the component diagram from \autoref{subsec:concept_design:components_overview} up again, but includes implementation-specific technologies in addition. 
+
+\begin{figure}[h]
+	\centering
+	\includegraphics[width=1\linewidth]{98_images/components_full}
+	\caption{UML Component Diagram – Implementation}
+	\label{fig:components_full}
+\end{figure}
 \par
 \bigskip
 
@@ -53,11 +60,22 @@ Listing \ref{lst:serialization_schema_examples} gives an example for a simplifie
 Since the integration and evaluation with an autonomous driving simulator is one of the core goals of this thesis, an appropriate simulator needs to be chosen. A commonly used option is \textbf{SUMO}\footnote{\url{https://sumo.dlr.de/}} (Simulation of Urban Mobility). However, it focuses on traffic simulation and it not particularly built for in-depth simulations of autonomous driving. Instead, a variety of high-detail, photorealistic 3D simulators have established recently. The most commonly used options are the following.
 
 \begin{itemize}
-	\item \textbf{AirSim} by Microsoft \cite{airsim2017fsr} is an open-source ($\sim$ 9,300 GitHub stars) 3D simulator for autonomous cars and drones based on the Unreal 4 game engine\footnote{\url{https://www.unrealengine.com}}. It has inherent support for Reinforcement Learning, allows to connect various kinds of external control devices and has a rich C++ and Python API to program it. Supported sensors are RGB camera, IMU, GPS, magnetometer, barometer, a custom distance sensor and LiDAR. 
-	\item \textbf{Carla} \cite{Dosovitskiy17} is an independent open-source project (3,600 GitHub stars). The 3D simulator is based on Unreal 4, has C++ and Python APIs and features a multitude of sensors, including RGB camera, depth camera, IMU, GPS and LiDAR. In addition, is has multi-agent support, i.e. allows multiple Python- or C++ clients to connect to the simulation server and offers an integration with the Autoware AV stack\footnote{\url{https://www.autoware.ai/}}.
+	\item \textbf{AirSim} by Microsoft \cite{airsim2017fsr} is an open-source ($\sim$ 9,300 GitHub stars, MIT license) 3D simulator for autonomous cars and drones based on the Unreal 4 game engine\footnote{\url{https://www.unrealengine.com}}. It has inherent support for Reinforcement Learning, allows to connect various kinds of external control devices and has a rich C++ and Python API to program it. Supported sensors are RGB camera, IMU, GPS, magnetometer, barometer, a custom distance sensor and LiDAR. 
+	\item \textbf{Carla} \cite{Dosovitskiy17} is an independent open-source project (3,600 GitHub stars, MIT license). The 3D simulator is based on Unreal 4, has C++ and Python APIs and features a multitude of sensors, including RGB camera, depth camera, IMU, GPS and LiDAR. In addition, is has multi-agent support, i.e. allows multiple Python- or C++ clients to connect to the simulation server and offers an integration with the Autoware AV stack\footnote{\url{https://www.autoware.ai/}}.
 	\item \textbf{Carmaker}\footnote{\url{https://ipg-automotive.com/de/produkte-services/simulation-software/carmaker/}} by IPG Automotive GmbH is a proprietary 3D simulator featuring various integrations with hardware platforms and tools and offers an proprietary and a MATLAB programming interface.
-	\item \textbf{LGSVL}\footnote{\url{https://www.lgsvlsimulator.com}} by LG is the latest of these 3D simulator projects, as development started in 2019. It is open-source ($\sim$ 700 GitHub stars), written in C\# and based on the Unity game engine\footnote{\url{https://unity3d.com}}, offers integrations with Autoware and Baidu's Apollo framework\footnote{\url{https://github.com/ApolloAuto/apollo}} and a Python API. Supported sensors include RGB camera, IMU, GPS, LiDAR, radar and CAN bus. While this project appears to be the most ambitious and promising one, it is still in quite early development and therefore partially unstable.
+	\item \textbf{LGSVL}\footnote{\url{https://www.lgsvlsimulator.com}} by LG is the latest of these 3D simulator projects, as development started in 2019. It is open-source ($\sim$ 700 GitHub stars, custom license), written in C\# and based on the Unity game engine\footnote{\url{https://unity3d.com}}, offers integrations with Autoware and Baidu's Apollo framework\footnote{\url{https://github.com/ApolloAuto/apollo}} and a Python API. Supported sensors include RGB camera, IMU, GPS, LiDAR, radar and CAN bus. While this project appears to be the most ambitious and promising one, it is still in quite early development and therefore partially unstable.
 \end{itemize}
+
+\begin{figure}
+	\centering
+	\includegraphics[width=0.8\linewidth]{98_images/carla_modules}
+	\caption{Client-Server Schema in CARLA \cite{CarlaContributors}}
+	\label{fig:carla_modules}
+\end{figure}
+
+Mainly because of its extraordinarily rich and intuitive API, the large number of simulated sensors, the inherent multi-agent support an a vibrant open-source community, Carla was chosen to be used as a simulation environment in this work. In addition to the features mentioned above, it also includes seven pre-defined high-detail maps, each of which represents a different scenario (e.g. urban or rural environments). Maps can be exported in the OpenDrive format and thanks to an integration with the RoadRunner\footnote{\url{https://www.vectorzero.io/}} software suite, custom maps can be created and imported easily. In addition to vehicles, pedestrians and cyclists are supported as traffic participants as well and the open-source community has provided automated controllers and navigation script for each of these actor types. \autoref{fig:carla_modules} schematically depicts how a simulation running on a Carla server is controlled by one or multiple user scripts.
+
+The screenshot in \autoref{fig:carla_sceenshot_1} depicts an exemplary rural scene in Carla, involving two vehicles. It was recorded at development stage when the simulation client already supported to compute and render the occupancy grid corresponding to an ego vehicle's observations. Green cells are considered free, red cells are occupied and the state of blue cells is unknown, e.g. due to sensor noise or because they are out of sight.
 
 \begin{figure}[h]
 	\centering
@@ -65,10 +83,6 @@ Since the integration and evaluation with an autonomous driving simulator is one
 	\caption[Screenshot of an Exemplary Carla Scene]{Screenshot of an Exemplary Scene in Carla featuring two Vehicles and their Occupancy Grids}
 	\label{fig:carla_sceenshot_1}
 \end{figure}
-
-Mainly because of its extraordinarily rich and intuitive API, the large number of simulated sensors and the inherent multi-agent support, Carla was chosen to be used as a simulation environment in this work. In addition to the features mentioned above, it also includes seven pre-defined high-detail maps, each of which represents a different scenario (e.g. urban or rural environments). Maps can be exported in the OpenDrive format and thanks to an integration with the RoadRunner\footnote{\url{https://www.vectorzero.io/}} software suite, custom maps can be created and imported easily. In addition to vehicles, pedestrians and cyclists are supported as traffic participants as well and the open-source community has provided automated controllers and navigation script for each of these actor types.
-
-The screenshot in \autoref{fig:carla_sceenshot_1} depicts an exemplary rural scene in Carla, involving two vehicles. It was recorded at development stage when the simulation client already supported to compute and render the occupancy grid corresponding to an ego vehicle's observations. Green cells are considered free, red cells are occupied and the state of blue cells is unknown, e.g. due to sensor noise or because they are out of sight.
 
 \section{Server-Side Software Components}
 \label{sec:implementation:server_side_software_components}
@@ -125,7 +139,7 @@ This component was not presented in \autoref{subsec:concept_design:components_ov
 
 \section{On-Board Client-Side Software Components}
 \label{sec:implementation:on_board_client_side_software_components}
-This sections concerns with the implementation of all on-board software components, that is, modules, which are usually run on an observer device. Usually, these will be vehicles, but might be road-side cameras, traffic lights or potentially even pedestrian smartphones as well.
+This sections concerns with the implementation of all on-board software components, that is, modules, which are usually run on an observer device. Usually, these will be vehicles, but might be road-side cameras, traffic lights or potentially even pedestrian smartphones as well. All client-side software is implemented in Python and relies on third-party open-source libraries with the following license: Apache 2, BSD-3, EPL, LGPL, MIT, MPL. 
 
 \subsection{Simulator Bridge}
 \label{subsec:implementation:simulator_bridge}
@@ -139,15 +153,39 @@ The simulator bridge (or simulation client) communicates to the simulation serve
 	\item Offer an interface to control the simulation environment, i.e. frame rate, map, weather conditions, other traffic participants, etc.
 	\item Offer an interface to control an ego vehicle
 	\item Receive and display rendered images from simulation server
-	\item Receive sensor data (via a push mechanism, with a frequency synchronized to the server's tick rate)
-	\item Ppre-process sensor data
-	\item Perform object detection based on received sensor data
-	\item Perform object tracking based on received sensor data
+	\item Receive sensor data (via a push mechanism, with a frequency synchronized to the server's tick rate) from the simulation server
+	\item Pre-process sensor data
+	\item Infer control commands according to a specified behavior or policy
 \end{enumerate}
 
-A particular emphasis is placed on the low-level sensor fusion tasks of detection (5) and tracking (6) of an object in the following. While this would be taken care of by certain dedicated steps within the AD pipeline, it needs to be implemented manually here as part of the simulation client.
+\begin{figure}
+	\centering
+	\includegraphics[width=0.9\linewidth]{98_images/client_classes}
+	\caption{UML Class Diagram for Simulation Client}
+	\label{fig:client_classes}
+\end{figure}
 
-In order for a vehicle to construct an occupancy grid model or driveability map, detailed information on all surrounding obstacles is needed. Such include dynamic obstacles, like other traffic participants as well static obstacles, like curbstones, ground-mounted traffic signs, buildings, etc. The first step is to recognize them, also referred to as detection in the following, and a second step is to match and track them. That is, a detected object in one iteration or frame needs to be associated with the same instance of itself in subsequent frames. Both problems are subject to current research and only covered in a very basic manner here.
+\autoref{fig:client_classes} depicts core sub-modules of the simulation client. In order to achieve a high degree of \textbf{modularity} and keep \textbf{clean code boundaries} between simulation-related code and the actual CP system, different abstractions are made.
+
+The \texttt{Simulation} class can be thought of as an entry point to the program. It maintains connection and communication with the Carla server, displays the rendered images and synchronizes client- and server tick rate. Every simulation is initialized with exactly one \texttt{Scene}. It loads the map environment and spawns and controls all "'non-player character"' (NPC) traffic participants, e.g. pedestrians. In addition, it holds references to one or more \texttt{EgoVehicle}s. Each of these represents a connected, intelligent car in the sense of autonomous driving. An ego vehicle, in turn, has access to several sensors, whose data it processes as well as actuators used to control the car. A given behavior, in form of a \texttt{Strategy} instance, specifies how the car interacts with its environment and what "'decision"' it is supposed to take in which situation. Eventually, every ego vehicle holds an instance of exactly one \texttt{TalkyClient}, which corresponds to the respective component presented in \autoref{subsec:concept_design:components_overview}. All client-side cooperative perception tasks are performed inside this component and it acts as a bridge to the server-side subsystem via an intermediate MQTT connection with the message broker.
+
+This modular structure enforces a strong \textbf{separation of concerns} and enables for distribution. That is, a certain scene might be hosted on one physical machine, while the contained ego vehicles run on another, e.g. to simulate latency or to better distribute computation load.
+
+\subsection{Talky Client}
+\label{subsec:implementation:talky_client}
+As mentioned before, this components is one of two core parts of the presented cooperative perception system, together with the \texttt{TalkyEdgeNode} (see \autoref{subsec:concept_design:components_overview}). It is implemented in Python and realized as one coherent application together with the simulation client. However, a highly modular structure is followed, so that different parts of the application are re-usable and can be executed separately. Responsibilities of this components include to:
+
+\begin{enumerate}
+	\item Compute the current occupancy grid's structure every frame
+	\item Perform object detection based on received sensor data to derive occupancy states every frame
+	\item Perform object tracking based on received sensor and derived occupancy states every frame
+	\item Construct a PER model instance every frame
+	\item Communicate its local state representation with the server-side fusion at a fixed rate
+\end{enumerate}
+
+A particular emphasis is placed on the tasks of detecting (5) and tracking (6) an object in the following. 
+
+In order for a vehicle to construct an occupancy grid model or driveability map, detailed information on all surrounding obstacles is needed. Such include dynamic obstacles, like other traffic participants as well static obstacles, like curbstones, ground-mounted traffic signs, buildings, etc. The first step is to recognize them, also referred to as detection in the following, and a second step is to match and track them. That is, a detected object in one iteration or frame needs to be associated with an instance of itself in subsequent frames. Both problems are subject to current research and only covered in a very basic manner here.
 
 While Carla offers a variety of sensors, including camera and LiDAR, unfortunately, there is no mechanism to directly retrieve all static and dynamic obstacles from the simulation\footnote{\url{https://github.com/carla-simulator/carla/issues/1832}}. Thus, they need to be derived from actual sensor data. 
 \par
@@ -158,33 +196,103 @@ For the task of \textbf{detecting} an obstacle, a basic heuristic is applied to 
 $$
 \textit{state}(cell_i) = 
 \begin{cases}
-	\textit{occupied} & \text{if\ } \textit{contains}(\textit{cell\_box}_i, \langle \vec{r_j}, d_j \rangle) \\
-	\textit{free} & \text{if\ } \textit{intersects}(\textit{cell\_box}_i, \vec{r_j}) \\
-	\textit{unknown} & \text{else}
+\textit{occupied} & \text{if\ } \textit{contains}(\textit{cell\_box}_i, \langle \vec{r_j}, d_j \rangle) \\
+\textit{free} & \text{if\ } \textit{intersects}(\textit{cell\_box}_i, \vec{r_j}) \\
+\textit{unknown} & \text{else}
 \end{cases}
 $$
 
 The implementation of \textit{contains()} is trivial and for \textit{intersects()} the ray casting algorithm shown in \autoref{sec:appendix:source_code:ray_casting_intersection_algorithm} was ported to Python. After Python's performance for this algorithm turned out to be comparatively poor, it was re-implemented in Cython\footnote{\url{https://cython.org/}}. Cython is an extension to the Python language and offers support to compile Python-like code to native C code and include it as a module. For computation intense algorithms, this usually improves performance dramatically. In the example of ray casting, the difference in performance between a Python- and C++ implementation of the exact same algorithm can be up to multiple orders of magnitude high \cite{Novak2017}.
+
+It is worth noting that, in a real-world system, object detection would usually be performed by a dedicated pipeline step. Normally, the Talky client would be supplied with already detected obstacles and their positions, which it can infer an occupancy grid from. Thus, the \texttt{OccupancyGridManager}'s matching function would normally take an object list as input, rather than a LiDAR point cloud. The current implementation could easily be adapted to support that by encapsulating the cell matching process in a further sub-module.
 \par
 \bigskip
 
-The second low-level fusion-related task mentioned above is \textbf{tracking}, which usually goes together with \textbf{matching}. However, for the sake of simplicity and in order to stay within the defined scope, an actual matching mechanism was not implemented. Instead, dynamic objects are identified by their IDs in the simulation. Cells are, trivially, identified by their position, i.e. their QuadKey. Basic tracking is based on the suggestion by \cite{Crowley1993}, the authors of which stated that "'\textit{[n]ewly observed segments enter the model with a low confidence. Successive observations permit the confidence to increase, where as if the segment is not observed in the succeeding cycles, it is considered as noise and removed from the model. Once the system has become confident in a segment, the confidence factor permits a segment to remain in existence for several cycles}"'. Accordingly, a hash map is used to count the number of occurrences of a certain fact, e.g. the state of a specific cell or the presence of a certain car, in subsequent frames. The confidence of the corresponding relation is then set proportionally to its relative presence over the last few (e.g. 10) frames. If it was not seen over a certain number of subsequent frames, it is removed from the hash map and not "'tracked"' anymore. This rudimentary type of tracking was realized as a \texttt{LinearObservationTracker} module and is the central source of confidence values to be used as fourth parameter in the previously defined model's quadruples. Another central sub-module of this component is the \texttt{OccupancyManager} It encapsulates functionality related to the efficient generation and caching of occupancy grids and LiDAR matching. 
+The second low-level fusion-related task mentioned above is \textbf{tracking}, which usually goes together with \textbf{matching}. However, for the sake of simplicity and in order to stay within the defined scope, an actual matching mechanism was not implemented. Instead, dynamic objects are identified by their IDs in the simulation. Cells are, trivially, identified by their position, i.e. their QuadKey. Basic tracking is based on the suggestion by \cite{Crowley1993}, the authors of which stated that "'\textit{[n]ewly observed segments enter the model with a low confidence. Successive observations permit the confidence to increase, where as if the segment is not observed in the succeeding cycles, it is considered as noise and removed from the model. Once the system has become confident in a segment, the confidence factor permits a segment to remain in existence for several cycles}"'. Accordingly, a hash map is used to count the number of occurrences of a certain fact, e.g. the state of a specific cell or the presence of a certain car, in subsequent frames. The confidence of the corresponding relation is then set proportionally to its relative presence over the last few (e.g. 10) frames. If it was not seen over a certain number of subsequent frames, it is removed from the hash map and not "'tracked"' anymore. This rudimentary type of tracking was realized as a \texttt{LinearObservationTracker} sub-module and is the central source of confidence values to be used as fourth parameter in the previously defined model's quadruples.
 \par
 \bigskip
+
+Communication with the server-side fusion node – via the message broker – is done inside the \texttt{SubscriptionManager} sub-module. On the one hand it acts as an interface for publishing an ego vehicle's current state. On the other hand it maintains according MQTT subscription for type 2- and type 3 tiles (see \autoref{subsec:concept_design:geographical_sharding}), given the ego vehicle's current position. The component holds a reference to an instance of \texttt{MqttBridge} to handle low-level communication. Given this separation, MQTT could easily switched out by a different publish-subscribe protocol. 
+
+\section{Configurable Parameters}
+\label{sec:implementation:configurable_parameters}
+In complement to the previous sections, which provided an in-depth description of all involved software components, this section aims to give an overview over relevant parameters, that can be configured by a system user. The can be categorized into three different classes, depending on which part of the system they affect.
+
+Each of these parameters can be set either through a configuration file or as a program argument when starting a \texttt{Scene} or \texttt{Ego} instance.
+
+\subsection{Simulation Parameters}
+\label{subsec:implementation:simulation_parameters}
+The first set of parameters relates to the simulation.
 
 \begin{figure}
 	\centering
-	\includegraphics[width=0.9\linewidth]{98_images/client_classes}
-	\caption{UML Class Diagram for Simulation Client}
-	\label{fig:client_classes}
+	\includegraphics[width=1.0\linewidth]{98_images/carla_collage}
+	\caption{Screenshots of Carla Maps}
+	\label{fig:carla_collage}
 \end{figure}
 
-\autoref{fig:client_classes} depicts further core sub-modules of the simulation client. In order to achieve a high degree of \textbf{modularity} and keep \textbf{clean code boundaries} between simulation-related code and the actual CP system, different abstractions are made.
 
-A \texttt{Simulation} class can be thought of as an entry point to the program. It maintains connection and communication with the Carla server, displays the rendered images and synchronized client- and server tick rate. Every simulation is initialized with exactly one \texttt{Scene}. It loads the map environment and spawns and controls all "'non-player character"' (NPC) traffic participants, e.g. pedestrians. In addition, it holds references to one or more \texttt{EgoVehicle}s. Each of these represents a connected, intelligent car in the sense of autonomous driving. An ego vehicle, in turn, has access to several sensors, whose data it processes as well as actuators used to control the car. A given behavior, in form of a \texttt{Strategy} instance, specifies how the car interacts with its environment and what "'decision"' it is supposed to take in which situation. Eventually, every ego vehicle holds an instance of exactly one \texttt{TalkyClient}, which corresponds to the respective component presented in \autoref{subsec:concept_design:components_overview}. All client-side cooperative perception tasks are performed inside this component and it acts as bridge to the server-side subsystem via an intermediate connection with the message broker.
+\begin{table}[H]
+	\centering
+	\begin{tabular}{|p{7.6cm}|p{7.6cm}|}
+		\hline
+		\textbf{Parameter} & \textbf{Description} \\ \hline
+		\texttt{MAX\_FRAME\_RATE} & Upper bound for the frame rate which to run the simulation at \\ \hline
+		\texttt{SENSOR\_\{i\}\_POSITION} & Mounting position of the i-th sensor on the vehicle \\ \hline
+		\texttt{LIDAR\_PPS} & Number of points per second sent by LiDAR sensor \\ \hline
+		\texttt{LIDAR\_CHANNELS} & Number of vertical LiDAR channels \\ \hline
+		\texttt{LIDAR\_ROTATION\_FREQ} & Rotation frequency of the LiDAR sensor \\ \hline
+		\texttt{LIDAR\_RANGE} & The LiDAR sensor's range \\ \hline
+	\end{tabular}
+	\caption{Simulation Parameters}
+	\label{tab:simulation_parameters}
+\end{table}
 
-This modular structure enforces a strong \textbf{separation of concerns} and enables for distribution. That is, a certain scene might be hosted on one physical machine, while the contained ego vehicles run on another, e.g. to simulate latency or to better distribute computation load.
+\subsection{Scene Parameters}
+\label{subsec:implementation:scene_parameters}
+The second type of parameters are used to specify details about the current scene to simulate.
 
+\begin{table}[H]
+	\centering
+	\begin{tabular}{|p{7.6cm}|p{7.6cm}|}
+		\hline
+		\textbf{Parameter} & \textbf{Description} \\ \hline
+		\texttt{MAP} & Carla map or environment to run (see \autoref{fig:carla_collage}) \\ \hline
+		\texttt{N\_NPCS} & Number of "'non-intelligent"' vehicles present in the scene \\ \hline
+		\texttt{N\_PEDESTRIANS} & Number of pedestrians present in the scene \\ \hline
+		\texttt{N\_EGOS} & Number of connected, intelligent ego vehicles \\ \hline
+		\texttt{SPAWN\_POINT\_\{i\}} & Spawn point on the map for the i-th vehicle \\ \hline
+		\texttt{SPAWN\_POINT\_POLICY} & Alternatively: A policy for how to choose spawn points \\ \hline
+		\texttt{MAX\_SPEED} & Maximum vehicle speed in \si{\km\per\hour} \\ \hline
+	\end{tabular}
+	\caption{Scene Parameters}
+	\label{tab:scene_parameters}
+\end{table}
 
-\subsection{Talky Client}
-\label{subsec:implementation:talky_client}
+\subsection{Cooperative Perception Parameters}
+\label{subsec:implementation:cooperative_perception_parameters}
+The last category of parameters refers to such that specify certain aspects of the CP system itself.
+
+\begin{table}[H]
+	\centering
+	\begin{tabular}{|p{7.6cm}|p{7.6cm}|}
+		\hline
+		\textbf{Parameter} & \textbf{Description} \\ \hline
+		\texttt{TILE\_\{i\}\_LEVEL} & Tile levels to use for geo sharding \\ \hline
+		\texttt{MQTT\_QOS} & MQTT quality of service \\ \hline
+		\texttt{OBSERVATION\_MAX\_AGE} & Maximum age (or "'time-to-live"') for an observation to be included in fusion \\ \hline
+		\texttt{FUSION\_RATE} & Rate at which to perform fusion (server-side) \\ \hline
+		\texttt{OBSERVATION\_RATE} & Rate at which to publish observations (client-side) \\ \hline
+		\texttt{DECAY\_FACTOR} & Exponential factor for temporal decay \\ \hline
+	\end{tabular}
+	\caption{Cooperative Perception Parameters}
+	\label{tab:cooperative_perception_parameters}
+\end{table}
+
+\section{Open-Source Contributions}
+\label{sec:implementation:open_source_contributions}
+The present project heavily relies on the use of open-source third-party libraries without which the implementation would not have been possible in this form. Therefore, the efforts taken by the community are highly appreciated. Moreover, code contributions to several open-source projects have been made on the course of this thesis. Such include the Carla project\footnote{\url{https://github.com/carla-simulator/carla}}, \texttt{buckhx/tiles}\footnote{\url{https://github.com/buckhx/tiles}}, a QuadKey implementation for Go, \texttt{buckhx/QuadKey}\footnote{\url{https://github.com/buckhx/QuadKey}}, a QuadKey implementation for Python (later \texttt{n1try/pyquadkey2}\footnote{\url{https://github.com/n1try/pyquadkey2}}), \texttt{ethlo/jquad}\footnote{\url{https://github.com/ethlo/jquad}}, a QuadKey implementation for Java and \texttt{johnnovak/raytriangle-test}\footnote{\url{https://github.com/johnnovak/raytriangle-test}}, a benchmark of ray casting in different programming languages.
+
+\section{Summary}
+\label{sec:implementation:summary}
+This chapter discussed various details about the concrete implementations of concepts and components presented in \autoref{ch:concept_design}. The resulting software system is subsequently used for the evaluation in \autoref{ch:evaluation} and constitutes a proof-of-concept for a novel, holistic cooperative perception system. In order to use it in real-world scenarios, one would have to add thorough quality assurance and testing as well as several performance optimizations. The system is built following a modular approach to make it as easy as possible to re-use or replace certain parts, while keeping others. Accordingly, the simulation client might be switched out by a component interfacing with a real AD pipeline without too much effort. As this implementation is published as an open-source project\footnote{\url{https://github.com/n1try/talkycars-thesis}}, it can be used openly as a based for further research. 
