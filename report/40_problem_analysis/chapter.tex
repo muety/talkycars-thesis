@@ -3,7 +3,7 @@ This chapter first outlines limitations of current approaches in the field of co
 \section{Limitations of Prior Work}
 \label{sec:problem_analysis:limitations_of_prior_work}
 
-Existing work in the field of cooperative perception, as presented in \autoref{ch:related_work}, faces several limitations.
+Existing work in the field of cooperative perception, as presented in \cref{ch:related_work}, faces several limitations.
 \par
 \bigskip
 
@@ -23,7 +23,7 @@ Despite limited performance of DSRC, VANET-topology-based CP systems face anothe
 
 Due to these inherent restrictions of DSRC, recent publications tend to favor upcoming 5G technology \cite{Briegleb2019, 5GAutomotiveAssociation2016}. For instance, \cite{Wevers2017} claims that \textit{"'development of V2X services in 5G makes much sense, and holds promises for the future"'}.
 
-A more detailed comparison between DSRC and 5G is presented in \autoref{sec:concept_design:cellular_communication}.
+A more detailed comparison between DSRC and 5G is presented in \cref{sec:concept_design:cellular_communication}.
 
 \section{Traffic Volume Estimation}
 \label{sec:problem_analysis:traffic_volume_estimation}
@@ -44,9 +44,9 @@ The following assumptions are made.
 	\item Average inner-city \textbf{driving speed} is 24 km/h \cite{Forbes2008}
 	\item Vehicles keep a \textbf{distance} of $s \ [m] = v \ [\frac{m}{sec}] * 1.8 \ [sec] = v \  [\frac{km}{h}] * 0.5 \ [h]$ \cite{wiki:sicherheitsabstand}
 	\item Average \textbf{vehicle length} is 4.2 m
-	\item \textbf{Area} of Berlin Mitte is 21.25 km² (see appendix \autoref{sec:appendix:source_code:traffic_volume})
-	\item Total \textbf{length of road network} in Berlin Mitte is 159.13 km (see appendix \autoref{sec:appendix:source_code:traffic_volume})
-	\item Average number of \textbf{driving lanes} in Berlin Mitte is 2.4 (see appendix \autoref{sec:appendix:source_code:traffic_volume})
+	\item \textbf{Area} of Berlin Mitte is 21.25 km² (see appendix \cref{sec:appendix:source_code:traffic_volume})
+	\item Total \textbf{length of road network} in Berlin Mitte is 159.13 km (see appendix \cref{sec:appendix:source_code:traffic_volume})
+	\item Average number of \textbf{driving lanes} in Berlin Mitte is 2.4 (see appendix \cref{sec:appendix:source_code:traffic_volume})
 \end{enumerate}
 \end{samepage}
 
@@ -71,7 +71,7 @@ While the previous value of 1109 concurrent connected cars per km² is a worst-c
 	\label{fig:berlin_traffic_map}
 \end{figure}
 
-\autoref{fig:berlin_traffic_map} depicts an excerpt from that traffic census map, where the red rectangle marks the \SI{21.25}{\square\km} area used in this evaluation. Red circle indicate five measuring points that were randomly selected for calculation of the average utilization factor. For each of these points a daily vehicle count is given as $N_{i}$ in $\frac{vehicles}{24 h}$, alongside the number of driving lanes $m_i$ at that location.
+\Cref{fig:berlin_traffic_map} depicts an excerpt from that traffic census map, where the red rectangle marks the \SI{21.25}{\square\km} area used in this evaluation. Red circle indicate five measuring points that were randomly selected for calculation of the average utilization factor. For each of these points a daily vehicle count is given as $N_{i}$ in $\frac{vehicles}{24 h}$, alongside the number of driving lanes $m_i$ at that location.
 
 \begin{gather*}
 N_1 = 32,000; \  m_1 = 6 \\
@@ -109,7 +109,7 @@ Assuming that all cars were connected and participating in cooperative perceptio
 \label{sec:problem_analysis:goals_requirements}
 Overall goal of this thesis is to propose, implement and evaluate a cooperative perception system, that facilitates the improvement of connected, autonomous vehicles' average perception quality. However, it is crucial that CP is only to be used as extension for an already working, reliably and secure AD system. \textbf{The presence of cooperative perception must under no circumstances be required for the proper functioning of a self-driving car.}
 
-The presented architecture is supposed to overcome previous systems' limitation discussed in \autoref{sec:problem_analysis:limitations_of_prior_work} and be able to handle, at minimum, the average expected load determined in \autoref{sec:problem_analysis:traffic_volume_estimation}.
+The presented architecture is supposed to overcome previous systems' limitation discussed in \cref{sec:problem_analysis:limitations_of_prior_work} and be able to handle, at minimum, the average expected load determined in \cref{sec:problem_analysis:traffic_volume_estimation}.
 
 As this work mainly separates into two aspects, we define functional (\textbf{F}) and non-functional (\textbf{NF}) requirements for both parts.
 
@@ -138,14 +138,14 @@ Goal is to propose an end-to-end solution for a cooperative perception system ar
 	\end{enumerate}
 \begin{enumerate}[NF-C1:]
 	\item \textbf{Range.} The system should enable for communication over at least 600 m NLOS.
-	\item \textbf{Scalability.} The system should be able to handle at least 202 concurrent network participants per km² (see \autoref{sec:problem_analysis:traffic_volume_estimation}) at a tick rate of 10 Hz (considered sufficient by \cite{Rauch2011, Thandavarayan2019})
+	\item \textbf{Scalability.} The system should be able to handle at least 202 concurrent network participants per km² (see \cref{sec:problem_analysis:traffic_volume_estimation}) at a tick rate of 10 Hz (considered sufficient by \cite{Rauch2011, Thandavarayan2019})
 	\item \textbf{Efficiency.} The system should aim for low latency and low on-vehicle computation load.
 	\item \textbf{Reliability.} The system should avoid to have a single-point-of-failure. 
 \end{enumerate}
 
 \section{Scope}
 \label{sec:problem_analysis:scope}
-As states in \autoref{sec:problem_analysis:goals_requirements}, it is within the scope of this thesis to design a comprehensive proposal, functioning implementation and realistic simulation of cooperative perception..
+As states in \cref{sec:problem_analysis:goals_requirements}, it is within the scope of this thesis to design a comprehensive proposal, functioning implementation and realistic simulation of cooperative perception..
 
 However, the following is explicitly \textbf{out of scope}.
 \begin{itemize}
@@ -153,7 +153,7 @@ However, the following is explicitly \textbf{out of scope}.
 	\item While the proposed meta model allows for easy extension, for the sake of briefness, it is not complete in a sense that all potentially relevant classes, entities, attributes and relations are specified and implemented.
 	\item Any aspects related to security, authentication, data integrity and extensive validation are disregarded.
 	\item This thesis does conduct experiments or low-level investigations about 5G-, LTE- or DSRC network characteristics. Existing publications are used for reference instead.
-	\item While a working proof-of-concept system is proposed that fulfills the stated requirements (see \autoref{sec:problem_analysis:goals_requirements}), elaborate (performance-related) optimizations of particular aspects (e.g. fusion, message generation, compression, ...) are out of scope.
+	\item While a working proof-of-concept system is proposed that fulfills the stated requirements (see \cref{sec:problem_analysis:goals_requirements}), elaborate (performance-related) optimizations of particular aspects (e.g. fusion, message generation, compression, ...) are out of scope.
 	\item For the sake of simplicity, only two-dimensional environments are assumed, that is, vertically overlapping road scenes (e.g. with highway bridges) are not supported. However, the system could be extended to do so.
 	\item Since detailed, realistic, 3D simulations are used for evaluation, no additional real-world experiments are conducted.
 \end{itemize}
