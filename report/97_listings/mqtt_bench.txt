@@ -1,0 +1,31 @@
+# mqtt-bench 0.3.0 amd64-linux
+# mosquitto 1.6.8 amd64-linux
+
+# $COMMAND="mqtt-bench -action p -broker tcp://192.168.179.40:1883 -count 10000 -qos 1 \
+    -clients $CLIENTS -size $SIZE"
+
+# $SIZE=46000
+# $CLIENTS=1 eval $COMMAND
+Result : broker=tcp://192.168.179.40:1883, clients=1, totalCount=10000,
+    duration=2202ms, throughput=4541.33messages/sec
+
+# $CLIENTS=10 eval $COMMAND
+Result : broker=tcp://192.168.179.40:1883, clients=10, totalCount=100000,
+    duration=17319ms, throughput=5774.01messages/sec
+
+# $CLIENTS=100 eval $COMMAND
+Result : broker=tcp://192.168.179.40:1883, clients=100, totalCount=1000000,
+    duration=239050ms, throughput=4183.23messages/sec
+
+# $SIZE=12000
+# $CLIENTS=1 eval $COMMAND
+Result : broker=tcp://192.168.179.40:1883, clients=1, totalCount=10000,
+    duration=1277ms, throughput=7830.85messages/sec
+
+# $CLIENTS=10 eval $COMMAND
+Result : broker=tcp://192.168.179.40:1883, clients=10, totalCount=100000,
+    duration=10275ms, throughput=9732.36messages/sec
+
+# $CLIENTS=100 eval $COMMAND
+Result : broker=tcp://192.168.179.40:1883, clients=100, totalCount=1000000,
+    duration=114590ms, throughput=8726.76messages/sec
