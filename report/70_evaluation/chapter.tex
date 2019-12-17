@@ -10,15 +10,39 @@ After a comprehensive proposal for a cooperative perception system, including a 
 \label{sec:evaluation:performance_evaluation:methodology}
 First, one or more metrics need to be determined with respect to which the evaluation of the above criteria should be conducted.
 
-Concerning scalability, a precise quantity is given as a requirement, which refers to the number of concurrent clients (i.e. vehicles, pedestrians, etc.) the system is expected to handle at minimum. Assuming a fixed per-vehicle message publish rate – which is in accordance with the previously introduced \textit{periodic push} principle – this translates to a \textbf{minimum number of observation messages}, i.e. state representations, the edge node must be able to process at a time. While the concrete message rate is a parameter that can be varied over the course of the evaluation, a hard minimum requirement of 202 concurrent vehicles is given. That is, assuming the entire system to operate at \SI{10}{Hz} (i.e. both client- and server-side publish rate), the fusion node must reliably process 2020 observations per second without dropping below that rate.
+Concerning scalability, a precise quantity is given as a requirement, which refers to the number of concurrent clients (i.e. vehicles, pedestrians, etc.) the system is expected to handle at minimum. Assuming a fixed per-vehicle message publish rate – which is in accordance with the previously introduced \textit{periodic push} principle – this translates to a \textbf{minimum number of observation messages (Q1)}, i.e. state representations, the edge node must be able to process at a time. While the concrete message rate is a parameter that can be varied over the course of the evaluation, a hard minimum requirement of 202 concurrent vehicles is given. That is, assuming the entire system to operate at \SI{10}{Hz} (i.e. both client- and server-side publish rate), the fusion node must reliably process 2020 observations per second without dropping below that rate. In addition, average \textbf{latency in milliseconds (Q2)} and average \textbf{message size in kilobytes (Q3)} per vehicle and per observation are to be determined. In this specific context, latency refers to the average delay of a shared observation until received by an ego vehicle and can generally be thought of the average "'outdatedness"' of a CP message.
+\par
+\bigskip
 
-Concerning the second criterion, communication efficiency, average \textbf{latency in milliseconds} and average \textbf{message size in kilobytes} per vehicle and per observation are chosen to be used as metrics. In this specific context, latency refers to the average delay of a shared observation until received by an ego vehicle. While \cref{fig:communication_timeline} constitutes a detailed explanation of how this latency is composed, it essentially represents the average "'outdatedness"' of a CP message.
+Message size (Q2) is constant per vehicle and its determination can be done trivially by inspecting and aggregating the individual sizes of incoming messages at the fusion node without any special setup. For better comparison, an additional boolean parameter \texttt{WITH\_OCCUPANT} is introduced to denote whether or not an occupancy cell should include information about its potential occupant in addition to its pure state.
+\par
+\bigskip
 
-In order to gather these metrics, a minimalist sub-system of the entire CP software system is used. Accordingly, it still follows a client-server architecture with message broker and fusion node on one end and (simulated) ego vehicles on the other. Since we are only interested in quantitative measurements rather than in the messages' actual content, a newly created message generator program is used to artificially simulate observations instead of employing an actual Carla simulation with real Talky clients. Otherwise it would be infeasible to test with a large number of vehicles, due to exceedingly high computation load. The multi-threaded message generator is parameterized with (1) the target size of the generated occupancy grid observations, (2) the number of concurrent clients to simulate and (3) a per-client frequency at which to push messages to the backend. 
+Concerning the latency (Q3), we are primarily interested in how it is composed. Instead of trying to estimate total latency as a function of traffic density / number of network participants, we rather want to get insights about which parts of the fusion process are the most temporally critical ones to help later optimization of certain system components and functions. Accordingly, the relative durations $d_{i \in [0..6]}$ between relevant instants $t_{j \in [0..7]}$ of the fusion process, schematically depicted in \cref{fig:communication_timeline}, are to be determined for a fixed parameter configuration in an ordinary setup. To help that, existing code is extended in various placed across fusion node and Talky client to add time measuring functionality.
 
-The test setup involves two physical machines, interconnected via a \SI{1}{\giga\bit\per\second} Ethernet network. One machine (AMD Ryzen 1600 \SI{3.2}{\giga\hertz} 6-core CPU, \SI{16}{\giga\byte} RAM, Ubuntu 18.04) runs the backend part of the system, i.e. message broker and edge node, while the message generator is run on the other (TODO).
+\begin{figure}[h]
+	\centering
+	\includegraphics[width=1\linewidth]{98_images/communication_timeline}
+	\caption{Timing Composition of Fusion Process}
+	\label{fig:communication_timeline}
+	\medskip
+	\small
+	\begin{enumerate}[t = 1:\ ]
+		\item An observation is obtained by local sensory and low-level fusion (including ray casting-facilitated 5cell matching, etc., cf. \cref{subsec:implementation:talky_client}) \\
+		\item The observation is encoded locally, i.e. represented as a PER model and serialized to Protobuf format
+		\item The observation is received remotely, i.e. at the fusion node
+		\item The observation is decoded remotely, i.e. deserialized from Protobuf and converted to process-local data structures
+		\item The observation is remotely fused with other relevant observations from different observers, encoded to a PER model instance and serialized to Protobuf again
+		\item The fused observation is received locally the ego vehicle
+		\item The fused observation is decoded locally
+	\end{enumerate}
+\end{figure}
 
-\Cref{tab:performance_evaluation:constant_parameters} lists all fixed parameters used for the evaluation. Parameters marked with a star (*) are mentioned for completeness, but should not have any influence on the measured quantity. For the experiment, randomly generated occupancy grids within the same type 3 tile are used in the observation messages. Moreover, for performance measurements only an occupancy cell's state, but no information about its potential occupant (cf. \cref{subsec:concept_design:the_final_model}) is included, although the message size is measured for both cases in \cref{tab:performance_evaluation:message:sizes} for comparison. \Cref{tab:performance_evaluation:variable_parameters} lists all variable, evaluation-specific parameters to be tested in the evaluation in order to get insights about their respective impact on the final results. To test all combination of parameters, a grid search is conducted, i.e. a test is run for every combination in the Cartesian space of parameter values. 
+In order to gather (Q1), a minimalist sub-system of the entire CP software system is employed. It still follows a client-server architecture and has the message broker and fusion node on one end and multiple (simulated) ego vehicles on the other. Since we are only interested in quantitative measurements rather than in the messages' actual content, a newly created message generator program is used to artificially simulate observations instead of employing an actual Carla simulation with real Talky clients. Otherwise it would be infeasible to test with a large number of vehicles, due to exceedingly high computation load. The multi-threaded message generator is parameterized with (1) the target size of the generated occupancy grid observations, (2) the number of concurrent clients to simulate and (3) a per-client frequency at which to push messages to the backend. In addition, code is added to the fusion node to track how often the \texttt{Publish()} method is called. The test setup involves two physical machines, interconnected via a \SI{1}{\giga\bit\per\second} Ethernet network. One machine (AMD Ryzen 1600 \SI{3.2}{\giga\hertz} 6-core CPU, \SI{16}{\giga\byte} RAM, Ubuntu 18.04) runs the backend part of the system, i.e. message broker and edge node, while the message generator is run on the other (TODO).
+\par
+\bigskip
+
+\Cref{tab:performance_evaluation:constant_parameters} lists all fixed parameters used for the entire evaluation. Parameters marked with a star (*) are mentioned for completeness, but should not have any influence on the measured quantity. For the experiment, randomly generated occupancy grids within the same type 3 tile are used in the observation messages. \Cref{tab:performance_evaluation:variable_parameters} lists all variable, evaluation-specific parameters to be tested in the evaluation in order to get insights about their respective impact on the final results. To test all combination of parameters for investigating (Q1), a grid search is conducted, i.e. a test is run for every combination in the Cartesian space of parameter values. For (Q2) and (Q3), only a single parameter set $\vartheta = \{ \texttt{N\_EGOS} = 6, \texttt{RATE} = 10, \texttt{GRID\_RADIUS} = 11 \}$ is used.
 
 \begin{table}
 	\centering
@@ -31,6 +55,7 @@ The test setup involves two physical machines, interconnected via a \SI{1}{\giga
 		\texttt{MQTT\_QOS} & \texttt{1} \\ \hline 
 		\texttt{DECAY\_FACTOR} (*) & \texttt{0}.11 \\ \hline 
 		\texttt{OBSERVATION\_MAX\_AGE} & \texttt{3600} \\ \hline 
+		\texttt{WITH\_OCCUPANT} & \texttt{false} \\ \hline 
 	\end{tabular}
 	\caption[Performance Evaluation Constant Parameters]{Performance Evaluation Constant Parameters. See \cref{sec:implementation:configurable_parameters} for descriptions.}
 	\label{tab:performance_evaluation:constant_parameters}
@@ -48,12 +73,12 @@ The test setup involves two physical machines, interconnected via a \SI{1}{\giga
 		\hline 
 		\texttt{GRID\_RADIUS} & Occupancy grid radius in number of cells. With $\lambda_1 = 24$ these are approx. equal to a grid size (i.e. observation range) of \texttt{\{52.8, 100.8\}} meters & \texttt{\{11, 21\}} \\ 
 		\hline 
-		\texttt{WITH\_OCCUPANT} & Whether or not to include occupant information for occupancy cells (effectively constant for measuring message rate and latency) & \texttt{\{false\}} \\ 
-		\hline 
 	\end{tabular}
 	\caption{Performance Evaluation Variable Parameters}
 	\label{tab:performance_evaluation:variable_parameters}
 \end{table}
+
+In summary, two steps are performed to gather the above metrics. First, to find (Q1), multiple iterations – each according to one parameter set – are run using the minimal sub-system in the presented two-machine setup. Second, the entire CP system including a Carla simulation instance is run in a single machine to obtain (Q2) and (Q3) for a fixed parameter set. 
 
 \begin{table}
 	\centering
@@ -69,23 +94,3 @@ The test setup involves two physical machines, interconnected via a \SI{1}{\giga
 	\caption[Evaluation Result: Average Observation Message Sizes]{Evaluation Result: Average Observation Message Sizes (occupied cells)}
 	\label{tab:performance_evaluation:message:sizes}
 \end{table}
-
-\textbf{Message rate} and \textbf{message size} are measured at the fusion node. Therefor the code is extended in two places. First, code is added to track how often the \texttt{Publish()} method is called. Second, the sizes of all incoming messages are tracked and aggregated. \textbf{Latency} is measured at various places within fusion node and Talky client to get insights about how it is exactly composed. \Cref{fig:communication_timeline} illustrates all relevant steps within one round trip of cooperative perception that add delay to the total latency. The average durations $d_{i \in [0..6]}$ between these instants $t_{j \in [0..7]}$ are measured as part of this evaluation to help later optimization of certain system components and functions.
-
-\begin{figure}
-	\centering
-	\includegraphics[width=1\linewidth]{98_images/communication_timeline}
-	\caption{Timing Composition of Fusion Process}
-	\label{fig:communication_timeline}
-	\medskip
-	\small
-	\begin{enumerate}[t = 1:\ ]
-		\item An observation is obtained by local sensory and low-level fusion (including ray casting-facilitated 5cell matching, etc., cf. \cref{subsec:implementation:talky_client}) \\
-		\item The observation is encoded locally, i.e. represented as a PER model and serialized to Protobuf format
-		\item The observation is received remotely, i.e. at the fusion node
-		\item The observation is decoded remotely, i.e. deserialized from Protobuf and converted to process-local data structures
-		\item The observation is remotely fused with other relevant observations from different observers, encoded to a PER model instance and serialized to Protobuf again
-		\item The fused observation is received locally the ego vehicle
-		\item The fused observation is decoded locally
-	\end{enumerate}
-\end{figure}
