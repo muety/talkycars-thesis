@@ -173,3 +173,149 @@ With respect to communication efficiency, our evaluations found that, given a pe
 
 \section{End-to-end Perception Evaluation}
 \label{sec:evaluation:perception_evaluation}
+This part of the evaluation analyzes the proposed system's cooperative perception performance in and end-to-end fashion. Goal is to determine to what degree autonomous connected cars can improve their perception quality through cooperatively sharing their local belief about the environment. While the performance evaluation in \cref{sec:evaluation:performance_evaluation} examined certain characteristics of the system itself, in this part it is rather viewed as a black box to measure its impact end to end. 
+\par
+\bigskip
+
+Different approaches can be taken to measure overall CP performance. For instance, the authors of \cite{liu2013motion} evaluate their system with regard to planning. More specifically, they compare the smoothness or "'jerk"' of an automated vehicle's generated trajectories with and without cooperation. Another way is presented in \cite{Chen2019}. In this case, the authors evaluate their low-level fusion-based system with regard to detection range and confidence, i.e. they measure the percentage and distance of detected obstacles alongside the average observation confidence with and without CP respectively. The approach taken by this evaluation is similar to the latter and focuses on perception / detection rather than on planning. Given multiple automated, connected cars in a simulation, goal is to observe the \textbf{overall average perception quality improvement} in terms of detection accuracy and confidence. As a part of that, we also investigate how this potential improvement is impacted by the \textbf{observer network's density} and different parameter values for \textbf{temporal decay}.
+
+\subsection{Methodology}
+\label{subsec:evaluation:perception_evaluation:methodology}
+The present evaluation is two-fold insofar as the relative perception quality improvement is measured as a function of, first, the number of connected, communicating vehicles and second, different temporal decay factors (see \cref{subsec:concept_design:fusion_mechanism}). As mentioned earlier, it is conducted in an end-to-end fashion in the sense that measurements taken in multiple simulated scenarios are accumulated and viewed as a whole, rather than looking into particular aspects of the system itself. The setup is as follows.
+\par
+\bigskip
+
+A variable number of ego vehicles are simulated in a pre-defined Carla environment. Each of these comprise an instance of the client-side parts (cf. \cref{subsec:concept_design:components_overview}) of the previously developed CP system and are connected to a centrally deployed instance of the respective server-side part, i.e. message broker and fusion node. Given pseudo-randomly generated start- and destination waypoints on the Carla map, they automatically traverse their environment while facing pseudo-randomly placed static and dynamic obstacles, such as other traffic participants. While doing so, their observations in the form of PER model instances, each of which contains an occupancy grid and respective cell state estimations, are recorded for later evaluation. Multiple different scenarios are consecutively tested, in each of which static obstacle positions and start- and destination points of dynamic obstacles and ego vehicles are varied. Every configuration is run multiple times to later calculate an average score. The key point of this evaluation is to additionally run each set of experiments twice: once with the Talky fusion node turned on and off respectively, i.e. with the ego vehicles communicating with each other or not. Subsequently, both result sets are compared to learn whether or not CP improves perception quality.
+
+For illustration purposes, \cref{fig:carla_scene_topview} schematically shows an exemplary Carla scene (\textit{Town01}) from a top-view perspective as it might be used in this part of the evaluation. It involves three ego vehicles (green boxes) driving in a straight line, several stationary or moving other vehicles (blue boxes) and several pedestrians (not shown).
+\par
+\bigskip
+
+\begin{figure}
+	\begin{minipage}{0.5\textwidth}
+		\begin{tabular}{|p{4.1cm}|p{1.1cm}|p{1.4cm}|}
+			\hline 
+			\textbf{Parameter} & \textbf{Unit} & \textbf{Value} \\ 
+			\hline 
+			\texttt{MAX\_FRAME\_RATE} & fps & 30 \\ 
+			\hline 
+			\texttt{LIDAR\_PPS} & pps & 4000 \\ 
+			\hline 
+			\texttt{LIDAR\_CHANNELS} & - & 3 \\ 
+			\hline 
+			\texttt{LIDAR\_ROTATION\_FREQ} & Hz & 30 \\ 
+			\hline 
+			\texttt{LIDAR\_RANGE} & m & 48 \\ 
+			\hline 
+			\texttt{MAP} & - & Town01 \\ 
+			\hline 
+			\texttt{N\_NPCS} & - & 6 \\ 
+			\hline 
+			\texttt{N\_PEDESTRIANS} & - & 90 \\ 
+			\hline 
+			\texttt{N\_STATIC} & - & 75 \\ 
+			\hline 
+		\end{tabular}
+	\end{minipage}
+	\begin{minipage}{0.5\textwidth}
+		\begin{tabular}{|p{4.1cm}|p{1.1cm}|p{1.4cm}|}
+			\hline 
+			\textbf{Parameter} & \textbf{Unit} & \textbf{Value} \\ 
+			\hline 
+			\texttt{SPAWN\_POINT\_POLICY} & - & random \\ 
+			\hline 
+			\texttt{MAX\_SPEED} & km/h & 25 \\ 
+			\hline 
+			\texttt{TILE\_1\_LEVEL} & - & 24 \\ 
+			\hline 
+			\texttt{TILE\_2\_LEVEL} & - & 19 \\ 
+			\hline 
+			\texttt{TILE\_3\_LEVEL} & - & 15 \\ 
+			\hline 
+			\texttt{MQTT\_QOS} & - & 1 \\ 
+			\hline 
+			\texttt{OBSERVATION\_MAX\_AGE} & ms & 2000 \\ 
+			\hline 
+			\texttt{FUSION\_RATE} & Hz & 10 \\ 
+			\hline 
+			\texttt{OBSERVATION\_RATE} & Hz & 10 \\ 
+			\hline
+		\end{tabular} 
+	\end{minipage}
+	\captionof{table}[Constant Parameters of the Perception Evaluation]{Constant Parameters of the Perception Evaluation. See \cref{sec:implementation:configurable_parameters} for descriptions.}
+	\label{tab:perception_evaluation:constant_parameters}
+\end{figure}
+
+\begin{figure}
+	\centering
+	\includegraphics[width=1\linewidth]{98_images/evaluation_scene_topview_cropped}
+	\caption[Schematic Top-View of the Simulation Environment used for Evaluation]{Schematic Top-View of an exemplary CARLA Simulation Environment used for Evaluation (\textit{Town01}). Green boxes indicate ego cars, blue boxes correspond to other, non-"'player"' vehicles.}
+	\label{fig:carla_scene_topview}
+\end{figure}
+
+Given the fixed parameters in \cref{tab:perception_evaluation:constant_parameters}, first, the number of ego vehicles is varied between $\texttt{N\_VEHICLES} \in [1, 3, 6]$. For each of these configurations, three different scenarios are tested, corresponding to initializing a \texttt{Scene} with three different random seeds ($\texttt{SEED} \in [4, 8, 16]$). Finally, every combination of vehicle density and scene setup is run five times, i.e. a total of $k_1 = |\textit{range(\texttt{N\_VEHICLES})}| * |\textit{range(\texttt{SEED})}| * 5 = 45$ experiments are conducted. Moreover, in a second step, the amount of vehicles is set to a fixed value and the temporal decay is varied as $\texttt{DECAY\_FACTOR} \in [0.05, 0.08, 0.11, 0.14]$. Accordingly, another $k_2 = 60$ experiments are performed for finding a suitable decay factor. \Cref{tab:perception_evaluation:variable_parameters} summarizes all different parameter combinations used.
+
+\begin{figure}
+	\begin{minipage}{0.4\textwidth}
+		\begin{tabular}{|p{3cm}|p{2.5cm}|}
+			\hline 
+			\textbf{Parameter} & \textbf{Value} \\ 
+			\hline 
+			\texttt{N\_VEHICLES} & \texttt{\{1, 3, 6\}} \\ 
+			\hline 
+			\texttt{DECAY\_FACTOR} & \texttt{0.05} \\ 
+			\hline 
+			\texttt{SEED} & \texttt{\{4, 8, 16\}} \\ 
+			\hline
+		\end{tabular}
+	\end{minipage}
+	\begin{minipage}{0.6\textwidth}
+		\begin{tabular}{|p{3cm}|p{5.5cm}|}
+			\hline 
+			\textbf{Parameter} & \textbf{Value} \\ 
+			\hline 
+			\texttt{N\_VEHICLES} & \texttt{6} \\ 
+			\hline 
+			\texttt{DECAY\_FACTOR} & \texttt{\{0.05, 0.08, 0.11, 0.14\}} \\ 
+			\hline 
+			\texttt{SEED} & \texttt{\{4, 8, 16\}} \\ 
+			\hline
+		\end{tabular} 
+	\end{minipage}
+	\captionof{table}[Variable Parameters of the Perception Evaluation]{Variable Parameters of the Perception Evaluation. Left: first part (varying number of vehicles), right: second part (varying decay factor)}
+	\label{tab:perception_evaluation:variable_parameters}
+\end{figure}
+\par
+\bigskip
+
+As mentioned before, every ego vehicle records both its local and – in the case of CP being enabled – its received fused observations. Observations are dumped to a file to be then used in a subsequent, offline (i.e. after the simulation has finished) analysis. Offline analysis, as opposed to computing evaluation scores online and in "'real time"' during the simulation, is necessary out of performance reason, as these computations would dramatically slow down the simulation. Alongside the ego vehicles themselves, an additional small program is run during the simulation, that is responsible for retrieving the actual, true obstacle position from the simulator. These are recorded to a file as well to be later used as ground truth measurements for comparison in the analysis. 
+\par
+\bigskip
+
+The actual data analyses are performed in a downstream step using a separate Python script. It first reads in all observations from all ego vehicles and the previously mentioned ground truth data collector for a particular run. As mentioned earlier, only an occupancy cell's state will be considered, so an observation corresponds to a true or estimated cell state. Subsequently, the script essentially compares ground truth data to observations; once to those with CP enabled and again to the local ones only. As a result of these comparisons, two scoring metrics – accuracy (ACC) and mean-squared error (MSE) – are computed for every pair of true and estimated cell state. Eventually all values are aggregated to get a total scores for the entire run, i.e. all observations from all ego vehicles at every time stamp are combined. The meaning and definition of ACC and MSE with regard to the current context is briefly explained in the following.
+Let $\vec{y}_i$ be a three-dimensional vector representing a cell's ternary (\textit{free}, \textit{occupied}, \textit{unknown}) state confidence, on which only one entry can be non-zero at a time. For instance, a 30 \% confidence for a cell state being \textit{occupied} could be expressed as $\vec{\hat{y}}_i = (0, 0.3, 0)$. Further, let a distinction be made between the true state vector $\vec{y}_i$ and its estimation (as part of a vehicle's observation) $\vec{\hat{y}}_i$ and let $Y$ and $\hat{Y}$ be the sets of all such true- and estimated state vectors respectively. Then, the following definitions for total, accumulated ACC and MSE can be given.
+
+\begin{gather}
+	\textit{MSE}(Y, \hat{Y}) = \frac{1}{n} \sum_{i=1}^{n} \vec{y}_i \cdot (\vec{y}_i - \vec{\hat{y}}_i)^2 \\
+	\textit{ACC}(Y, \hat{Y}) = \frac{1}{n} \sum_{i=1}^{n} -\textit{sgn}(\vec{y}_i \cdot (\vec{y}_i - \hat{y}_i) - 1)
+\end{gather}
+
+\textbf{Example:} Assume a grid that consists of only two cells, the first of which is occupied and the second is free. Moreover, consider two observers, each estimating the grid cells' states. In the example, $\vec{\hat{y}}_{i,j}$ denotes the i-th vehicle's observation of cell j, i.e. $\vec{\hat{Y}}_i$ are all observations from vehicle i.
+
+\begin{gather*}
+	\vec{y}_1 = \begin{pmatrix}0 \\ 1 \\ 0 \end{pmatrix} \text{,\ } \vec{y}_2 = \begin{pmatrix}1 \\ 0 \\ 0 \end{pmatrix} \text{,\ }
+	\hat{Y}_1 = \begin{pmatrix}
+	0 & 0.5 \\
+	0.8 & 0 \\
+	0 & 0
+	\end{pmatrix} \text{,\ }
+	\hat{Y}_2 = \begin{pmatrix}
+	0 & 0 \\
+	0.6 & 0 \\
+	0 & 0.9
+	\end{pmatrix} \\
+	\textit{MSE}(Y, \hat{Y}) = \frac{1}{4} (\begin{pmatrix}0 \\ 1 \\ 0 \end{pmatrix} \cdot \begin{pmatrix}0 \\ 0.2 \\ 0 \end{pmatrix}^2 + \text{...} + \begin{pmatrix}1 \\ 0 \\ 0 \end{pmatrix} \cdot \begin{pmatrix}1 \\ 0 \\ -0.9 \end{pmatrix}^2) = \frac{1}{4} (0.2^2 + \text{...} + 1^2) = 36.25 \% \\
+	\textit{ACC}(Y, \hat{Y}) = \text{...} = \frac{1}{4} (-\textit{sgn}(0.2-1) - \text{...} -\textit{sgn}(1-1)) = \frac{1}{4} (1+1+1-0) = 75 \%
+\end{gather*}
+
+As a test setup, the same physical machines are used as in \cref{subsec:evaluation:performance_evaluation:methodology}. The first machine ran the Carla simulator and all backend components, i.e. message broker and Talky fusion node. For the configurations comprising only one or three ego vehicles, all client-side components, i.e. simulation client and Talky client, were run on the second machine. In the last configuration involving six ego cars, four of them were run on machine 2 and the remaining two out of six on machine 1.
