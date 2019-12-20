@@ -1,4 +1,4 @@
-This chapter first outlines limitations of current approaches in the field of cooperative perception and motivates this work's contributions to overcome them. Second, goals and conceptual requirements are presented as a guideline for later system design. Finally, it is made clear which, aspects are in or out of scope of this thesis.
+This chapter first outlines limitations of current approaches in the field of cooperative perception and motivates this work's contributions to overcome them. Second, goals and conceptual requirements are presented as a guideline for later system design. Finally, it is made clear which aspects are in or out of scope of this thesis.
 
 \section{Limitations of Prior Work}
 \label{sec:problem_analysis:limitations_of_prior_work}
@@ -34,7 +34,7 @@ To be able to formulate requirements for a cooperative perception system, a quan
 \label{subsec:problem_analysis:methodology_results}
 An average-case value for the average number of concurrent vehicles within 1 km² of urban area is searched. For its calculation, a heuristic two-step approach is employed. Although based on many assumptions, this rough approximation is sufficient for our purpose as there is no need for a precise quantity. 
 
-The city of Berlin is used as an example, as suitable open data is available for it. OpenStreetMap data files for Berlin \footnote{\url{http://download.geofabrik.de/europe/germany/berlin.html}} served as a basis to compute road network length and average number of street lanes. They were fed into a PostgreSQL \footnote{\url{https://postgresql.org/}} database with the PostGIS \footnote{\url{http://postgis.net/}} extension using \textit{osm2pgsql} \footnote{\url{https://github.com/openstreetmap/osm2pgsql}} and queried using SQL.
+The city of Berlin is used as an example, as suitable open data is available for it. OpenStreetMap data files for Berlin\footnote{\url{http://download.geofabrik.de/europe/germany/berlin.html}} served as a basis to compute road network length and average number of street lanes. They were fed into a PostgreSQL\footnote{\url{https://postgresql.org/}} database with the PostGIS\footnote{\url{http://postgis.net/}} extension using \textit{osm2pgsql}\footnote{\url{https://github.com/openstreetmap/osm2pgsql}} and queried using SQL.
 
 \subsubsection{Assumptions}
 The following assumptions are made.
@@ -145,7 +145,7 @@ Goal is to propose an end-to-end solution for a cooperative perception system ar
 
 \section{Scope}
 \label{sec:problem_analysis:scope}
-As states in \cref{sec:problem_analysis:goals_requirements}, it is within the scope of this thesis to design a comprehensive proposal, functioning implementation and realistic simulation of cooperative perception..
+As stated in \cref{sec:problem_analysis:goals_requirements}, it is within the scope of this thesis to design a comprehensive proposal, functioning implementation and realistic simulation of cooperative perception.
 
 However, the following is explicitly \textbf{out of scope}.
 \begin{itemize}

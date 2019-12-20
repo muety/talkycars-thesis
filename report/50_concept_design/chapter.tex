@@ -61,7 +61,7 @@ Especially the inclusion of semantic, relational information – originally prop
 	\end{enumerate}
 \end{samepage}
 
-This principles are picked up again for the concrete model specification presented later.
+These principles are picked up again for the concrete model specification presented later.
 
 \cite{Crowley1993} also presents a "'General Framework for Dynamic World Modeling"', depicted in \cref{fig:dynamic_world_modeling} (left). It illustrates the high-level process to transform heterogeneous types of observations into a unified model using a common vocabulary. The process includes a \textit{Match-Update-Predict} cycle, the purpose of which is to enhance observations with evidence derived from previous observations and a prediction model. Although especially the \textit{Match} step is quite essential for a real-world system, it is neglected in this thesis for the sake of focusing on the higher-level system architecture. Instead, a simplified process (right) is applied.
 
@@ -153,7 +153,7 @@ The graphical representation also allows for different types of inference. New f
 
 \subsection{The Final Model}
 \label{subsec:concept_design:the_final_model}
-The complete model proposed as part of this thesis is presented in \cref{fig:final_model}. It aims to be sufficiently comprehensive and includes all aspects needed for an in-depth evaluation of cooperative perception. However, the presented version is still not 100 \% complete. Future work in cooperation with expert groups is desirable to further extend it. 
+The complete model proposed as part of this thesis is presented in \cref{fig:final_model}. It aims to be sufficiently comprehensive and includes all aspects needed for an in-depth evaluation of cooperative perception. 
 
 In the illustration, blue boxes denote entities, orange boxes stand for uncertain entity-entity relations and green circles are uncertain attributes (or entity-literal relations). Gray boxes are special in a way that they can not be subject to instantiation, but rather define the meta model's static structure as a class hierarchy. Filled blue boxes are not of a special meaning, except that they usually occur particularly frequently.
 
@@ -191,7 +191,7 @@ A minimal instantiation of this model has to include an \textit{OccupancyGrid} i
 
 \subsection{Summary}
 \label{subsec:concept_design:modeling:summary}
-In the previous sections a comprehensive, yet not complete, model for dynamic traffic scenes and with a focus on cooperative perception use cases was presented (see \cref{fig:final_model}). It enable to describe a scene combining low level attributes with high level relational knowledge in a generic way and fulfills the requirements stated in \cref{sec:problem_analysis:goals_requirements} and follows the modeling principles introduced in \cref{subsec:concept_design:principle_of_dynamic_world_modeling}.
+In the previous sections a comprehensive, yet not complete, model for dynamic traffic scenes and with a focus on cooperative perception use cases was presented (see \cref{fig:final_model}). It enable to describe a scene combining low level attributes with high level relational knowledge in a generic way and fulfills the requirements stated in \cref{sec:problem_analysis:goals_requirements} and follows the modeling principles introduced in \cref{subsec:concept_design:principle_of_dynamic_world_modeling}. However, future work in cooperation with expert groups is desirable to further extend it.
 
 As a result, it is capable of uniformly and universally modeling road scenarios at a high degree of expressiveness, while embracing a notion of uncertainty or confidence and information on different abstraction levels. Key concepts used include \textbf{geo tiling} based on \textbf{QuadKeys} for spatially referencing cells of an \textbf{occupancy grid} and \textbf{Probabilistic Entity Relationship models} as a structural framework.
 
@@ -199,23 +199,15 @@ As a result, it is capable of uniformly and universally modeling road scenarios 
 \label{sec:concept_design:cellular_communication}
 Various downsides of DSRC-based ad-hoc networks for cooperative perception use cases were already discussed in \cref{sec:problem_analysis:limitations_of_prior_work}. They include issues arising from limited throughput and comparatively short range of IEEE 802.11p and similar technologies. Furthermore, P2P topologies usually imply a large communication overhead and result in high computational load for each participant. To overcome these limitations, an alternative approach is proposed that builds on 5G networks and a client-server topology.
 
-This section briefly presents characteristics, key benefits and implications of 5G technology for V2X communication and motivates the decision for its use in the present CP system.
+This section briefly outlines key benefits and implications of 5G technology for V2X communication and motivates the decision for its use in the present CP system.
 
-\subsection{5G Characteristics \& Advantages}
-\label{subsec:concept_design:5g_characteristics_advantages}
-5G stands for the fifth generation cellular network standard and is the successor of 4G, or LTE. It may be operated on a variety of different spectrums, ranging from low-band (\textasciitilde 600 Mhz) over mid-band (2.4 to 4.2 \si{\giga\hertz}) to millimeter waves in the high-band spectrum ranging from 24 to 72 \si{\giga\hertz}. Which spectrum is used depends mainly on the carrier and has direct influence on communication range and speed. While millimeter wave frequencies will mainly be used in North America, Europe will rely on the low- and mid-range bands.
-
-In networks based on the most widely used mid-band spectrum, average throughput is between 100 and 400 \si{\mega\bit\per\second}, while it can increase up to \SI{2}{\giga\bit\per\second} with millimeter waves \cite{wiki:5g}.
-
-Typical round-trip (RTT) were measured to range from 25-35 \si{\milli\second} and might be improved to 10-20 \si{\milli\second} when employing an \textit{Edge Node} (see \cref{sec:background:edge_computing}) close to a cell tower \cite{wiki:5g}. Under lab conditions, even less than \SI{1}{\milli\second} latencies were observed.
-
-Like 4G, 5G is based on network cells between which moving mobile clients are handed over. Generally, network cells are smaller with 5G than with 4G, especially in densely populated areas. Depending on which frequency band is used, cell towers may need to be placed every few hundred meters to achieve full coverage.
-
-\cite{5GAutomotiveAssociation2016} presents a detailed, technical discussion of 5G vs DSRC for V2X, while a higher-level comparison with respect to key implications for CP is presented in \cref{tab:5g_dsrc_comparison}.
+\subsection{5G Usage Scenarios \& Advantages}
+\label{subsec:concept_design:5g_usage_scenarios_advantages}
+5G is a promising cellular network technology with the potential to overcome some of the limitation of DSRC discussed in \cref{sec:problem_analysis:limitations_of_prior_work}. Its characteristics, especially with regard to data throughput and latency, were introduced in \cref{sec:background:5g}. In addition, \cite{5GAutomotiveAssociation2016} presents a detailed, technical discussion of 5G vs DSRC for V2X, while a higher-level comparison with respect to key implications for CP is presented in \cref{tab:5g_dsrc_comparison}.
 \par
 \bigskip
 
-ETSI identified three different main usage scenarios for 5G \cite{ETSI5G}, all of which require different key capabilities, as shown in \cref{fig:5g_capabilities}. The different usage scenarios are:
+Moreover, ETSI identified three different main usage scenarios for 5G \cite{ETSI5G}, all of which require different key capabilities, as shown in \cref{fig:5g_capabilities}. The different usage scenarios are:
 
 \begin{itemize}
 	\item \textbf{Enhanced Mobile Broadband (eMBB)} to be used for high-definition, low-latency multimedia content and mobile games on end-user devices and smartphones.
@@ -223,7 +215,7 @@ ETSI identified three different main usage scenarios for 5G \cite{ETSI5G}, all o
 	\item \textbf{Ultra-reliable and Low Latency Communications (URLLC)} for safety- and mission-critical applications, like autonomous driving. 
 \end{itemize}
 
-Cooperative perception requires URLLC and thus especially low latency and high throughput.
+Cooperative perception constitutes a usage scenario that corresponds to the latter, as it requires URLLC and thus especially low latency and high throughput.
 
 \begin{figure}[h]
 	\centering
@@ -279,7 +271,7 @@ In contrast to most prior work, the CP system developed in the context of this t
 	\label{tab:5g_dsrc_comparison}
 \end{table}
 
-In conclusion, 5G is a highly promising technology for cooperative perception and V2X communication in general. However, since it is a crucial requirement for the functioning of cellular V2X networks, their adoption will heavily depend on the market introduction of 5G. At the time of writing, 5G is still in its infancy. However, its expansion is being driven forward vigorously. For instance, German network operators are required to provide 5G coverage to 98 \% of all households by 2022 \cite{DeutscheWelle2019}. The authors of \cite{CCSInsight2018}, in turn, consider the market introduction of V2X applications an enabler for the establishment of 5G technology for mission-critical (URLCC, see \cref{subsec:concept_design:5g_characteristics_advantages}) usage scenarios and estimate them to take off from 2025 on. However, they put the usage of 4G Advanced, or 4.5G, as a fallback mechanism in perspective.
+In conclusion, 5G is a highly promising technology for cooperative perception and V2X communication in general. However, since it is a crucial requirement for the functioning of cellular V2X networks, their adoption will heavily depend on the market introduction of 5G. At the time of writing, 5G is still in its infancy. However, its expansion is being driven forward vigorously. For instance, German network operators are required to provide 5G coverage to 98 \% of all households by 2022 \cite{DeutscheWelle2019}. The authors of \cite{CCSInsight2018}, in turn, consider the market introduction of V2X applications an enabler for the establishment of 5G technology for mission-critical (URLCC, see \cref{subsec:concept_design:5g_usage_scenarios_advantages}) usage scenarios and estimate them to take off from 2025 on. However, they put the usage of 4G Advanced, or 4.5G, as a fallback mechanism in perspective.
 
 \section{System Architecture}
 \label{sec:concept_design:system_architecture}
