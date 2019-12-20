@@ -407,8 +407,6 @@ class GridEvaluator:
                       --> this block won't get executed, as item_remote is not None
                     – Case 2.2 -> Tile C
                       -> this block will find a hit -> tile C will be considered for ground truth (denominator), because it's in the local neighborhood
-                    – Case 2.1 -> Tile A
-                      --> this block won't find a hit -> breaking loop iteration here
                     '''
                     if consider_neighborhood and not item_local:
                         neighbors: Set[QuadKey] = set(map(QuadKey, parent.nearby(1)))
