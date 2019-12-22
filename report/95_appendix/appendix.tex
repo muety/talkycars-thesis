@@ -28,6 +28,36 @@ Another standard exists with \textbf{DATEX II}, specified by the European Commit
 
 \cite{Stiller2012} follows yet a different approach as the authors show a way to represent the current local world state as the instantiation of a \textbf{Markov Logic Network}, in which weights represent uncertainty about the true state of an observation. This representation is inherently graphical and by incorporating first-order logic, the underlying model also allows for basic inference, in theory. A specification of what objects and relations to include to comprehensively model a traffic scene is not provided.
 
+\section{Concept \& Design}
+\label{sec:appendix:texts:concept_design}
+
+\subsection{Geographical Sharding Schema}
+\label{subsec:appendix:texts:concept_design:geographical_sharding_schema}
+\begin{figure}
+	\centering
+	\includegraphics[width=0.9\linewidth]{98_images/geo_subscription_schema}
+	\caption[Schematic Illustration of Geographical Sharding]{Schematic Illustration of Geographical Sharding \\ Blue cells (= type 1 tiles) are part of the vehicle's observed occupancy grid. \\ Orange cells (= type 2 tiles) are part of the vehicle's range of interest. \\ Green cells (=type 3 tiles) are subject to geo distribution.}
+	\label{fig:geo_distribution_schema}
+\end{figure}
+
+\section{Evaluation}
+\label{sec:appendix:texts:evaluation}
+
+\subsection{Perception Evaluation Analyses}
+\label{subsec:appendix:texts:evaluation:perception_relevant_analyses}
+\begin{figure}
+	\includegraphics[width=1\linewidth]{98_images/grid_evaluation}
+	\caption{Schematic Illustration of Evaluation-Relevant Cells}
+	\label{fig:eval_relevant_cells}
+	\medskip
+	\small
+	The blue vehicle is the ego vehicle in this example, while the green vehicles are other network participants. The orange type 2 cells are those, which the ego is currently subscribed to (i.e. its "'neighborhood"') for receiving observations from the fusion node. At the same time, they are the ones whose type 1 cells to include into the evaluation. Red rectangles depict obstacles and green or gray rectangles around vehicles show their respective observation range, i.e. local grid size.
+	
+	Obstacle 4 is within the ego's local observation range, while 2, 3 and 5 can only be recognized through CP with the help of other cars. Obstacle 1 is out of range for the ego, regardless of CP being turned on or off.
+	
+	Without CP, the ego can detect $\frac{1}{4}$ obstacles in potential range, while with CP it virtually detects $\frac{3}{4}$ of them.
+\end{figure}
+
 \chapter{Source Code}
 \label{appendix:source_code}
 

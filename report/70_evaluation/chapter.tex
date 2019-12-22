@@ -162,14 +162,16 @@ A further discussion about the implication of any of these results is done in th
 With respect to scalability, it was shown that a single Talky fusion node is able to fulfill the requirement of handling more than 202 concurrent clients with an observation range of $\sim$ \SI{50}{\meter} up to a fusion rate of \SI{10}{\hertz}. Given a \SI{100}{\meter} observation range, the system would at least be able to support \SI{5}{\hertz}. While the authors if \cite{Calvo2017} suggest to run their system at \SI{10}{\hertz}, \cite{Thandavarayan2019} showed that certain optimizations can decrease the required message rate for cooperative perception to \SI{4.5}{\hertz} without sacrificing perception quality. Hence, the present prototype system's performance can be considered acceptable, although there is large room for optimizations. Such include the following.
 
 \begin{itemize}
-	\item Algorithmic optimizations of the fusion routine: the current implementation has superlinear complexity and might potentially be reworked to scale better. For instance, \cite{Petrich2018} showed that a relational traffic scene representation – like the present PER model – can be transformed to a \textbf{tensor format}, which potentially enables for fusion to be represented as matrix operations. Such can be run on a GPU in a highly optimized fashion and potentially boost performance by orders of magnitude. Another potentially promising optimization is to extend the current, naive fusion to \textbf{probabilistic fusion}, which is a concept that, to the best of our knowledge, no previous work had covered, yet. The basic idea here is to sample a smaller subset of all available observations using a particular probability distribution, so that the entire spatial area is still best represented in the sample. 
+	\item Algorithmic optimizations of the fusion routine: the current implementation has superlinear complexity and might potentially be reworked to scale better. For instance, Petrich et al. \cite{Petrich2018} showed that a relational traffic scene representation – like the present PER model – can be transformed to a \textbf{tensor format}, which potentially enables for fusion to be represented as matrix operations. Such can be run on a GPU in a highly optimized fashion and potentially boost performance by orders of magnitude. Another potentially promising optimization is to extend the current, naive fusion to \textbf{probabilistic fusion}, which is a concept that, to the best of our knowledge, no previous work had covered, yet. The basic idea here is to sample a smaller subset of all available observations using a particular probability distribution, so that the entire spatial area is still best represented in the sample. 
 	\item Parameter optimization: for the sake of simplicity, only a very small set of different parameters were tested in the previous evaluation. However, for real-world deployment, one would want to thoroughly \textbf{determine optimal values} for any of the parameters presented in \cref{sec:implementation:configurable_parameters}. For instance, the authors of \cite{Gunther2015} run their CP system at only \SI{1}{\hertz} and with a communication range of \SI{300}{\meter} (compared to \SI{611}{\meter} or \SI{1223}{\meter} in our experiments). This holds potential to dramatically improve performance.
 	\item Message generation optimizations: \cite{Thandavarayan2019} presents a rich set of thought on how to \textbf{optimize the generation and publishing} of CPMs. For instance, the authors worked out sophisticated heuristics to determine when a message would contain enough valuable information about the current to be published and when it is better hold back for another few time steps. In complement to that, \cite{Breu2013} presents a way to efficiently \textbf{estimate the relevance} of a CAM for its recipient, mainly based on the sender and recipient's trajectory.
 \end{itemize}
 \par
 \bigskip
 
-With respect to communication efficiency, our evaluations found that, given a per-vehicle observation range of $\sim$ \SI{50}{\meter}, the average message size ranges from \SI{12}{\kilo\byte} without occupant information to \SI{32}{\kilo\byte} with such. Naively assuming an available bandwidth of \SI{100}{\mega\bit} (cf. \cref{subsec:concept_design:5g_usage_scenarios_advantages}), the network could handle $\sim$ 2080 or 780 messages per second respectively. Without conducting a more elaborate estimation, this can generally not be considered sufficient. Accordingly, the format of exchanged messages would have to undergo further optimization in the future. Such optimizations might include server- and client-side \textbf{caching} of de-facto constant properties of actors, e.g. the \texttt{boundingBox} of a \texttt{DynamicObstacle} used within an \texttt{observedBy} relation of an \texttt{OccupancyGrid} (see \cref{subsec:concept_design:the_final_model}). In addition, the cells of an occupancy grid can be represented more efficiently by only transmitting the top-left and bottom-right cell's hash, instead of all. Moreover, the optimization methods (e.g. with regard to message generation) mentioned above apply to improving communication efficiency likewise. As a result to investigating a CP iteration's total latency and how it is composed, an average "'outdatedness"' of shared observations of $\sim$ \SI{289}{\milli\second} was found, when disregarding the local measuring process. Whether or not this is a suitable delay for a CP system is evaluated qualitatively in the next \cref{sec:evaluation:perception_evaluation}.
+With respect to communication efficiency, our evaluations found that, given a per-vehicle observation range of $\sim$ \SI{50}{\meter}, the average message size ranges from \SI{12}{\kilo\byte} without occupant information to \SI{32}{\kilo\byte} with such. Naively assuming an available bandwidth of \SI{200}{\mega\bit} (cf. \cref{subsec:concept_design:5g_usage_scenarios_advantages}), the network could handle $\sim$ 2080 or 780 messages per second respectively. Without conducting a more elaborate estimation, this can generally not be considered sufficient. Accordingly, the format of exchanged messages would have to undergo further optimization in the future. Such optimizations might include server- and client-side \textbf{caching} of de-facto constant properties of actors, e.g. the \texttt{boundingBox} of a \texttt{DynamicObstacle} used within an \texttt{observedBy} relation of an \texttt{OccupancyGrid} (see \cref{subsec:concept_design:the_final_model}). In addition, the cells of an occupancy grid can be represented more efficiently by only transmitting the top-left and bottom-right cell's hash, instead of all, since that information is redundant. Moreover, the optimization methods (e.g. with regard to message generation) mentioned above apply to improving communication efficiency likewise.
+
+As a result to investigating a CP iteration's total latency and how it is composed, an average "'outdatedness"' of shared observations of $\sim$ \SI{289}{\milli\second} was found, when disregarding the local measuring process. Whether or not this is a suitable delay for a CP system is discussed in the next \cref{sec:evaluation:perception_evaluation}.
 
 \section{End-to-end Perception Evaluation}
 \label{sec:evaluation:perception_evaluation}
@@ -253,7 +255,7 @@ For illustration purposes, \cref{fig:carla_scene_topview} schematically shows an
 \begin{figure}
 	\centering
 	\includegraphics[width=1\linewidth]{98_images/evaluation_scene_topview_cropped}
-	\caption[Schematic Top-View of the Simulation Environment used for Evaluation]{Schematic Top-View of an exemplary CARLA Simulation Environment used for Evaluation (\textit{Town01}). Green boxes indicate ego cars, blue boxes correspond to other, non-"'player"' vehicles.}
+	\caption[Top-View of the Simulation Environment used for Evaluation]{Schematic Top-View of an exemplary CARLA Simulation Environment used for Evaluation (\textit{Town01}). Green boxes indicate ego cars, blue boxes correspond to other, non-"'player"' vehicles.}
 	\label{fig:carla_scene_topview}
 \end{figure}
 
@@ -277,31 +279,17 @@ As mentioned before, every ego vehicle records both its local and – in the cas
 \subsubsection{Data Analysis \& Scoring}
 The actual data analyses are subsequently performed in a downstream step using a separate Python script. It first reads in all observations from all ego vehicles and the previously mentioned ground truth data collector for a particular run.
 
-As mentioned earlier, only an (occupied) occupancy cell's state will be considered, so an observation corresponds to a true or estimated cell state. Subsequently, the script essentially compares ground truth data to observations; once to those with CP enabled and again to the local ones only. Doing so all cells (= type 1 tiles, cf. \cref{subsec:concept_design:geographical_sharding}) are considered that are contained in the observer's current type 2 tile as well as in any of the neighboring type 2 tiles. \Cref{fig:eval_relevant_cells} schematically depicts this in greater detail.
+As mentioned earlier, only an (occupied) occupancy cell's state will be considered, so an observation corresponds to a true or estimated cell state. Subsequently, the script essentially compares ground truth data to observations; once to those with CP enabled and again to the local ones only. Doing so all cells (= type 1 tiles, cf. \cref{subsec:concept_design:geographical_sharding}) are considered that are contained in the observer's current type 2 tile as well as in any of the neighboring type 2 tiles. \Cref{fig:eval_relevant_cells} in appendix \cref{subsec:appendix:texts:evaluation:perception_relevant_analyses} schematically depicts this in greater detail.
 
-As a result of those comparisons, two scoring metrics – \textbf{accuracy (ACC)} and \textbf{mean-squared error (MSE)} – are computed for every pair of true and estimated cell state. Eventually all values are aggregated to get a total scores for the entire run, i.e. all observations from all ego vehicles at every time stamp are combined. The meaning and definition of ACC and MSE with regard to the current context is briefly explained in the following.
-
-\begin{figure}
-	\includegraphics[width=1\linewidth]{98_images/grid_evaluation}
-	\caption{Schematic Illustration of Evaluation-Relevant Cells}
-	\label{fig:eval_relevant_cells}
-	\medskip
-	\small
-	The blue vehicle is the ego vehicle in this example, while the green vehicles are other network participants. The orange type 2 cells are those, which the ego is currently subscribed to (i.e. its "'neighborhood"') for receiving observations from the fusion node. At the same time, they are the ones whose type 1 cells to include into the evaluation. Red rectangles depict obstacles and green or gray rectangles around vehicles show their respective observation range, i.e. local grid size.
-	
-	Obstacle 4 is within the ego's local observation range, while 2, 3 and 5 can only be recognized through CP with the help of other cars. Obstacle 1 is out of range for the ego, regardless of CP being turned on or off.
-	
-	Without CP, the ego can detect $\frac{1}{4}$ obstacles in potential range, while with CP it virtually detects $\frac{3}{4}$ of them.
-\end{figure}
-
+As a result of those comparisons, two scoring metrics – \textbf{recall (REC)} and \textbf{mean-squared error (MSE)} – are computed for every pair of true and estimated cell state. Eventually all values are aggregated to get a total scores for the entire run, i.e. all observations from all ego vehicles at every time stamp are combined. The meaning and definition of REC and MSE with regard to the current context is briefly explained in the following.
 \par
 \bigskip
 
-Let $\vec{y}_i$ be a three-dimensional vector representing a cell's ternary (\textit{free}, \textit{occupied}, \textit{unknown}) state confidence, on which only one entry can be non-zero at a time. For instance, a 30 \% confidence for a cell state being \textit{occupied} could be expressed as $\vec{\hat{y}}_i = (0, 0.3, 0)$. Further, let a distinction be made between the true state vector $\vec{y}_i$ and its estimation (as part of a vehicle's observation) $\vec{\hat{y}}_i$ and let $Y$ and $\hat{Y}$ be the sets of all such true- and estimated state vectors respectively. Then, the following definitions for total, accumulated ACC and MSE can be given.
+Let $\vec{y}_i$ be a three-dimensional vector representing a cell's ternary (\textit{free}, \textit{occupied}, \textit{unknown}) state confidence, on which only one entry can be non-zero at a time. For instance, a 30 \% confidence for a cell state being \textit{occupied} could be expressed as $\vec{\hat{y}}_i = (0, 0.3, 0)$. Further, let a distinction be made between the true state vector $\vec{y}_i$ and its estimation (as part of a vehicle's observation) $\vec{\hat{y}}_i$ and let $Y$ and $\hat{Y}$ be the sets of all such true- and estimated state vectors respectively. Then, the following definitions for total, accumulated recall and MSE can be given.
 
 \begin{gather}
 	\textit{MSE}(Y, \hat{Y}) = \frac{1}{n} \sum_{i=1}^{n} \vec{y}_i \cdot (\vec{y}_i - \vec{\hat{y}}_i)^2 \\
-	\textit{ACC}(Y, \hat{Y}) = \frac{1}{n} \sum_{i=1}^{n} -\textit{sgn}(\vec{y}_i \cdot (\vec{y}_i - \hat{y}_i) - 1)
+	\textit{REC}(Y, \hat{Y}) = \frac{1}{n} \sum_{i=1}^{n} -\textit{sgn}(\vec{y}_i \cdot (\vec{y}_i - \hat{y}_i) - 1)
 \end{gather}
 
 \textbf{Example:} Assume a grid that consists of only two cells, the first of which is occupied and the second is free. Moreover, consider two observers, each estimating the grid cells' states. In the example, $\vec{\hat{y}}_{i,j}$ denotes the i-th vehicle's observation of cell j, i.e. $\vec{\hat{Y}}_i$ are all observations from vehicle i.
@@ -319,7 +307,7 @@ Let $\vec{y}_i$ be a three-dimensional vector representing a cell's ternary (\te
 	0 & 0.9
 	\end{pmatrix} \\
 	\textit{MSE}(Y, \hat{Y}) = \frac{1}{4} (\begin{pmatrix}0 \\ 1 \\ 0 \end{pmatrix} \cdot \begin{pmatrix}0 \\ 0.2 \\ 0 \end{pmatrix}^2 + \text{...} + \begin{pmatrix}1 \\ 0 \\ 0 \end{pmatrix} \cdot \begin{pmatrix}1 \\ 0 \\ -0.9 \end{pmatrix}^2) = \frac{1}{4} (0.2^2 + \text{...} + 1^2) = 36.25 \% \\
-	\textit{ACC}(Y, \hat{Y}) = \text{...} = \frac{1}{4} (-\textit{sgn}(0.2-1) - \text{...} -\textit{sgn}(1-1)) = \frac{1}{4} (1+1+1-0) = 75 \%
+	\textit{REC}(Y, \hat{Y}) = \text{...} = \frac{1}{4} (-\textit{sgn}(0.2-1) - \text{...} -\textit{sgn}(1-1)) = \frac{1}{4} (1+1+1-0) = 75 \%
 \end{gather*}
 
 \subsubsection{Test Setup}
@@ -327,7 +315,7 @@ As a test setup, the same physical machines are used as in \cref{subsec:evaluati
 
 \subsection{Results}
 \label{subsec:evaluation:perception_evaluation:results}
-It was mentioned before that the first step involves evaluating whether perception quality can be improved through the proposed CP system. Therefor, different simulation scenes were instantiated and repeatedly run for a total of 15 experiments. Given the recorded data, CP was "'virtually"' turned on and off during evaluation to measure the difference with respect to MSE and ACC. This yielded the results depicted in \cref{fig:perception_evalutation_scores_1}.
+It was mentioned before that the first step involves evaluating whether perception quality can be improved through the proposed CP system. Therefor, different simulation scenes were instantiated and repeatedly run for a total of 15 experiments. Given the recorded data, CP was "'virtually"' turned on and off during evaluation to measure the difference with respect to MSE and recall. This yielded the results depicted in \cref{fig:perception_evalutation_scores_1}.
 
 \begin{figure}
 	\centering
@@ -339,7 +327,7 @@ It was mentioned before that the first step involves evaluating whether percepti
 	
 	\begin{subfigure}[b]{1\textwidth}
 		\includegraphics[width=1\linewidth]{98_images/eval_boxplot_3}
-		\caption{Average ACC for \texttt{N\_VEHICLES = 6} (higher is better)}
+		\caption{Average recall for \texttt{N\_VEHICLES = 6} (higher is better)}
 		\label{fig:eval_boxplot_3}
 	\end{subfigure}
 
@@ -352,11 +340,11 @@ It was mentioned before that the first step involves evaluating whether percepti
 	\label{fig:perception_evalutation_scores_1}
 \end{figure}
 
-It can be clearly seen that both scores are higher with cooperative perception, i.e. with the ego vehicles communicating and exchanging their environment state representations. Looking at arithmetic mean for ACC and MSE in the above scenario, it can be found that $\Delta \diameter_{MSE} = -27.13 \%$ and $\Delta \diameter_{ACC} = 27.73 \%$. In addition, when looking at the average number of unknown cells, that could potentially have been observed, one finds that $\Delta \diameter_{unkown} = -41.11 \%$, i.e. $\sim$ 40 \% more cells are "'unveiled"' for each vehicle with CP.
+It can be clearly seen that both scores are higher with cooperative perception, i.e. with the ego vehicles communicating and exchanging their environment state representations. Looking at arithmetic mean for recall and MSE in the above scenario, it can be found that $\Delta \diameter_{MSE} = -27.13 \%$ and $\Delta \diameter_{REC} = 27.73 \%$. In addition, when looking at the average number of unknown cells, that could potentially have been observed, one finds that $\Delta \diameter_{unkown} = -41.11 \%$, i.e. $\sim$ 40 \% more cells are "'unveiled"' for each vehicle with CP.
 \par
 \bigskip
 
-After an actual improvement in perception quality through CP could be observed, the following results were additionally obtained from viewing that improvement in relation to two parameters, the number of employed connected vehicles and the temporal decay factor. Since the absolute ACC and MSE values for two different configurations of \texttt{N\_VEHICLES} can NOT be compared for various reasons, only relative changes are considered in the following. In other words, given exemplary values of $\textit{MSE}_{n=6, CP}(Y_1, \hat{Y}_1) = 50 \%$ and $\textit{MSE}_{n=3, CP}(Y_2, \hat{Y}_2) = 45 \%$ does NOT imply that six vehicles are 5 \% better than three. Conversely, one can instead draw such a conclusion when comparing relative differences between with and without CP, e.g. $\Delta \diameter_{MSE,n=6} = -10 \%$ and $\Delta \diameter_{MSE,n=2} = -5 \%$.
+After an actual improvement in perception quality through CP could be observed, the following additional results were obtained from viewing that improvement in relation to two parameters, the number of employed connected vehicles and the temporal decay factor. Since the absolute recall and MSE values for two different configurations of \texttt{N\_VEHICLES} can NOT be compared for various reasons, only relative changes are considered in the following. In other words, given exemplary values of $\textit{MSE}_{n=6, CP}(Y_1, \hat{Y}_1) = 50 \%$ and $\textit{MSE}_{n=3, CP}(Y_2, \hat{Y}_2) = 45 \%$ does NOT imply that six vehicles are 5 \% better than three. Conversely, one can instead draw such a conclusion when comparing relative differences between with and without CP, e.g. $\Delta \diameter_{MSE,n=6} = -10 \%$ and $\Delta \diameter_{MSE,n=2} = -5 \%$.
 
 \begin{figure}
 	\centering
@@ -375,3 +363,9 @@ After an actual improvement in perception quality through CP could be observed, 
 \end{figure}
 
 \Cref{fig:perception_evalutation_scores_2} (left) shows the results for different configurations when varying the number of employed connected vehicles, or observers in general. First, it becomes clear that there is no quality improvement at all between CP being turned on and off when using only one vehicle. This is plausible, since the key point of cooperative perception is to benefit from other traffic participant's observations in addition to one's own. Moreover, no significant increase or decrease in MSE can be perceived when varying the number of network participants between three and six. With regard to the temporal decay factor, a value of $0.14$, i.e. a comparatively "'aggressive' down-weighing of old observations, seems to yield the best results. However, since the differences are only marginal, one might not speak of a significant impact of \texttt{DECAY\_FACTOR} on the final score, at least in these brief experiments.
+
+\subsection{Discussion \& Conclusion}
+\label{subsec:evaluation:perception_evaluation:discussion_conclusion}
+The previous evaluation clearly unveiled that the averasge, overall perception quality can be improved through cooperation, specifically through the use of the presented CP system. Similar to what Chen et al. \cite{Chen2019} discovered for their CP system, we found that both a vehicle's perception range or field of view as well as the average confidence for single measurements can be increased. In our experiments, we discovered an average improvement in total, accumulated mean squared error of $\sim$ 27\% and a $\sim$ 27\% better recall likewise. In addition, we found that $\sim$ 41\% more potentially observable cells were actually observed, i.e. they were assigned a state estimation other than \textit{unknown}. As a result of briefly investigating the total MSE improvement as a function of the number of connected vehicles and the decay factor used for fusion, we did not find a significant impact of neither of both.
+
+While we experimentally showed the general suitability of the proposed system to increase overall end-to-end perception quality, further evaluation with a greater range of different scenarios and parameter settings is needed in order to gain more extensive insights about conceptual strength and weaknesses and about limitation of the current prototype implementation. 

@@ -293,7 +293,7 @@ To meet the demand for high scalability (\textbf{NF-C2}) and reliability (\textb
 \par
 \bigskip
 
-\Cref{fig:geo_distribution_schema} schematically depicts the concept of geo distribution. Overall, tiles of three different levels ($\lambda$) are used throughout the system.
+\Cref{fig:geo_distribution_schema} in appendix \cref{subsec:appendix:texts:concept_design:geographical_sharding_schema} schematically depicts the concept of geo distribution. Overall, tiles of three different levels ($\lambda$) are used throughout the system.
 
 \begin{itemize}
 	\item \textbf{Type 1} (typically $\lambda_1 \in [22, 24] \subset \mathbb{Z}$): Tiles used for cells of observed occupancy grids.
@@ -306,13 +306,6 @@ In addition, there is a fourth type of geographical area to be considered: the o
 \bigskip
 
 \textbf{Example:} A vehicle's perceptual sensors have a total range of \SI{100}{\meter} and the occupancy cells (type 1 tiles) are configured to $\lambda_1 = 24$ ($\sim$ \SI{2.4}{\square\meter}). Accordingly, the grid size will be $\diameter_{grid} = \floor*{\frac{\SI{100}{\meter}}{\SI{2.4}{\meter}}} = 41$ cells. Of course, the vehicle is interested in observations beyond its \SI{100}{\meter} range, so it receives data from all its adjacent type 2 tiles, which are configured with $\lambda_2 = 19$ ($\sim$ \SI{76.4}{\square\meter}) in the example. Its range of sight has expanded to $\diameter_{virt} = 3 * \SI{76.4}{\meter} = \SI{229.2}{\meter}$. The size of type 3 tiles is set to $\lambda_3 = 16$ ($\sim$ \SI{611.5}{\square\meter}), i.e. the vehicle will connect to a new fusion node every 612 meters. Each of these nodes is responsible to manage data for $4^{19-16} = 4^3 = 64$ type 2 tiles (or $4^{24-16} = 4^8 = 65536$ type 1 tiles).
-
-\begin{figure}
-	\centering
-	\includegraphics[width=0.9\linewidth]{98_images/geo_subscription_schema}
-	\caption[Schematic Illustration of Geographical Sharding]{Schematic Illustration of Geographical Sharding \\ Blue cells (= type 1 tiles) are part of the vehicle's observed occupancy grid. \\ Orange cells (= type 2 tiles) are part of the vehicle's range of interest. \\ Green cells (=type 3 tiles) are subject to geo distribution.}
-	\label{fig:geo_distribution_schema}
-\end{figure}
 
 \subsection{Messaging \& Further Considerations}
 \label{subsec:concept_design:messaging_further_considerations}
