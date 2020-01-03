@@ -7,17 +7,17 @@ Existing work in the field of cooperative perception, as presented in \cref{ch:r
 \par
 \bigskip
 
-One of them is a \textbf{lack of comprehensiveness}. While the shown studies each focus on certain aspects of a CP system, to the best of our knowledge, no solution was presented that is both holistic and concerned with details about all individual parts of the system. Also, not all previous project provide an actual implementation of their proposal or do not conduct realistic simulations.
+One of them is a \textbf{lack of comprehensiveness}. While the shown studies each focus on certain aspects of a CP system, to the best of our knowledge, no solution was presented that takes both a macro and micro perspective, i.e. that is holistic as well as concerned with details about all individual aspects and parts. Also, not all previous projects provide an actual implementation of their proposal or conduct realistic simulations.
 \par
 \bigskip
 
-Moreover, \textbf{no standardized, uniform, yet expressive environment model} and state representation for traffic scenes exists, yet. While the efforts taken by \cite{EuropeanTelecommunicationsStandardsInstituteETSI2019} to specify a standard for CPMs are promising, at this point, there is nothing like that available to be used in CP systems. Current models are either incomplete, proprietary and non-transparent ot not suitable for interoperability between heterogeneous systems. 
+Moreover, \textbf{no standardized, uniform, yet expressive environment model} and state representation for traffic scenes exists, yet. While the efforts taken by \cite{EuropeanTelecommunicationsStandardsInstituteETSI2019} to specify a standard for CPMs are promising, at this point, there is nothing like that available to be used in CP systems. Current models are either incomplete, proprietary and non-transparent or not suitable for interoperability between heterogeneous systems. 
 \par
 \bigskip
 
 Another significant issue arises from limitations regarding \textbf{scalability of VANET-based cooperative perception systems}.
 
-One essential challenge is the limited \textbf{throughput} and \textbf{range} of DSRC networks, which are usually based on IEEE 802.11p technology. \cite{5GAutomotiveAssociation2018} found DSRC to be 90 \% reliable at 675 m distance between sender and receiver in line-of-sight scenarios and 375 m in non-line-of-sight situations. As a comparison, 5G showed 90 \% reliability at 1175 m and 875 m, respectively. Although the absolute results of these tests are debatable, as \cite{Mangel2011} found DSRC NLOS reception to be only 50 \% at 50 m distance, it is clear that 5G technology generally yields better performance. Measurements concerning maximum throughput with IEEE 802.11p range from 2.7 Mbps to 11 Mbps per channel \cite{Chen2016, Wang2013}. Average latency in typical CP use cases was measured by \cite{Rauch2011} to range from 3 ms to 22 ms for small message sizes (\textasciitilde 1.3 KBytes).
+One essential challenge is the limited \textbf{throughput} and \textbf{range} of DSRC networks, which are usually based on IEEE 802.11p technology. \cite{5GAutomotiveAssociation2018} found DSRC to be 90 \% reliable at \SI{675}{\meter} distance between sender and receiver in line-of-sight scenarios and \SI{375}{\meter} in non-line-of-sight situations. As a comparison, 5G showed 90 \% reliability at \SI{1175}{\meter} and \SI{875}{\meter}, respectively. Although the absolute result values of these tests are debatable (\cite{Mangel2011} found DSRC NLOS reception to be only 50 \% at \SI{50}{\meter} distance) it is clear that 5G technology generally yields better performance. Measurements concerning maximum throughput with IEEE 802.11p range from \SI{2.7}{\mega\bit\per\second} to \SI{11}{\mega\bit\per\second} per channel \cite{Chen2016, Wang2013}. Average latency in typical CP use cases was measured by \cite{Rauch2011} to range from \SI{3}{\milli\second} to \SI{22}{\milli\second} for small message sizes ($\sim$ \SI{1.3}{\kilo\byte}).
 
 Despite limited performance of DSRC, VANET-topology-based CP systems face another problem, which is related to \textbf{network utilization}. Usually, these networks establish complete pair-wise P2P connections among all participants. Consequently, the number of connections is given as $N = \frac{n(n-1)}{2 }$ according to \textit{Metcalfe's law}, as opposed to $N = n$ when using a topology that involves a central server instance.
 
@@ -28,24 +28,24 @@ A more detailed comparison between DSRC and 5G is presented in \cref{sec:concept
 \section{Traffic Volume Estimation}
 \label{sec:problem_analysis:traffic_volume_estimation}
 
-To be able to formulate requirements for a cooperative perception system, a quantification of common traffic volumes is required. More precisely, this section aims to determine an average-case approximation of how many concurrent vehicles will usually be situated within a certain geographical area. Focus is placed on inner-city scenarios. 
+To be able to formulate scalability requirements for a cooperative perception system, a quantification of common traffic volumes is required. More precisely, this section aims to determine an average-case approximation of how many concurrent vehicles will usually be situated within a certain geographical area. Focus is placed on urban, inner-city scenarios. 
 
 \subsection{Methodology \& Results}
 \label{subsec:problem_analysis:methodology_results}
-An average-case value for the average number of concurrent vehicles within 1 km² of urban area is searched. For its calculation, a heuristic two-step approach is employed. Although based on many assumptions, this rough approximation is sufficient for our purpose as there is no need for a precise quantity. 
+An average-case value for the average number of concurrent vehicles within \SI{1}{\square\kilo\meter} of urban area is to be determined. For its calculation, a heuristic two-step approach is employed. Although based on many assumptions, this rough approximation is sufficient for our purpose as there is no need for a precise quantity. 
 
-The city of Berlin is used as an example, as suitable open data is available for it. OpenStreetMap data files for Berlin\footnote{\url{http://download.geofabrik.de/europe/germany/berlin.html}} served as a basis to compute road network length and average number of street lanes. They were fed into a PostgreSQL\footnote{\url{https://postgresql.org/}} database with the PostGIS\footnote{\url{http://postgis.net/}} extension using \textit{osm2pgsql}\footnote{\url{https://github.com/openstreetmap/osm2pgsql}} and queried using SQL.
+The city of Berlin is used as an example, as suitable open data is available for it. OpenStreetMap data files for Berlin\footnote{\url{http://download.geofabrik.de/europe/germany/berlin.html}} serve as a basis to compute road network length and average number of street lanes. They were fed into a PostgreSQL\footnote{\url{https://postgresql.org/}} database with the PostGIS\footnote{\url{http://postgis.net/}} extension using \textit{osm2pgsql}\footnote{\url{https://github.com/openstreetmap/osm2pgsql}} and queried using SQL.
 
 \subsubsection{Assumptions}
 The following assumptions are made.
 
 \begin{samepage}
 \begin{enumerate}
-	\item Average inner-city \textbf{driving speed} is 24 km/h \cite{Forbes2008}
+	\item Average inner-city \textbf{driving speed} is \SI{24}{\kilo\meter\per\hour} \cite{Forbes2008}
 	\item Vehicles keep a \textbf{distance} of $s \ [m] = v \ [\frac{m}{sec}] * 1.8 \ [sec] = v \  [\frac{km}{h}] * 0.5 \ [h]$ \cite{wiki:sicherheitsabstand}
-	\item Average \textbf{vehicle length} is 4.2 m
-	\item \textbf{Area} of Berlin Mitte is 21.25 km² (see appendix \cref{sec:appendix:source_code:traffic_volume})
-	\item Total \textbf{length of road network} in Berlin Mitte is 159.13 km (see appendix \cref{sec:appendix:source_code:traffic_volume})
+	\item Average \textbf{vehicle length} is \SI{4.2}{\meter}
+	\item \textbf{Area} of Berlin Mitte is \SI{21.25}{\square\kilo\meter} (see appendix \cref{sec:appendix:source_code:traffic_volume})
+	\item Total \textbf{length of road network} in Berlin Mitte is \SI{159.13}{\kilo\meter} (see appendix \cref{sec:appendix:source_code:traffic_volume})
 	\item Average number of \textbf{driving lanes} in Berlin Mitte is 2.4 (see appendix \cref{sec:appendix:source_code:traffic_volume})
 \end{enumerate}
 \end{samepage}
@@ -53,7 +53,7 @@ The following assumptions are made.
 \subsubsection{Step 1: Worst-case density at maximum utilization}
 First, we presume a scenario in which the inner-city traffic network is at maximum utilization, that is, all driveable roads are occupied.
 
-Given that every car drives the assumed average speed and keeps its minimum safety distance, the virtual length of every car is: $$l_{virt} = \SI{4.2}{\meter} + (\SI{24}{\meter\per\second} * \frac{1}{3.6} * 1.8) = \SI{4.2}{\meter} + \SI{12}{\meter} = \SI{16.2}{\meter} = \SI{0.0162}{\km}$$.
+Given that every car drives the assumed average speed and keeps its minimum safety distance, the virtual length of every car is: $$l_{virt} = \SI{4.2}{\meter} + (\SI{24}{\meter\per\second} * \frac{1}{3.6} * 1.8) = \SI{4.2}{\meter} + \SI{12}{\meter} = \SI{16.2}{\meter} = \SI{0.0162}{\km}$$
 
 In addition, the total length of driveable lanes is:
 $$l_{road} = \frac{\SI{159.13}{\km}}{\SI{21.25}{\square\km}} * 2.4 = \SI{17.97}{\km\per\square\km}$$
@@ -62,7 +62,7 @@ Accordingly, the maximum possible amount of concurrent cars within an area of 1 
 $$N_{max} = \frac{\SI{17.97}{\km}}{\SI{0.0162}{\km}} = \textbf{1109 [\si[detect-weight]{cars\per\square\km}]}$$
 
 \subsubsection{Step 2: Normalization with estimated average load factor}
-While the previous value of 1109 concurrent connected cars per km² is a worst-case assumption, Berlin's latest traffic census \cite{VerkehrslenkungBerlinVLB2014} can be used as ground truth for estimating an average \textbf{load factor}. 
+While the previous value of 1109 concurrent connected cars per \si{\square\kilo\meter} is a worst-case assumption, Berlin's latest traffic census \cite{VerkehrslenkungBerlinVLB2014} can be used as ground truth for estimating an average \textbf{load factor}. Using this load factor, the maximum, worst-case assumption can be scaled down to an estimated average value. 
 
 \begin{figure}[H]
 	\centering
@@ -71,7 +71,7 @@ While the previous value of 1109 concurrent connected cars per km² is a worst-c
 	\label{fig:berlin_traffic_map}
 \end{figure}
 
-\Cref{fig:berlin_traffic_map} depicts an excerpt from that traffic census map, where the red rectangle marks the \SI{21.25}{\square\km} area used in this evaluation. Red circle indicate five measuring points that were randomly selected for calculation of the average utilization factor. For each of these points a daily vehicle count is given as $N_{i}$ in $\frac{vehicles}{24 h}$, alongside the number of driving lanes $m_i$ at that location.
+\Cref{fig:berlin_traffic_map} depicts an excerpt from that traffic census map, where the red rectangle marks the \SI{21.25}{\square\km} area used in this evaluation. Red circles indicate five measuring points that were randomly selected for calculation of the average utilization factor. For each of these points a daily vehicle count is given as $N_{i}$ in $\frac{vehicles}{24 h}$, alongside the number of driving lanes $m_i$ at that location.
 
 \begin{gather*}
 N_1 = 32,000; \  m_1 = 6 \\
@@ -99,7 +99,7 @@ N_{pot\_5} = 142,220; \  \lambda_5 = 16.9 \% \\
 \end{gather*}
 and an average load factor of $\lambda_{avg} = 18.19 \%$.
 
-It can be concluded that, given the average load factor, an optimistic estimate for the average number of concurrent cars in Berlin Mitte might be given by $$N_{norm} = N_{max} * \lambda_{avg} = \SI[detect-weight]{1109}{cars\per\square\km} * 0.1819 = \textbf{\SI[detect-weight]{202}{cars\per\square\km}}$$.
+It can be concluded that, given the average load factor, an optimistic estimate for the average number of concurrent cars in Berlin Mitte might be given by: $$N_{norm} = N_{max} * \lambda_{avg} = \SI[detect-weight]{1109}{cars\per\square\km} * 0.1819 = \textbf{\SI[detect-weight]{202}{cars\per\square\km}}$$.
 
 \subsection{Conclusion}
 \label{subsec:problem_analysis:conclusion}
@@ -107,11 +107,9 @@ Assuming that all cars were connected and participating in cooperative perceptio
 
 \section{Goals \& Requirements}
 \label{sec:problem_analysis:goals_requirements}
-Overall goal of this thesis is to propose, implement and evaluate a cooperative perception system, that facilitates the improvement of connected, autonomous vehicles' average perception quality. However, it is crucial that CP is only to be used as extension for an already working, reliably and secure AD system. \textbf{The presence of cooperative perception must under no circumstances be required for the proper functioning of a self-driving car.}
+Overall goal of this thesis is to propose, implement and evaluate a cooperative perception system, that facilitates the improvement of connected, autonomous vehicles' average perception quality. However, it is crucial that CP is always only used as extension for an already working, reliably and secure AD system. \textbf{The presence of cooperative perception must under no circumstances be required for the proper functioning of a self-driving car.}
 
-The presented architecture is supposed to overcome previous systems' limitation discussed in \cref{sec:problem_analysis:limitations_of_prior_work} and be able to handle, at minimum, the average expected load determined in \cref{sec:problem_analysis:traffic_volume_estimation}.
-
-As this work mainly separates into two aspects, we define functional (\textbf{F}) and non-functional (\textbf{NF}) requirements for both parts.
+The presented architecture is supposed to overcome previous systems' limitation discussed in \cref{sec:problem_analysis:limitations_of_prior_work} and be able to handle, at minimum, the average expected load determined in \cref{sec:problem_analysis:traffic_volume_estimation}. Therefor, we define functional (\textbf{F}) and non-functional (\textbf{NF}) requirements for both parts, which this work is structurally separated into.
 
 \subsection{Environment Modeling \& State Representation}
 \label{subsec:problem_analysis:environment_modeling_state_representation}
@@ -137,8 +135,8 @@ Goal is to propose an end-to-end solution for a cooperative perception system ar
 	\item \textbf{Holism.} The system should enable for end-to-end cooperative perception, including message exchange and sensor fusion, for different network patterns, including V2V, V2I and V2P.
 	\end{enumerate}
 \begin{enumerate}[NF-C1:]
-	\item \textbf{Range.} The system should enable for communication over at least 600 m NLOS.
-	\item \textbf{Scalability.} The system should be able to handle at least 202 concurrent network participants per km² (see \cref{sec:problem_analysis:traffic_volume_estimation}) at a tick rate of 10 Hz (considered sufficient by \cite{Rauch2011, Thandavarayan2019})
+	\item \textbf{Range.} The system should enable for communication over at least \SI{600}{\meter}in NLOS scenarios.
+	\item \textbf{Scalability.} The system should be able to handle at least 202 concurrent network participants per \si{\square\kilo\meter} (see \cref{sec:problem_analysis:traffic_volume_estimation}) at a tick rate of \SI{10}{\hertz} (considered sufficient by \cite{Rauch2011, Thandavarayan2019})
 	\item \textbf{Efficiency.} The system should aim for low latency and low on-vehicle computation load.
 	\item \textbf{Reliability.} The system should avoid to have a single-point-of-failure. 
 \end{enumerate}
