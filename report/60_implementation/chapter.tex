@@ -119,7 +119,7 @@ In addition to deciding for a protocol, a corresponding message broker implement
 	\label{fig:mqtt_benchmarks}
 \end{figure}
 
-\subsection{Edge-Side Fusion Node}
+\subsection{Talky Fusion Node}
 \label{subsec:implementation:edge_side_fusion_node}
 The second server-side component, which is deploy "'on the edge"', is the fusion node. While the message broker only acts as an intermediary, the fusion node is a core component of the proposed CP system. It is responsible for the aggregation of all its connected clients' (vehicles, etc.) observations. It is realized as a stand-alone software component and, in a first iteration, using the Python programming language. However, after some initial evaluations it turned out that Python as a dynamically typed, interpreted language was too slow to perform fusion for multiple clients at a reasonable update rate. As a consequence, a second iteration was conducted to re-implement the fusion node in Go, which yielded a performance improvement of up to two orders of magnitude. Due to a high degree of modularity, encapsulation and separation of concerns (cf. \cite{Martin2017}) the rewriting could be done comparatively low effort. The program makes use of third-party open-source libraries  with MIT-, BSD-3- and EPL-1.0 licenses.
 \par

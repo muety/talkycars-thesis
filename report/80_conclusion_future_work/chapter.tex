@@ -1,0 +1,28 @@
+This last chapter aims to conclude the present work. For this purpose, a summary of the contents and results of previous chapters is given first, followed by an outlook on potential future work to complement this thesis.
+
+\section{Summary}
+\label{sec:conclusion:summary}
+Overall goal of this work was to design and implement an end-to-end concept and implementation for a cooperative perception system. Considered aspects range from environment modeling and state representation over communication- and software architecture throughout to sensor fusion and an in-depth evaluation. 
+\par
+\bigskip
+
+After this goal was motivated in \cref{ch:introduction} and required background knowledge and fundamentals were provided in \cref{ch:background}, \cref{ch:related_work} presented the current state of the art in all relevant research topics and differentiated the present approach from existing solutions. 
+\par
+\bigskip
+
+\Cref{ch:problem_analysis} aimed to analyze current approaches and their respective limitations and presented a comprehensive set of goals, functional and non-functional requirements for a novel cooperative perception system to address such. It was observed that current approaches usually lack comprehensiveness, standardization and universality as well as scalability. The latter is usually imposed by the usage of dedicated short-range communication in vehicular ad-hoc networks.  
+\par
+\bigskip
+
+\Cref{ch:concept_design} was all about elaborating an end-to-end concept, that is based on novel techniques and aims to overcome previously described limitations. First, a comprehensive, extensible, yet not complete model for dynamic traffic scenes was proposed. It combines low-level attributes with high-level features and relational knowledge in a generic way and was designed to fulfill previously stated requirements. Geo tiling, occupancy grids and \textit{probabilistic entity relationship models} were introduced as core building blocks.
+Second, major communication technologies and topologies were discussed and a detailed comparison between DSRC-based VANETs and client-server architecture utilizing cellular networks was conducted. Several advantages of the latter regarding latency, throughput and network utilization were outlined.
+Third, a holistic system architecture was designed in form of a distributed, messaging-based client-server software solution. Edge computing concepts were incorporated for low latency and load distribution and resilience and scalability are facilitated by the novel approach of \textit{geographical partitioning}.
+Eventually, a fundamental concept on how to perform high-level sensor fusion in the context of cooperative perception was developed. In accordance with the previously presented system design, it involves a centralized fusion node and employs the novel concept of \textit{doubly-updated merging}. 
+\par
+\bigskip
+
+\Cref{ch:implementation} discussed details about the concrete implementation of the previously presented concepts. All involved software components were described and categorized into server-side components, including message broker and fusion node and on-board client-side components, including Talky client and simulator bridge as an abstract interface between simulation environment and business logic. The entire system was implemented in modular way with clear boundaries and strict interfaces with the goal to enable for easy replacement of individual components, e.g. to use a different simulation environment or messaging backend. Moreover, a multitude of technology choices were made. Carla was chosen as a simulator, MQTT was picked as the central pub-sub messaging protocol for communication among different components and Protobuf was chosen to be employed as a highly efficient binary message format. Eventually, all relevant system parameters and their respective purposes and effects were presented. They were classified into simulation- scene and cooperative perception parameters. 
+\par
+\bigskip
+
+In \cref{ch:evaluation} a two-fold evaluation was conducted to investigate software performance and scalability as well as the system's general suitability for cooperative perception tasks. It was found that the system is able to scale up to meet the requirements, which were designed based on realistic assumptions and estimations of urban traffic volumes. However, further optimization steps are still recommendable in order to use the system for real-world scenarios. With regard to qualitative performance, the evaluation revealed a potential improvement in overall perception quality of 27 \% through cooperative perception using the present system. 
