@@ -1,11 +1,44 @@
 # TalkyCars
+**A Distributed Software Platform for Cooperative Perception among Connected Autonomous Vehicles based on Cellular-V2X Communication**
 
-## Limitations
-* Does not consider security
-* Does only consider 2-dimensional road scenes (i.e. no bridges)
-* Intersections and more complex lane types are not modeled
-* Clock inconsistencies are neglected (i.e. it is assumed that all clients as well as the server can retrieve a perfectly accurate and synchronized time)
-* Low FPS and sensor rate 😞
+Master Thesis by Ferdinand Mütsch at [ITIV](https://itiv.kit.edu) (Karlsruhe Institute of Technology)
+
+![](images/cover.png)
+
+## Abstract
+As autonomous vehicles are required to operate among highly mixed traffic during their early market-introduction phase, solely relying on local sensory with limited range is potentially not sufficient to exhaustively perceive and navigate complex urban environments. Addressing this challenge, intelligent vehicles can virtually increase their perception range beyond line-of-sight by utilizing V2X communication with surrounding traffic participants to perform Cooperative Perception. Since existing solutions face a variety of limitations, including lack of comprehensiveness, universality and scalability, this thesis aims to conceptualize, implement and evaluate an end-to-end cooperative perception system using novel techniques. A comprehensive yet extensible modeling approach for dynamic traffic scenes is proposed first, which is based on Probabilistic Entity-Relationship Models, accounts for uncertain environments and combines low-level attributes with high-level relational- and semantic knowledge in a generic way. Second, the design of a holistic, distributed software architecture based on Mobile Edge Computing principles is proposed as a foundation for multi-vehicle high-level sensor fusion. In contrast to most existing approaches, our solution is designed to rely on Cellular-V2X communication in 5G networks and employs geographically distributed fusion nodes as part of a client-server configuration. Our modular proof-of-concept implementation is evaluated in different simulated scenarios to assess the system's performance both qualitatively and quantitatively. Experimental results show that the proposed system scales adequately to meet certain minimum requirements and yields an average improvement in overall perception quality of approximately 27 %.
+
+## Reference
+```
+@mastersthesis{Mutsch2020,
+    author = {M{\"{u}}tsch, Ferdinand},
+    school = {Karlsruhe Institute of Technology},
+    title = {{TalkyCars: A Distributed Software Platform for Cooperative Perception among Connected Autonomous Vehicles based on Cellular-V2X Communication}},
+    year = {2020}
+}
+```
+
+## Key Concepts & Technologies
+![](images/screenshots.png)
+
+* Probabilistic Entity Relationship Models
+* Geo tiling using [QuadKeys](https://docs.microsoft.com/en-us/bingmaps/articles/bing-maps-tile-system)
+* Occupancy Grids
+* C-V2X Communication
+* High-level fusion with temporal decay
+* Mobile Edge Computing
+* [CARLA](https://github.com/carla-simulator/carla) simulator
+* MQTT
+* Protocol Buffers
+
+## Architecture
+![](images/architecture.png)
+
+## Components
+![](images/components.png)
+
+## Sequences
+![](images/sequence.png)
 
 ## Requirements
 * Python 3.7
@@ -40,10 +73,6 @@
   * When running on a different machine as the simulator, add the `--host <HOST_IP>` argument.
 * Run the **web** dashboard: `cd src && python3 run.py web`
 
-### Optimizations
-* ✅ **QuadInt**s: Reduced average message size by ~ 25 % 
-* ✅ **Protobuf**: Instead of Cap'n'Proto. Improved serialization performance by ~ 25 % and reduced average message size by ~ 39 %. 
-
 ### Troubleshooting
 _**ImportError: libjpeg.so.8: cannot open shared object file**_
 * `sudo apt-get install libjpeg-turbo8`
@@ -51,7 +80,8 @@ _**ImportError: libjpeg.so.8: cannot open shared object file**_
 _**ImportError:libpng16.so.16 cannot open shared object file**_
 * `sudo apt-get install libpng16-16`
 
-## QuadTiles
+
+## QuadKey Precision
 | Tile Level | Ground Resolution @ Equator (m) |
 |------------|---------------------------------|
 | 1          | 20037508.352                    |
@@ -87,34 +117,4 @@ _**ImportError:libpng16.so.16 cannot open shared object file**_
 | 31         | 0.018                           |
 
 ## Available Cars
-* `vehicle.ford.mustang`
-* `vehicle.audi.a2`
-* `vehicle.audi.tt`
-* `vehicle.bmw.isetta`
-* `vehicle.carlamotors.carlacola`
-* `vehicle.citroen.c3`
-* `vehicle.harley-davidson.low rider`
-* `vehicle.bmw.grandtourer`
-* `vehicle.mercedes-benz.coupe`
-* `vehicle.toyota.prius`
-* `vehicle.dodge_charger.police`
-* `vehicle.yamaha.yzf`
-* `vehicle.nissan.patrol`
-* `vehicle.bh.crossbike`
-* `vehicle.tesla.model3`
-* `vehicle.diamondback.century`
-* `vehicle.gazelle.omafiets`
-* `vehicle.seat.leon`
-* `vehicle.lincoln.mkz2017`
-* `vehicle.kawasaki.ninja`
-* `vehicle.volkswagen.t2`
-* `vehicle.nissan.micra`
-* `vehicle.chevrolet.impala`
-* `vehicle.mini.cooperst`
-* `vehicle.jeep.wrangler_rubicon`
-
-## Compile Notes
-* `export CPLUS_INCLUDE_PATH="$CPLUS_INCLUDE_PATH:/home/ferdinand/.pyenv/versions/3.7.4/include/python3.7m"`
-* `export UE4_ROOT=/media/ferdinand/builddisk/UnrealEngine`
-* Unreal: `./Engine/Build/BatchFiles/Mac/Build.sh ShaderCompileWorker Linux Development -verbose`
-* Carla: `make package -j 8` 
+See [cars.txt](cars.txt).
