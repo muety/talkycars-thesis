@@ -118,10 +118,15 @@ $\mathcal{E}$ is the set of all entities, $\mathcal{A}$ is the set of all attrib
 With PER models, every triple is extended with an additional confidence parameter and thus becomes a \textbf{quadruple} $r$ of $\langle subject, predicate, object, \textit{conf} \rangle$: 
 
 \begin{gather}
-	r \in \{ \langle \mathcal{E} \times \mathcal{A} \cup \mathcal{R} \times \mathcal{E} \cup \mathcal{L} \times \Gamma \rangle \} \\
-	\text{with} \  \Gamma := \{ \gamma \in [0, 1] \subset \mathbb{R}^+ \} \\
+	r \in \{ \langle \mathcal{E} \times \mathcal{A} \cup \mathcal{R} \times \mathcal{E} \cup \mathcal{L} \times \Gamma \rangle \}
 \end{gather}
 \label{eq:quadruples}
+
+\vspace{-12ex}
+
+\begin{gather*}
+	\text{with} \  \Gamma := \{ \gamma \in [0, 1] \subset \mathbb{R}^+ \}
+\end{gather*}
 
 \cite{Petrich2018} distinguishes between \textit{attribute-} and \textit{structure uncertainty}, where the first describes sensor noise and the latter reflects uncertainty in the relational data. This is analogous to principles \textbf{P4} and \textbf{P5}, which suggest to model uncertainty for properties on the one hand and a confidence factor for entities on the other. However, this distinction is not considered useful in the context of this work and thus both probabilities are subsumed under a single notion of confidence.
 
