@@ -82,7 +82,11 @@ class OccupancyGridManager:
                 s = GridCellState(s)
                 group_key = f'grid_cell_{i * batch_size + j}'
                 cell = grid_cells[i * batch_size + j]
-                if cell.quad_key in self.actor_occupied_cells:
+                # Don't override cell states that are certainly occupied by an actor,
+                # but only if they were falsely considered free, i.e. they are definitely within range of sight.
+                # We don't want unknown cells to be considered occupied, bc. the ego
+                # should not be able to look round corners, for instance.
+                if cell.quad_key in self.actor_occupied_cells and s == GridCellState.FREE:
                     continue
                 self.tracker.track(group_key, s)
                 self.tracker.cycle_group(group_key)

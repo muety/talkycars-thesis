@@ -65,6 +65,7 @@ class Ego:
         # Initialize visual stuff
         if render:
             pygame.init()
+            pygame.display.set_caption(f'PyGame – {name}')
             pygame.font.init()
             self.display = pygame.display.set_mode((RES_X, RES_Y), pygame.HWSURFACE | pygame.DOUBLEBUF)
             self.hud = HUD(RES_X, RES_X)

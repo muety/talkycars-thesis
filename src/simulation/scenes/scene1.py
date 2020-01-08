@@ -10,7 +10,7 @@ from util import simulation
 import carla
 
 N_PEDESTRIANS = 10
-MAP_NAME = 'Town07'
+MAP_NAME = 'Town02'
 
 
 class Scene(AbstractScene):
@@ -30,7 +30,7 @@ class Scene(AbstractScene):
         # Create egos
         main_hero = Ego(self._sim,
                         # TODO: Make this configurable through a command-line argument
-                        strategy=ManualEgoStrategy(config=1),
+                        strategy=ManualEgoStrategy(config=2),
                         name='main_hero',
                         render=True,
                         debug=False,
@@ -43,7 +43,7 @@ class Scene(AbstractScene):
 
         # Create static vehicles
         bp1 = self._world.get_blueprint_library().filter('vehicle.volkswagen.t2')[0]
-        spawn1 = carla.Transform(carla.Location(x=-198.2, y=-50.9, z=1.5), carla.Rotation(yaw=-90))
+        spawn1 = carla.Transform(carla.Location(x=56.8, y=252.1, z=1.5), carla.Rotation(yaw=0))
         cmd1 = carla.command.SpawnActor(bp1, spawn1)
 
         responses = self._sim.apply_batch_sync([cmd1], True)
