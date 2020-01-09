@@ -189,11 +189,18 @@ Different approaches can be taken to measure overall CP performance. For instanc
 \label{subsec:evaluation:perception_evaluation:methodology}
 
 \subsubsection{Idea \& Structure}
-The present evaluation is structured into three closely related parts. First, the proposed system's \textbf{general suitability} (\textbf{Part 1}) for cooperative perception tasks is assessed, i.e. goal is to determine the extent to which perception quality can be improved through cooperation. Subsequently, it is further investigated how this potential improvement is affected by the \textbf{number of connected, communicating vehicles (Part 2)} and by different \textbf{temporal decay factors (Part 3)} (see \cref{subsec:concept_design:fusion_mechanism}). As mentioned earlier, the evaluation is conducted in an end-to-end fashion in the sense that measurements taken in multiple simulated scenarios are accumulated and viewed as a whole, rather than looking into particular aspects of the system itself. The setup is as follows.
+The present evaluation is structured into three closely related parts. First, the proposed system's \textbf{general suitability} (\textbf{part 1}) for cooperative perception tasks is assessed, i.e. goal is to determine the extent to which perception quality can be improved through cooperation. Subsequently, it is further investigated how this potential improvement is affected by the \textbf{number of connected, communicating vehicles (part 2)} and by different \textbf{temporal decay factors (part 3)} (see \cref{subsec:concept_design:fusion_mechanism}). As mentioned earlier, the evaluation is conducted in an end-to-end fashion in the sense that measurements taken in multiple simulated scenarios are accumulated and viewed as a whole, rather than looking into particular aspects of the system itself. The setup is as follows.
 \par
 \bigskip
 
 A variable number of ego vehicles are simulated in a pre-defined Carla environment. Each of these comprises an instance of the client-side parts (cf. \cref{subsec:concept_design:components_overview}) of the previously developed CP system and are connected to a centrally deployed instance of the respective server-side part, i.e. message broker and fusion node. Given pseudo-randomly \textbf{generated start- and destination} waypoints on the Carla map, they automatically traverse their environment while facing pseudo-randomly placed static and dynamic obstacles, such as other traffic participants. While doing so, their observations in the form of PER model instances, each of which contains an occupancy grid and respective cell state estimations, are recorded for later analyses. Multiple different scenarios are consecutively tested, in each of which static obstacle positions and start- and destination points of dynamic obstacles and ego vehicles are varied. Every configuration is run multiple times to later calculate an average score. The key point of this evaluation is to "'virtually"' \textbf{run each set of experiments twice} in addition: once with the Talky fusion node \textbf{turned on and off} respectively, i.e. with the ego vehicles communicating with each other or not. Subsequently, both result sets are compared to learn whether or not CP improves perception quality.
+
+\begin{figure}
+	\centering
+	\includegraphics[width=1\linewidth]{98_images/evaluation_scene_topview_cropped}
+	\caption[Top-View of the Simulation Environment used for Evaluation]{Schematic Top-View of an exemplary CARLA Simulation Environment used for Evaluation (\textit{Town01}). Green boxes indicate ego cars, blue boxes correspond to other, non-"'player"' vehicles.}
+	\label{fig:carla_scene_topview}
+\end{figure}
 
 For illustration purposes, \cref{fig:carla_scene_topview} schematically shows an exemplary Carla scene (\textit{Town01}) from a top-view perspective as it might be used in this part of the evaluation. It involves three ego vehicles (green boxes) driving in a straight line, several stationary or moving other vehicles (blue boxes) and several pedestrians (not shown).
 \par
@@ -254,13 +261,6 @@ For illustration purposes, \cref{fig:carla_scene_topview} schematically shows an
 	\end{minipage}
 	\captionof{table}[Constant Parameters of the Perception Evaluation]{Constant Parameters of the Perception Evaluation. See \cref{sec:implementation:configurable_parameters} for descriptions.}
 	\label{tab:perception_evaluation:constant_parameters}
-\end{figure}
-
-\begin{figure}
-	\centering
-	\includegraphics[width=1\linewidth]{98_images/evaluation_scene_topview_cropped}
-	\caption[Top-View of the Simulation Environment used for Evaluation]{Schematic Top-View of an exemplary CARLA Simulation Environment used for Evaluation (\textit{Town01}). Green boxes indicate ego cars, blue boxes correspond to other, non-"'player"' vehicles.}
-	\label{fig:carla_scene_topview}
 \end{figure}
 
 For all following tests, the fixed parameter values listed in \cref{tab:perception_evaluation:constant_parameters} are used. In addition to these, three further parameters are involved, which are varied across the three different test sets accordingly. 

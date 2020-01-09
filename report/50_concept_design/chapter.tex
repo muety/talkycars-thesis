@@ -18,7 +18,7 @@ As explained in \cref{subsec:background:sensor_fusion}, different levels of abst
 		\hline
 		\textbf{Advantages} & \textbf{Disadvantages} \\ \hline
 		Significantly smaller data volumes, latency and network utilization \textbf{(NF-M3)} & Need for a common, shared model \\ \hline
-		Significantly lower computational load at observer vehicles \textbf{(NF-M3)} & Potential need for schema versioning \\ \hline
+		Significantly lower computational load at observer vehicles \textbf{(NF-C3)} & Potential need for schema versioning \\ \hline
 		Independent of sensor type, characteristics and calibration \textbf{(NF-M1, NF-M2)} & \multirow{3}{*}{} \\ \cline{1-1}
 		Support for different levels of abstraction (e.g. to include semantic information about pair-wise relations among traffic participants) \textbf{(F-M1, F-M2)} &  \\ \cline{1-1}
 		Allows for inference without further processing \textbf{(NF-M2, NF-M3)} &  \\ \hline
@@ -104,31 +104,29 @@ In the simplest case, each observed cell of the previously introduced occupancy 
 
 Up to this point, it is coarsely specified \textit{what} to incorporate into the model: static and dynamic properties of each entity within the scene on different levels of abstraction – including semantics – using occupancy tiles as base- or root entities. The second step is to specify \textit{how} to represent these. Previous requirements imply a structure in which \textbf{entities} have \textbf{attributes} (or properties, see principle \textbf{P1}) and \textbf{relations} of various types among different entities can exist. Additionally, in order to appropriately meet the inherently uncertain nature of a partially observable environment using imperfect sensory and to comply with principles \textbf{P4} and \textbf{P5}, some notion of \textbf{confidence} needs to be incorporated into the model. Some way is needed to probabilistically model an observer's belief in the truthfulness of a particular property value or the existence of a certain relation between entities. 
 
-These needs lead to the introduction of \textbf{Probabilistic Entity Relationship Models} (PER models). Such are already used by \cite{Petrich2018} for traffic scene representation and can be seen as an extension to regular Entity Relationship Models (ER models). Correspondingly, they incorporate the notion of entities with attributes and inherently define entity-entity relations. Both entity-attribute combinations and entity-entity relations can be represented as $\langle subject, predicate, object \rangle$ triples:
+These needs lead to the introduction of \textbf{Probabilistic Entity Relationship Models} (PER models). Such are already used by \cite{Petrich2018} for traffic scene representation and can be seen as an extension to regular Entity Relationship Models (ER models). With ER models, an entity can either have an attribute or be relate to another entity. Both entity-attribute combinations and entity-entity relations can be represented as $\langle subject, predicate, object \rangle$ triples $r$ with:
 
 \begin{gather}
-	r \in \{ \langle \mathcal{E} \times \mathcal{A} \cup \mathcal{R} \times \mathcal{E} \cup \mathcal{L} \rangle \}
+	r \in \{ \langle s, p, o \rangle | s \in \mathcal{E}, p \in (\mathcal{A} \cup \mathcal{R}), o \in (\mathcal{E} \cup \mathcal{L}) \}
+	\label{eq:triples}
 \end{gather}
-\label{eq:triples}
 
 $\mathcal{E}$ is the set of all entities, $\mathcal{A}$ is the set of all attributes, $\mathcal{R}$ is the set of all entity-entity relations and $\mathcal{L}$ denotes a literal, i.e. a number, boolean value or string.
 
-With PER models, every triple is extended with an additional confidence parameter and thus becomes a \textbf{quadruple} $r$ of $\langle subject, predicate, object, \textit{conf} \rangle$: 
+With PER models, as opposed to conventional ER models, every triple is now extended by an additional confidence parameter and thus becomes a \textbf{quadruple} $r$ as part of the set of all potential quadruples $\mathcal{M}$: 
 
-\begin{samepage}
-	\begin{gather}
-	r \in \{ \langle \mathcal{E} \times \mathcal{A} \cup \mathcal{R} \times \mathcal{E} \cup \mathcal{L} \times \Gamma \rangle \}
-	\end{gather}
+\begin{gather}
+	r \in \mathcal{M} \text{\ with\ }
 	\label{eq:quadruples}
-	
-	\vspace{-10ex}
-	
-	\begin{gather*}
-	\text{with} \  \Gamma := \{ \gamma \in [0, 1] \subset \mathbb{R}^+ \}
-	\end{gather*}
-\end{samepage}
+\end{gather}
 
-With regard to this newly introduced confidence parameter, \cite{Petrich2018} distinguishes between \textit{attribute-} and \textit{structure uncertainty}, where the first describes sensor noise and the latter reflects uncertainty in the relational data. This is analogous to principles \textbf{P4} and \textbf{P5}, which suggest to model uncertainty for properties on the one hand and a confidence factor for entities on the other. However, this distinction is not considered useful in the context of this work and thus both probabilities are subsumed under a single notion of confidence.
+\vspace{-11ex}
+
+\begin{gather*}
+	\mathcal{M} := \{ \langle s, p, o, \alpha \rangle | s \in \mathcal{E}, p \in (\mathcal{A} \cup \mathcal{R}), o \in (\mathcal{E} \cup \mathcal{L}), \alpha \in [0, 1] \subset \mathbb{R}^+ \}
+\end{gather*}
+
+With regard to this newly introduced confidence parameter $\alpha$, \cite{Petrich2018} distinguishes between \textit{attribute-} and \textit{structure uncertainty}, where the first describes sensor noise and the latter reflects uncertainty in the relational data. This is analogous to principles \textbf{P4} and \textbf{P5}, which suggest to model uncertainty for properties on the one hand and a confidence factor for entities on the other. However, this distinction is not considered useful in the context of this work and thus both probabilities are subsumed under a single notion of confidence.
 
 An exemplary excerpt from an instantiated PER model, that could have been constructed based on observations of some ego vehicle, might look like this:
 
@@ -143,16 +141,16 @@ In the example, $\texttt{obstacle\_25}$ and $\texttt{traffic\_light\_190}$ are e
 Such relations can be separated into seven classes: \textit{inclusion}, \textit{possession}, \textit{attachment}, \textit{attribution}, \textit{antonym}, \textit{synonym} and \textit{case} \cite{Storey1993}. Three of those are considered relevant for modeling in AD contexts \cite{Petrich2018}:
 
 \begin{itemize}
-	\item \textbf{Inclusion:} Indicates structural- or spatial inclusion or class inheritance. \\ Example: $\langle  cross\_walk\_12, isPartOf, lane\_30, \gamma \rangle$
-	\item \textbf{Attachment:} Indicates structural- or spatial connection or intersection. \\ Example: $\langle car\_1250, drivesOn, lane\_30, \gamma \rangle$
-	\item \textbf{Case:} Indicates interaction or dependence between entities or association of attributes and entities. \\ Examples: $\{ \langle car\_1250, isStoppedAt, traffic\_light\_190, \gamma \rangle, \langle bicycle\_370, hasColor, \\ "'yellow"', \gamma \rangle \}$
+	\item \textbf{Inclusion:} Indicates structural- or spatial inclusion or class inheritance. \\ Example: $\langle  cross\_walk\_12, isPartOf, lane\_30, \alpha \rangle$
+	\item \textbf{Attachment:} Indicates structural- or spatial connection or intersection. \\ Example: $\langle car\_1250, drivesOn, lane\_30, \alpha \rangle$
+	\item \textbf{Case:} Indicates interaction or dependence between entities or association of attributes and entities. \\ Examples: $\{ \langle car\_1250, isStoppedAt, traffic\_light\_190, \alpha \rangle, \langle bicycle\_370, hasColor, \\ "'yellow"', \alpha \rangle \}$
 \end{itemize}
 
 While relations from any of these classes are represented equally in a PER model, the distinction can help to achieve a clean meta model or database design.
 \par
 \bigskip
 
-Using quadruples, a PER model is representable as a graph and thus can quite easily be searched, transformed and extended by inserting new relations. Also, the PER can – under certain conditions – be efficiently (\textbf{NF-M3}) represented as a tensor \cite{Petrich2018}.
+Using quadruples, a PER model is representable as a graph and thus can quite easily be searched, transformed and extended by inserting new relations. Also, the PER can – under certain conditions – be efficiently represented as a tensor \cite{Petrich2018}.
 
 The graphical representation also allows for different types of inference. New facts about the local world could be inferred when used in combination with first-order logic. Also, situations might easily be compared in terms of similarity, which can be used for case-based reasoning. Nickel et al. \cite{Nickel2016} present a multitude of further techniques to perform relational machine-learning on knowledge graphs, which might prove promising in AD contexts as well and are worth to be considered in future work.
 
@@ -185,7 +183,7 @@ In addition, the presented model is rich in a way that ...
 	\end{itemize}
 \end{samepage}
 
-A minimal instantiation of this model has to include an \texttt{OccupancyGrid} instance with an observer (\texttt{observedBy}) \texttt{Element} (e.g. a \texttt{Vehicle}) and  $1..n$ \texttt{GridCells}. How many cells exactly a grid consists of (grid size) can be configured and depends on its observer's sensor range. Each cell has to have at least its \texttt{state} and \texttt{positionHash} (as a QuadKey) defined. The ternary state can be represented using two bits. Its \texttt{positionHash} fits into 64 bits when using a QuadKey's integer representation (see \cref{subsec:background:quadkeys}) and the confidence $\gamma$ would usually be implemented as a 32-bit float. Accordingly, one cell could be modeled using 98 bits in an optimal, minimalist case, what contributes to efficiency (\textbf{NF-M3}).
+A minimal instantiation of this model has to include an \texttt{OccupancyGrid} instance with an observer (\texttt{observedBy}) \texttt{Element} (e.g. a \texttt{Vehicle}) and  $1..n$ \texttt{GridCells}. How many cells exactly a grid consists of (grid size) can be configured and depends on its observer's sensor range. Each cell has to have at least its \texttt{state} and \texttt{positionHash} (as a QuadKey) defined. The ternary state can be represented using two bits. Its \texttt{positionHash} fits into 64 bits when using a QuadKey's integer representation (see \cref{subsec:background:quadkeys}) and the confidence $\alpha$ would usually be implemented as a 32-bit float. Accordingly, one cell could be modeled compact (\textbf{NF-M3}) using 98 bits in an optimal, minimalist case.
 
 \begin{sidewaysfigure}
 	\centering
@@ -334,7 +332,7 @@ The system proposed in the context of Ko-HAF \cite{Hohm2019} utilizes both: req/
 \par
 \bigskip
 
-Another important aspect to be agreed upon is the representation format of data on the wire, or, in this case, on a wireless connection. Although \cref{subsec:concept_design:probabilistic_entity_relationship_model_for_cooperative_perception} defined the environment model to be represented in form of a PER graph, no details have been provided on how to present that graph as a data structure. Since bandwidth is limited and latency must be kept low, a highly efficient (\textbf{NF-M3}, \textbf{NF-C3}, cf. \cref{sec:problem_analysis:goals_requirements}) serialization format should be used. While the choice for a concrete technology is done in \cref{ch:implementation}, a \textbf{binary serialization format} might be favored over more verbose, text-based formats like XML or JSON.
+Another important aspect to be agreed upon is the representation format of data on the wire, or, in this case, on a wireless connection. Although \cref{subsec:concept_design:probabilistic_entity_relationship_model_for_cooperative_perception} defined the environment model to be represented in form of a PER graph, no details have been provided on how to present that graph as a data structure. Since bandwidth is limited and latency must be kept low, a compact (\textbf{NF-M3}, \textbf{NF-C3}, cf. \cref{sec:problem_analysis:goals_requirements}) serialization format should be used. While the choice for a concrete technology is done in \cref{ch:implementation}, a \textbf{binary serialization format} might be favored over more verbose, text-based formats like XML or JSON.
 
 
 \subsection{Components Overview}
@@ -390,7 +388,7 @@ Essentially, the goals of fusion in a cooperative perception system are (1) to \
 
 In \cref{fig:fusion_goals_1}, vehicle X observes the occupancy grid on the left and vehicle Y the one on the right. Green cells are considered free, red cells are considered occupied and for gray cells no state could be determined, e.g. due to sensor noise or because they were out of sight. Vehicle X failed to estimate the state for cell H, while vehicle Y measured it to be occupied. Accordingly, the fused grid includes cell H with a state of being occupied.
 
-While confidences were omitted for the sake of simplicity in the first example, \cref{fig:fusion_goals_2} includes them in addition. In this scenario, attention is to be placed on cells C and E. While vehicle X is only 80 \% confident about the state of cell C, vehicle Y is perfectly sure about it being free. Accordingly, the resulting state has an average confidence of 90 \%. Moreover, a conflict exists for cell E. Vehicle X is 60 \% confident, that it is occupied, while vehicle Y is 80 \% confident of it being free. When neglecting all other factors (like time), the average confidence for each cell's state might be used during the fusion to get a result of cell E being free with a confidence of 40 \%. Please be aware that these examples are drastically simplified.
+While confidences were omitted for the sake of simplicity in the first example, \cref{fig:fusion_goals_2} includes them in addition. In this scenario, attention is to be placed on cells C and E. While vehicle X is only 80 \% confident about the state of cell C, vehicle Y is perfectly sure about it being free. Accordingly, the resulting state has an average confidence of 90 \%. Moreover, a conflict exists for cell E. Vehicle X is 60 \% confident, that it is occupied, while vehicle Y is 80 \% confident of it being free under the open world assumption. When neglecting all other factors (like time), the average confidence for each cell's state might be used during the fusion to get a result of cell E being free with a confidence of 40 \%. Please be aware that these examples are drastically simplified.
 
 \subsection{Problem Statement}
 \label{subsec:concept_design:fusion_problem_statement}
@@ -403,21 +401,22 @@ As already mentioned in \cref{subsec:background:sensor_fusion}, Elmenreich et al
 More formally, for every type 3 tile with $n$ participants (e.g. vehicles), let $M^{loc}_i(t), i \in [0..n]$ denote the model instance that was obtained at vehicle $i$ at time $t$ and assume the participant with $i = 0$ is the ego vehicle, whose perspective is taken in the following. As explained in \cref{subsec:concept_design:probabilistic_entity_relationship_model_for_cooperative_perception}, the model $M$ essentially consist of a set of quadruples $r$, which correspond to probabilistic relations of a graph. That is:
 
 \begin{gather*}
-	M^{loc}_i(t) := \{r_{i,0}(t) \ .. \ r_{i,m}(t)\} \\ 
-	\text{with\ } r_{i,j}(t) \in \{ \langle \mathcal{E} \times \mathcal{A} \cup \mathcal{R} \times \mathcal{E} \cup \mathcal{L} \times \Gamma \rangle \} \\
-	\text{and} \  \Gamma := \{ \gamma \in [0, 1] \subset \mathbb{R}^+ \} \\
+	M^{loc}_i(t) := \{r_{i,0}(t) \ .. \ r_{i,m}(t)\} \subseteq \mathcal{M}
 \end{gather*}
 
-The goal of fusion is, given every participants local model $M^{loc}_i$, to get an augmented model $M^{aug}_i$ that involves all other participants' relevant observations as well.
+$\mathcal{M}$ was defined in \cref{eq:quadruples} and denotes the set of all possible quadruples.
+\par
+\medspace
+
+The goal of fusion is, given every participants local model $M^{loc}_i$, to get a global, augmented model $M^{glob}$ that involves all other participants' relevant observations as well.
 
 \begin{gather*}
-	\text{Given\ } M^{loc}_0(t-1) \text{\ and\ } \{M^{loc}_i(t - \Delta t^{min}_i)\ |\ i > 0, \Delta t^{min}_i > 1\} \\
-	\text{we look for\ } M^{aug}_0(t) \\ 
-	\text{\ s.t.\ } \bigl|  M^{aug}_0(t) \bigl| \ \geqslant \ \bigl| M^{loc}_0(t-1) \bigl| \\
-	\text{\ and\ } \psi(M^{aug}_0(t), M^{*}_0(t)) > \psi(M^{loc}_0(t-1), M^{*}_0(t))
+	\text{Given\ } M^{loc}_0(t_0) \text{\ and\ } \{M^{loc}_i(t)\ |\ i \in [1, n], t < t_0\} \\
+	\text{we look for a function\ } \varphi \text{\ to compute\ } M^{glob}(t_0) \\ 
+	\text{\ s.t.\ } \psi(M^{glob}(t_0)) > \psi(M^{loc}_0(t_0))
 \end{gather*}
 
-$\psi$ denotes the evaluation or scoring function that compares the latent true environment state $M^*$ to the observed one. $\Delta t^{min}_i$ denotes the minimum fusion- and transmission latency for participant $i$, i.e. the temporally closest timestamp smaller than $t$. 
+$\psi$ denotes the evaluation or scoring function that compares the latent true environment state $M^*$ to the observed one.
 
 A more detailed description of how this augmented model is gained through fusion is given in \cref{subsec:concept_design:fusion_architecture}.
 
@@ -448,17 +447,15 @@ Assume the observations from two different observers for the same situation are 
 \end{gather*}
 
 Applying a simple arithmetic average over the confidences of all observations for each possible state yields:
-
 \begin{gather*}
-	r_{1,\text{fused}} = \langle \textit{cell}_i, \textit{hasState}, \textit{free}, \gamma_1 \rangle \\
-	r_{2,\text{fused}} = \langle \textit{cell}_i, \textit{hasState}, \textit{occupied}, \gamma_2 \rangle \\
-	r_{3,\text{fused}} = \langle \textit{cell}_i, \textit{hasState}, \textit{unknown}, \gamma_3 \rangle \\
-	\text{with\ } \gamma_1 = 0.5, \gamma_2 = 0.425, \gamma_3 = 0.075 \\
+	r_{1,\text{fused}} = \langle \textit{cell}_i, \textit{hasState}, \textit{free}, \alpha_1 \rangle \\
+	r_{2,\text{fused}} = \langle \textit{cell}_i, \textit{hasState}, \textit{occupied}, \alpha_2 \rangle \\
+	r_{3,\text{fused}} = \langle \textit{cell}_i, \textit{hasState}, \textit{unknown}, \alpha_3 \rangle \\
+	\text{with\ } \alpha_1 = 0.5, \alpha_2 = 0.425, \alpha_3 = 0.075 \\
 \end{gather*}
 
 Taking the OWA, confidences can not be interpreted as probabilities, as the potential number of values is infinite. Instead, the trivial fusion approach from above would yield these quadruples when assuming an open world:
-
-$$\gamma_1 = 0.45, \gamma_2 = 0.4, \gamma_3 = 0$$
+$$\alpha_1 = 0.45, \alpha_2 = 0.4, \alpha_3 = 0$$
 
 As mentioned earlier, only the fusion of occupancy states is implemented in this thesis, for which the open-world assumption is used consistently.
 
@@ -467,22 +464,23 @@ As mentioned earlier, only the fusion of occupancy states is implemented in this
 This section describes how multiple observations for a single discrete, categorical attribute are fused. For convenience, continuous attributes are disregarded and the focus is placed particularly on the fusion of cells' occupancy states. This state attribute's domain is discrete and finite (ternary). For instance, the statement that a cells is \textit{free} is either true or false and an additional notion of uncertainty is incorporated by passing along a confidence value. The confidence value represents either attribute- or structure uncertainty (cf. \cref{subsec:concept_design:probabilistic_entity_relationship_model_for_cooperative_perception}).
 Despite this confidence, a fusion function also needs to respect the observation's temporal delay, i.e. its "'age"'. In a cooperative perception system, the presence of a transmission lag is inevitable and mainly arises from network latency. Accordingly, an observation is always outdated already when being fused. This degree of "'outdatedness"' is referred to as \textit{Reliability of Perception} by \cite{liu2013motion}, whose authors suggest to exponentially decrease it with increasing transmission lag. The description of a scene that is a few milliseconds old might still be quite accurate, but as it gets older – potentially several seconds – the scene has most likely changed too much to still rely on that state representation. 
 
-The fusion function $\phi$ is defined as a mapping from a set of model instances $\mathcal{M}$ (cf. \cref{subsec:concept_design:probabilistic_entity_relationship_model_for_cooperative_perception}) and a real-valued temporal delay $\Delta t = t_{now} - t_{obs}$ to a new model instance.
-
+The fusion function $\varphi$ is defined as a mapping from a set of model instances $\mathcal{M}$ (cf. \cref{subsec:concept_design:probabilistic_entity_relationship_model_for_cooperative_perception}) – i.e. collections of semantic quadruples from $n$ observers over multiple time steps – and corresponding discrete temporal delays $\Delta t = t_{now} - t_{obs}$ to a new model instance.
 \begin{gather}
-	\phi: \mathcal{M} \times \mathbb{R}^+ \mapsto \mathcal{M}
+	\varphi: \mathcal{M}^n \times \mathbb{N}^n \rightarrow \mathcal{M}
 \end{gather}
 
-Accordingly, a fused model instance at time $t$ is given as:
-
+For illustration purposes, let $S(t)$ be an aggregated set of tuples of model instances and corresponding temporal delays at time $t$ from all present observers and all relevant past time steps.
 \begin{gather}
-	M^{fused}(t) = \phi(\bigcup^n_{i = 0} \bigcup^t_{u = t - \delta t^{max}} M^{loc}_i(u), t-t_i)
+	S(t) = \bigcup^n_{i = 0} \bigcup^t_{u = t - \delta t^{max}} \langle M^{loc}_i(u), t-t_i \rangle
+	\label{eq:S}
 \end{gather}
 
-$n$ denotes the number of observers and $\delta t^{max}$ is a user-defined parameter that specifies the maximum age of observations to include during fusion. Consequently, the input to the fusion function are all present observations (= PER model instances) from all present observers within the last $t - \delta t^{max}$ time steps.
+$n$ denotes the number of observers and $\delta t^{max}$ is a user-defined parameter that specifies the maximum age of observations to include during fusion. Consequently, it consists of all present observations (= PER model instances) from all present observers within the last $t - \delta t^{max}$ time steps. A fused model instance at time $t$ is then given as:
+\begin{gather}
+	M^{glob}(t) = \varphi(S(t))
+\end{gather}
 
-Evaluating $\phi$ involves to evaluate the respective "'sub-"'functions to fuse the values of all certain entity-attribute ($\langle e, a \rangle$) or entity-entity (($\langle e1, e2 \rangle$)) combinations. Moreover, the following function is defined to determine a \textbf{temporal decay factor} for every observation to weigh it by its degree of "'outdatedness"', just as proposed above.
-
+Evaluating $\varphi$ involves to evaluate the respective "'sub-"'functions to fuse the values of all certain entity-attribute ($\langle e, a \rangle$) or entity-entity ($\langle e1, e2 \rangle$) combinations. Moreover, the following function is defined to determine a \textbf{temporal decay factor} for every observation to weigh it by its degree of "'outdatedness"', just as proposed above.
 \begin{gather}
 	\textit{decay}(t_i) = \exp^{-\lambda * \Delta t} = \exp^{-\lambda * (t_{now} - t_i)}
 \end{gather}
@@ -491,32 +489,36 @@ In this thesis, the above function is used globally throughout the entire fusion
 \par
 \bigskip
 
-For a $\langle e, a \rangle$-combination whose value domain is categorical and finite, the \textbf{weighted arithmetic mean} can be used to aggregate (i.e. fuse) multiple evidences or observations. This is the method of choice implemented in this work to fuse occupancy states. Further fusion mechanisms for other types of $\langle e, a \rangle$- or $\langle e1, e2 \rangle$ combinations are considered to be out of scope and are not explicitly defined. In search to fill the placeholders $b$ an $\gamma$ of a $\langle e, a, b, \gamma \rangle$-tuple, one could follow a two-step procedure to determine the aggregated confidence value and actual attribute value.
+For a $\langle e, a \rangle$-combination whose value domain is categorical and finite, the \textbf{weighted arithmetic mean} can be used to aggregate (i.e. fuse) multiple evidences or observations. This is the method of choice implemented in this work to fuse occupancy states. Further fusion mechanisms for other types of $\langle e, a \rangle$- or $\langle e1, e2 \rangle$ combinations are considered out of scope. In search to fill the placeholders $\theta_1$ an $\theta_2$ of a $\langle e, a, \theta_1, \theta_2 \rangle$-tuple, one could follow a two-step procedure to determine the aggregated confidence value and actual attribute value.
 
 \begin{gather*}
-	\textit{maxconf}_{e,a} = \underset{b \in \textit{dom}(\langle e, a \rangle)}{\max} \frac{\sum_{j = 0}^{m} \textit{val}_b(r_j) * \textit{decay}(t_j)}{\sum_{i = 0}^{m} \textit{decay}(t_j)} \\\textit{maxval}_{e,a} = \underset{b \in \textit{dom}(\langle e, a \rangle)}{\arg\max} \frac{\sum_{j = 0}^{n} \textit{val}_b(r_j) * \textit{decay}(t_j)}{\sum_{j = 0}^{n} \textit{decay}(t_j)} \\
+	\textit{maxconf}_{e,a} = \underset{v \in \textit{dom}(\langle e, a \rangle)}{\max} \sum_{j = 0}^{m} \textit{OWA}(j, v) * \textit{decay}(t_j) \\\textit{maxval}_{e,a} = \underset{v \in \textit{dom}(\langle e, a \rangle)}{\arg\max} \sum_{j = 0}^{m} \textit{OWA}(j, v) * \textit{decay}(t_j) \\
 \end{gather*}
 
-In the above equation, $\textit{val}_b$ is defined as
+In the above equation, the function $\textit{OWA}$ is defined as
 
 $$
-\textit{val}_b(r) = 
+\textit{OWA}(i, v) = 
 	\begin{cases}
-	\gamma \in r & b \in r \\
+	\alpha_i & v \in r_i \\
 	0 & else
 	\end{cases}
 $$
 
-and $m$ is the number of observations to be included into the current fusion that holds a quadruple containing $e$ at subject- and $a$ at predicate position. Moreover, sticking to the previous notation, $r$ denotes a relation quadruple as part of a model instance $M$.
+and responsible for returning either the \textit{i}-th quadruple's confidence, if the quadruple's attribute value (e.g. \textit{free} in the case of a \textit{state} attribute) equals $v$ or zero otherwise. Moreover, $m$ is the number of observations to be included in the current fusion round. Sticking to the previous notation, $\alpha_i$ is the confidence value (fourth component) of a relation quadruple, which again in part of a model instance $M$.
 
-Accordingly, the fused quadruple for this specific $\langle e, a \rangle$-combination would be $r_{i,fused} = \langle e, a, \textit{maxval}_{e,a}, \textit{maxconf}_{e,a} \rangle$.
+The fused quadruple for this specific $\langle e, a \rangle$-combination would be:
+
+$$
+r_{i,fused} = \langle e, a, \textit{maxval}_{e,a}, \textit{maxconf}_{e,a} \rangle
+$$
 
 \subsection{Architecture: Doubly Updated Merging}
 \label{subsec:concept_design:fusion_architecture}
 
 While the previous section gave a thorough description of how a single entity-attribute combination might be fused, this section returns back to a higher-level perspective and examines the fusion process in its whole again.
 
-The concept of \textit{doubly updated merging} is introduced as a technique to address the fact that an observation is delayed twice on its way through the CP system. First, as a local observation $M^{loc}_i(t)$, it experiences a transmission lag $\Delta t_1$ while being transferred from the on-board Talky client via the message broker to the fusion- / or edge node. After it was fused at the server and became part of $M^{glob}(t+\Delta t_1+\epsilon_1)$ it is transmitted all the way back to the client, which causes another delay $\Delta t_2$. While the server considered $\Delta t_1$ as a decay factor during fusion, the client needs to incorporate $\Delta t_2$ as well. Therefore, the client performs another round of fusion, in which $M^{glob}(t+\Delta t_1+\epsilon_1)$ and its latest local $M^{loc}_i(t+\Delta t_1+\epsilon_1+\Delta t_2+\epsilon_2)$ are merged into the final $M^{aug}_i$. This process is depicted as a sequential schema in \cref{fig:sequence}.
+The concept of \textit{doubly updated merging} is introduced as a technique to address the fact that an observation is delayed twice on its way through the CP system. First, as a local observation $M^{loc}_i(t)$, it experiences a transmission lag $\Delta t_1$ while being transferred from the on-board Talky client via the message broker to the fusion- / or edge node. After it was fused at the server and became part of $M^{glob}(t+\Delta t_1+\epsilon_1)$ it is transmitted all the way back to the client, which causes another delay $\Delta t_2$. While the server considered $\Delta t_1$ as a decay factor during fusion, the client needs to incorporate $\Delta t_2$ as well. Therefore, the client performs another round of fusion, in which $M^{glob}(t+\Delta t_1+\epsilon_1)$ and its latest local $M^{loc}_i(t+\Delta t_1+\epsilon_1+\Delta t_2+\epsilon_2)$ are merged into the final $M^{final}_i$. This process is depicted as a sequential schema in \cref{fig:sequence}.
 
 \begin{figure}[H]
 	\centering
@@ -525,12 +527,12 @@ The concept of \textit{doubly updated merging} is introduced as a technique to a
 	\label{fig:sequence}
 \end{figure}
 
-Given the definition of relation quadruples $r$ in \cref{eq:quadruples}, the three different state representations (or model instances) produced in the course of one iteration of \textit{doubly updated merging} can be formally stated as follows.
+Given the definition of relation quadruples $r$ in \cref{eq:quadruples} and the definition of set $S(t)$ in \cref{eq:S}, all three different state representations (or model instances) produced in the course of one iteration of \textit{doubly updated merging} can be formally stated as follows.
 
 \begin{align}
-	\textbf{Local:\ } &\  M^{loc}_i(t_0) = \{ r_{i,0}(t_0)\ ...\ r_{i,j}(t_0)\} \\
-	\textbf{Globally Fused:\ } &\  M^{glob}(t_1) = \phi(\bigcup^n_{i = 0} \bigcup^{t_1}_{t = t_1 - \delta t^{max}} M^{loc}_i(t), t-t_i) \\
-	\textbf{Locally Double-Fused:\ } &\  M^{aug}_i(t_2) = \phi(\{ M^{loc}_i(t_2), M^{glob}(t_1) \}, t_2 - t_1)
+	\textbf{Local:\ } &\  M^{loc}_i(t_0) = \{ r_{i,0}(t_0)\ ...\ r_{i,m}(t_0)\} \subset \mathcal{M} \\
+	\textbf{Globally Fused:\ } &\  M^{glob}(t_1) = \varphi(S(t_1)) \\
+	\textbf{Locally Double-Fused:\ } &\  M^{final}_i(t_2) = \varphi(M^{glob}(t_1) \cup \{ M_i^{loc}(t_2) \})
 \end{align}
 \begin{gather*}
 	\text{with\ } \delta t^{max} > 0, t_2 > t_1 > t_0
