@@ -81,11 +81,11 @@ When attempting to model one's neighboring traffic environment, a mental distinc
 
 The very base of the proposed model is made up of cells of an \textbf{occupancy grid} with fixed dimensions. Such can be constructed by any observer (vehicle, RSU, etc.) and derived from any kind of perceptual sensor data. This simplification as a lowest common denominator facilitates universality \textbf{(NF-M1)}. However, these basic information can be enriched with more complex features easily to support expressiveness \textbf{(F-M1)}. This is achieved through the use of a graph-based meta model, as explained in \cref{subsec:concept_design:probabilistic_entity_relationship_model_for_cooperative_perception}.
 
-To work towards the perspicuity \textbf{(NF-M2)} requirement and to follow the principle of using a common coordinate system (\textbf{P2}), every cell is identified by a \textbf{QuadKey}. As a consequence, referring to a cell's position is independent from local, per-vehicle coordinates systems and from the GNSS / GPS coordinate frames alike. This prevents network participants from a multitude of expensive transformation operations.
+To work towards the perspicuity requirement \textbf{(NF-M2)} and to follow the principle of using a common coordinate system (\textbf{P2}), every cell is identified by a \textbf{QuadKey}. As a consequence, referring to a cell's position is independent from local, per-vehicle coordinates systems and from the GNSS / GPS coordinate frames alike. This prevents network participants from a multitude of expensive transformation operations.
 
 Following this concept, the entire world map is recursively split into QuadTiles (see \cref{sec:background:geo_tiling}) of a certain precision level (e.g. level 24, corresponding to square tiles of $\sim$ \SI{2.39}{\square\meter}). The precision level should be chosen in a way that it is fine-grained enough to distinguish between single pedestrians or even road signs. However, at the same time, it must not be too exact in order to save bandwidth and computation load.
 
- of the occupancy grid – one of which is observed locally by every connected participant – then corresponds to a certain QuadTile. Besides its occupancy state, every tile can be augmented with information like the corresponding occupant actor, its relation to the overall road topology, etc. 
+Every cell of the occupancy grid – one of which is observed locally by every connected participant – then corresponds to a certain QuadTile. Besides its occupancy state, every tile can be augmented with information like the corresponding occupant actor, its relation to the overall road topology, etc. 
 
 \Cref{fig:tiling1} illustrates the proposed \textit{occupancy tile} concept. The blue grid is within the observation range of the turquoise vehicle and inherently part of larger tiles. Each cell's (= each tile's) state is determined through local sensor fusion involving different types of in-vehicle sensors and can be extended by additional information. Eventually, that grid, entailing all relevant information, is shared with other CP participants.
 
@@ -148,7 +148,7 @@ Such relations can be separated into seven classes: \textit{inclusion}, \textit{
 	\item \textbf{Case:} Indicates interaction or dependence between entities or association of attributes and entities. \\ Examples: $\{ \langle car\_1250, isStoppedAt, traffic\_light\_190, \gamma \rangle, \langle bicycle\_370, hasColor, \\ "'yellow"', \gamma \rangle \}$
 \end{itemize}
 
-While relations from any of these classes are represented equally in an PER model, the distinction can help to achieve a clean meta model or database design.
+While relations from any of these classes are represented equally in a PER model, the distinction can help to achieve a clean meta model or database design.
 \par
 \bigskip
 
@@ -196,7 +196,7 @@ A minimal instantiation of this model has to include an \texttt{OccupancyGrid} i
 
 \subsection{Summary}
 \label{subsec:concept_design:modeling:summary}
-In the previous sections a comprehensive, yet not complete model for dynamic traffic scenes and with a focus on cooperative perception use cases was presented (see \cref{fig:final_model}). It enables to describe a scene combining low-level attributes with high-level relational knowledge. It fulfills the requirements stated in \cref{sec:problem_analysis:goals_requirements} and follows the modeling principles introduced in \cref{subsec:concept_design:principle_of_dynamic_world_modeling}. 
+In the previous sections a comprehensive, yet not complete model for dynamic traffic scenes was presented with a focus on cooperative perception use cases (see \cref{fig:final_model}). It enables to describe a scene combining low-level attributes with high-level relational knowledge. It fulfills the requirements stated in \cref{sec:problem_analysis:goals_requirements} and follows the modeling principles introduced in \cref{subsec:concept_design:principle_of_dynamic_world_modeling}. 
 
 As a result, it is capable of uniformly and universally modeling road scenarios at a high degree of expressiveness, while embracing a notion of uncertainty or confidence and information on different abstraction levels. Key concepts used include \textbf{geo tiling} based on \textbf{QuadKeys} for spatially referencing cells of an \textbf{occupancy grid} and \textbf{Probabilistic Entity Relationship models} as a structural framework.
 
@@ -237,7 +237,7 @@ Most prior work on V2X employs ad-hoc networks (VANETs) between participants, ma
 
 In order to unburden participant vehicles (or pedestrian smartphones, RSUs, etc.), this work proposes the use of a \textbf{client-server architecture}. Every client connects to a central server instance, that is responsible for its current geographical area. It performs all computation tasks (mainly high-level sensor data fusion) and is responsible for collecting and broadcasting their messages. While the server node has to be very strong in terms of computational capacity, every client now only has to maintain one bi-directional connection and process (e.g. fuse) messages from one sender. \Cref{fig:communication_topology} illustrates both patterns in a scenario of $n = 4$ vehicles. The pattern of V2X now becomes, strictly speaking, V2N2X, as an intermediate network is involved. However, for the sake of simplicity, the term \textit{V2X} will still be used to describe this new pattern. 
 
-Although 5GAA specify multiple transmission modes for 5G \cite{5GAutomotiveAssociation2016} – including \textbf{direct communication} between network clients (V2V in the narrow sense ot the word) – this thesis focuses on V2N-based communication to best counter the previously mentioned drawbacks. 
+Although 5GAA specify multiple transmission modes for 5G \cite{5GAutomotiveAssociation2016} – including \textbf{direct communication} between network clients (V2V in the narrow sense of the word) – this thesis focuses on V2N-based communication to best counter the previously mentioned drawbacks. 
 
 \begin{figure}[h]
 	\centering
@@ -290,7 +290,7 @@ While fundamental structures, patterns and interactions are specified, concrete 
 \label{subsec:concept_design:central_fusion_nodes}
 As mentioned earlier, most existing cooperative perception solutions base on VANETs between their participants. Downsides of this concept with respect to both network technology and communication topology were presented in \cref{sec:problem_analysis:limitations_of_prior_work}. Only Ko-HAF \cite{Hohm2019} constitutes an exception in that the proposed system utilizes cellular networks and involves a central server instance, the \textit{Safety Server}.
 
-Following their approach with the goal to overcome the limitations of P2P ad-hoc networks, this system's architecture will fundamentally base on a \textbf{central server component} at its core, also called or fusion nodes or RSUs in the following. Instead of P2P connections, the proposed system's topology follows a \textbf{client-server} pattern, potentially involving multiple servers. These will act as data brokers, that are responsible for \textbf{(1) data collection}, \textbf{(2) fusion} and \textbf{(3) redistribution} (or broadcasting). Each of these steps is discussed in the following sections.
+Following their approach with the goal to overcome the limitations of P2P ad-hoc networks, this system's architecture will fundamentally base on a \textbf{central server component} at its core, also called fusion node or RSU in the following. Instead of P2P connections, the proposed system's topology follows a \textbf{client-server} pattern, potentially involving multiple servers. These will act as data brokers, that are responsible for \textbf{(1) data collection}, \textbf{(2) fusion} and \textbf{(3) redistribution} (or broadcasting). Each of these steps is discussed in the following sections.
 
 The approach to have multiple servers is essentially different from Ko-HAF and all other presented designs and results from the advanced requirements for computation performance due to higher frequency and accuracy. While the goal of Ko-HAF is to maintain an always-up-to-date traffic map including static information and incidents, the amount of information exchanged per time is much higher with the present CP system, in which traffic situations are continuously being described and shared in high detail. In Ko-HAF, the amount of data transmitted per kilometer is 14-33 \si{\kilo\byte} \cite{Hohm2019}, while the data rate required for CP is potentially orders of magnitude higher (see \cref{ch:evaluation}). Therefore, one central, global server instance is not sufficient to handle the system's high load.
 
@@ -312,7 +312,7 @@ In addition, there is a fourth type of geographical area to be considered: the o
 \par
 \bigskip
 
-\textbf{Example:} A vehicle's perceptual sensors have a total range of \SI{100}{\meter} and the occupancy cells (type 1 tiles) are configured to $\lambda_1 = 24$ ($\sim$ \SI{2.4}{\square\meter}). Accordingly, the grid size will be $\diameter_{grid} = \floor*{\frac{\SI{100}{\meter}}{\SI{2.4}{\meter}}} = 41$ cells. Of course, the vehicle is interested in observations beyond its \SI{100}{\meter} range, so it receives data from all its adjacent type 2 tiles, which are configured with $\lambda_2 = 19$ ($\sim$ \SI{76.4}{\square\meter}) in the example. Its range of sight has expanded to $\diameter_{virt} = 3 * \SI{76.4}{\meter} = \SI{229.2}{\meter}$. The size of type 3 tiles is set to $\lambda_3 = 16$ ($\sim$ \SI{611.5}{\square\meter}), i.e. the vehicle will connect to a new fusion node every 612 meters. Each of these nodes is responsible for managing data for $4^{19-16} = 4^3 = 64$ type 2 tiles (or $4^{24-16} = 4^8 = 65536$ type 1 tiles).
+\textbf{Example:} A vehicle's perceptual sensors have a total range of \SI{100}{\meter} and the occupancy cells (type 1 tiles) are configured to $\lambda_1 = 24$ ($\sim$ \SI{2.4}{\square\meter}). Accordingly, the grid size will be $\diameter_{grid} = \floor*{\frac{\SI{100}{\meter}}{\SI{2.4}{\meter}}} = 41$ cells. Of course, the vehicle is interested in observations beyond its \SI{100}{\meter} range, so it receives data from all its adjacent type 2 tiles, which are configured with $\lambda_2 = 19$ ($\sim$ \SI{76.4}{\square\meter}) in this example. Its range of sight has expanded to $\diameter_{virt} = 3 * \SI{76.4}{\meter} = \SI{229.2}{\meter}$. The size of type 3 tiles is set to $\lambda_3 = 16$ ($\sim$ \SI{611.5}{\square\meter}), i.e. the vehicle will connect to a new fusion node every 612 meters. Each of these nodes is responsible for managing data for $4^{19-16} = 4^3 = 64$ type 2 tiles (or $4^{24-16} = 4^8 = 65536$ type 1 tiles).
 
 \subsection{Messaging \& Further Considerations}
 \label{subsec:concept_design:messaging_further_considerations}
@@ -429,11 +429,11 @@ Attributes and relations might be categorized into classes, for each of which a 
 
 \subsection{Open- \& Closed World Assumption}
 \label{subsec:concept_design:fusion_open_closed_world_assumption}
-As explained in the previous section, all attributes and relations of the model can be fused in principle. However, different fusion mechanisms and functions need to be implemented for different types of attributes (e.g. numerical vs. categorical or temporal vs. spatial). Moreover, a major distinction has to be made for what to assume as an attribute's domain. Depending on the type or category of attribute, either the  \textbf{Open World Assumption (OWA)} or the \textbf{Closed World Assumption (CWA)} is appropriate. Which one is used has fundamental influence on the fusion result.
+As explained in the previous section, all attributes and relations of the model can be fused in principle. However, different fusion mechanisms and functions need to be implemented for different types of attributes (e.g. numerical vs. categorical or temporal vs. spatial). Moreover, a major distinction has to be made for what to assume as an attribute's domain. Depending on the type or category of attribute, either the  \textbf{Open World Assumption (OWA)} or the \textbf{Closed World Assumption (CWA)} is appropriate. The fusion result is fundamentally influenced depending on which one is used.
 
 Taking a CWA means that – generally speaking – a logical statement, that is not known to be true, is considered false. Contrary to that, the OWA "'allows"' to have incomplete knowledge and does not consider \textit{negation as failure} \cite{wiki:neaf}. 
 
-With respect to high-level fusion for CP, OWA vs. CWA plays an essential role when deciding what kind of fusion mechanism to use for different attribute classes. More precisely, it influences the way how confidences for entity-attribute- or entity-entity relations are interpreted. 
+With respect to high-level fusion for CP, OWA vs. CWA plays an essential role when deciding what kind of fusion mechanism to use for different attribute classes. More precisely, it influences the way how confidences for entity-attribute or entity-entity relations are interpreted. 
 
 Generally, one could distinguish between attributes, whose domain is known and such, whose domain is not known. For the former, one could apply either CWA or OWA, while for the latter, the OWA has to be taken as a basis. For instance, while the domain for a ternary occupancy state is completely known (\textit{free}, \textit{occupied} and \textit{unknown}), the number of possible "'attribute"' values (i.e. entities as objects in a quadruple) is infinite for an entity-entity relation between different road participants. During the fusion, it is unknown how many potential vehicles, pedestrians and other traffic participants are in a scene and could potentially occupy a certain cell or not.
 
@@ -464,8 +464,8 @@ As mentioned earlier, only the fusion of occupancy states is implemented in this
 
 \subsection{Mechanism: Time-Decayed Weighted Average}
 \label{subsec:concept_design:fusion_mechanism}
-This section describes how multiple observations for a single discrete, categorical attribute are fused. For the sake of simplicity, continuous attributes are disregarded and the focus is placed particularly on the fusion of cells' occupancy states. This state attribute's domain is discrete and finite (ternary). For instance, the statement that a cells is \textit{free} is either true or false and an additional notion of uncertainty is incorporated by passing along a confidence value. The confidence value represents either attribute- or structure uncertainty (cf. \cref{subsec:concept_design:probabilistic_entity_relationship_model_for_cooperative_perception}).
-Despite this confidence, a fusion function also needs to respect the observation's temporal delay, i.e. its "'age"'. In a cooperative perception system, the presence of a transmission lag is inevitable and mainly arises from network latency. Accordingly, an observation is always outdated already when being fused. This degree of "'outdatedness"' is referred to as \textit{Reliability of Perception} by \cite{liu2013motion}, whose authors suggest to exponentially decrease it with increasing transmission lag. The description of a scene that is a few millisecond old might still be quite accurate, but as it gets older – potentially several seconds – the scene has most likely changed too much to still rely on that state representation. 
+This section describes how multiple observations for a single discrete, categorical attribute are fused. For convenience, continuous attributes are disregarded and the focus is placed particularly on the fusion of cells' occupancy states. This state attribute's domain is discrete and finite (ternary). For instance, the statement that a cells is \textit{free} is either true or false and an additional notion of uncertainty is incorporated by passing along a confidence value. The confidence value represents either attribute- or structure uncertainty (cf. \cref{subsec:concept_design:probabilistic_entity_relationship_model_for_cooperative_perception}).
+Despite this confidence, a fusion function also needs to respect the observation's temporal delay, i.e. its "'age"'. In a cooperative perception system, the presence of a transmission lag is inevitable and mainly arises from network latency. Accordingly, an observation is always outdated already when being fused. This degree of "'outdatedness"' is referred to as \textit{Reliability of Perception} by \cite{liu2013motion}, whose authors suggest to exponentially decrease it with increasing transmission lag. The description of a scene that is a few milliseconds old might still be quite accurate, but as it gets older – potentially several seconds – the scene has most likely changed too much to still rely on that state representation. 
 
 The fusion function $\phi$ is defined as a mapping from a set of model instances $\mathcal{M}$ (cf. \cref{subsec:concept_design:probabilistic_entity_relationship_model_for_cooperative_perception}) and a real-valued temporal delay $\Delta t = t_{now} - t_{obs}$ to a new model instance.
 
@@ -481,7 +481,7 @@ Accordingly, a fused model instance at time $t$ is given as:
 
 $n$ denotes the number of observers and $\delta t^{max}$ is a user-defined parameter that specifies the maximum age of observations to include during fusion. Consequently, the input to the fusion function are all present observations (= PER model instances) from all present observers within the last $t - \delta t^{max}$ time steps.
 
-Evaluating $\phi$ involves to evaluate the respective "'sub-"'functions to fuse the values of all certain entity-attribute ($\langle e, a \rangle$) or entity-entity (($\langle e1, e2 \rangle$)) combinations. Moreover, the following function is defined to determine a \textbf{temporal decay factor} for every observation to weigh it by its degree of "'outdatedness"', just a proposed above.
+Evaluating $\phi$ involves to evaluate the respective "'sub-"'functions to fuse the values of all certain entity-attribute ($\langle e, a \rangle$) or entity-entity (($\langle e1, e2 \rangle$)) combinations. Moreover, the following function is defined to determine a \textbf{temporal decay factor} for every observation to weigh it by its degree of "'outdatedness"', just as proposed above.
 
 \begin{gather}
 	\textit{decay}(t_i) = \exp^{-\lambda * \Delta t} = \exp^{-\lambda * (t_{now} - t_i)}
@@ -507,7 +507,7 @@ $$
 	\end{cases}
 $$
 
-and $m$ is the number of observations to be included into the current fusion that hold a quadruple containing $e$ at subject- and $a$ at predicate position. Moreover, sticking to the previous notation, $r$ denotes a relation quadruple as part of a model instance $M$.
+and $m$ is the number of observations to be included into the current fusion that holds a quadruple containing $e$ at subject- and $a$ at predicate position. Moreover, sticking to the previous notation, $r$ denotes a relation quadruple as part of a model instance $M$.
 
 Accordingly, the fused quadruple for this specific $\langle e, a \rangle$-combination would be $r_{i,fused} = \langle e, a, \textit{maxval}_{e,a}, \textit{maxconf}_{e,a} \rangle$.
 
