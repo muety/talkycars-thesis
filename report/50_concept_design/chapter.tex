@@ -1,12 +1,12 @@
 This chapter is thematically divided into four sections, for each of which a high-level concept or architecture is proposed, that aims to fulfill the requirements stated in \cref{sec:problem_analysis:goals_requirements}. Various design options are discussed and the proposed system's novelty in comparison to previous approaches is outlined conclusively.
 
-Throughout this chapter, requirements from \cref{sec:problem_analysis:goals_requirements} are referenced with the prefixes \textit{\textbf{F-}} and \textit{\textbf{NF-}}, respectively.
+Throughout this chapter, requirements from \cref{sec:problem_analysis:goals_requirements} are referenced with the prefixes \textit{F-} and \textit{NF-}, respectively.
 
 \section{Environment Modeling \& State Representation}
 \label{sec:concept_design:environment_modeling_state_representation}
 As stated in \cref{sec:problem_analysis:goals_requirements}, a major goal of this thesis is to propose a common way to model and represent dynamic traffic scenes with the purpose of that model being used for cooperative perception. The following sections present challenges, requirements, design decisions and eventually a holistic concept.
 
-In \cref{subsec:concept_design:object_level_representation_fusion}, the decision for using high-level fusion is motivated and an overview of which information to be included in the proposed model is outlined. In \cref{subsec:concept_design:principle_of_dynamic_world_modeling}, modeling principles to be respected during the design phase are presented. Then, a basic structure / framework is proposed in \cref{subsec:concept_design:discrete_environment_model_with_occupancy_tiles}, before \cref{subsec:concept_design:probabilistic_entity_relationship_model_for_cooperative_perception} introduces Probabilistic Entity Relationship models as a way to uniformly incorporate rich semantics and a notion of uncertainty into the model. Eventually, \cref{subsec:concept_design:the_final_model} unveils the final, comprehensive meta model to be used throughout the course of this work.
+In \cref{subsec:concept_design:object_level_representation_fusion}, the decision for using high-level fusion is motivated and an overview of which information to be included in the proposed model is outlined. In \cref{subsec:concept_design:principle_of_dynamic_world_modeling}, modeling principles to be respected during the design phase are presented. Then, a basic structure / framework is proposed in \cref{subsec:concept_design:discrete_environment_model_with_occupancy_tiles}, before \cref{subsec:concept_design:probabilistic_entity_relationship_model_for_cooperative_perception} introduces probabilistic entity-relationship models as a way to uniformly incorporate rich semantics and a notion of uncertainty into the model. Eventually, \cref{subsec:concept_design:the_final_model} unveils the final, comprehensive meta model to be used throughout the course of this work.
 
 \subsection{Object-Level Representation \& Fusion}
 \label{subsec:concept_design:object_level_representation_fusion}
@@ -17,17 +17,17 @@ As explained in \cref{subsec:background:sensor_fusion}, different levels of abst
 	\begin{tabular}{|p{7.5cm}|p{7.5cm}|}
 		\hline
 		\textbf{Advantages} & \textbf{Disadvantages} \\ \hline
-		Significantly smaller data volumes, latency and network utilization \textbf{(NF-M3)} & Need for a common, shared model \\ \hline
-		Significantly lower computational load at observer vehicles \textbf{(NF-C3)} & Potential need for schema versioning \\ \hline
-		Independent of sensor type, characteristics and calibration \textbf{(NF-M1, NF-M2)} & \multirow{3}{*}{} \\ \cline{1-1}
-		Support for different levels of abstraction (e.g. to include semantic information about pair-wise relations among traffic participants) \textbf{(F-M1, F-M2)} &  \\ \cline{1-1}
-		Allows for inference without further processing \textbf{(NF-M2, NF-M3)} &  \\ \hline
+		Significantly smaller data volumes, latency and network utilization (NF-M3) & Need for a common, shared model \\ \hline
+		Significantly lower computational load at observer vehicles (NF-C3) & Potential need for schema versioning \\ \hline
+		Independent of sensor type, characteristics and calibration (NF-M1, NF-M2) & \multirow{3}{*}{} \\ \cline{1-1}
+		Support for different levels of abstraction (e.g. to include semantic information about pair-wise relations among traffic participants) (F-M1, F-M2) &  \\ \cline{1-1}
+		Allows for inference without further processing (NF-M2, NF-M3) &  \\ \hline
 	\end{tabular}
 	\caption[Comparison High-/Low Level Fusion]{Advantages of High-Level Fusion over Low-Level Fusion for Cooperative Perception. Requirements are referenced, whose fulfillment the respective advantage enables for.}
 	\label{tab:comparison_fusion}
 \end{table}
 
-When using a high-level object model, the most essential part to be defined is the information the model is supposed to include. \cite{Petrich2018} states that \textit{"'a traffic scene is described by the entities, their attributes and the relations among the entities"'}. Following this definition and in order for the model to be as expressive (\textbf{F-M1}) as possible, the model is meant to include:
+When using a high-level object model, the most essential part to be defined is the information the model is supposed to include. \cite{Petrich2018} states that \textit{"'a traffic scene is described by the entities, their attributes and the relations among the entities"'}. Following this definition and in order for the model to be as expressive (F-M1) as possible, the model is meant to include:
 
 \begin{itemize}
 	\item State and topology of the immediate static environment and road
@@ -35,7 +35,7 @@ When using a high-level object model, the most essential part to be defined is t
 	\item Relations among any kinds of entities within the ego vehicle's immediate surrounding (e.g. vehicle-vehicle-, or vehicle-traffic-light relations)
 \end{itemize}
 
-Especially, the inclusion of semantic information – originally proposed by \cite{Kohlhaas2014} – is novel compared to all previously presented CP systems. \Cref{fig:relations} depicts a minimal example of such relations. 
+Especially the inclusion of semantic information – originally proposed by \cite{Kohlhaas2014} – is novel compared to all previously presented CP systems. \Cref{fig:relations} depicts a minimal example of such relations. 
 
 \begin{figure}
 	\centering
@@ -48,22 +48,20 @@ Especially, the inclusion of semantic information – originally proposed by \ci
 \label{subsec:concept_design:principle_of_dynamic_world_modeling}
 
 \begin{samepage}
-	Modeling road traffic requires the ability to capture and integrate perceptual information of highly dynamic environments properly – a problem for which \cite{Crowley1993} states five essential principles. In the following, the original term \textit{"'primitive"'} is substituted by \textit{"'entity"'}. 
+	Modeling road traffic requires the ability to capture and integrate perceptual information of highly dynamic environments properly – a problem for which \cite{Crowley1993} states five essential principles.
 	
 	\begin{enumerate}[\ \ P1:]
-		\item Entities in the world model should be expressed as a \textbf{set of properties}.
+		\item $\text{\big[Entities\big]}$ in the world model should be expressed as a \textbf{set of properties}.
 		\item Observation and model should be expressed in a \textbf{common coordinate system}.
 		\item Observation and model should be expressed in a \textbf{common vocabulary}.
 		\item Properties should include an \textbf{explicit representation of uncertainty}.
-		\item Entities should be accompanied by a \textbf{confidence factor}.
+		\item Primitives should be accompanied by a \textbf{confidence factor}.
 	\end{enumerate}
 \end{samepage}
 
-These principles are picked up again for the concrete model specification presented later.
+These principles are picked up again for the concrete model specification presented later and are referenced using their respective \textit{\textbf{P}} prefixes throughout the course of following sections.
 
-\cite{Crowley1993} also presents a "'General Framework for Dynamic World Modeling"', depicted in \cref{fig:dynamic_world_modeling} (left). It illustrates the high-level process to transform heterogeneous types of observations into a unified model using a common vocabulary. The process includes a \textit{Match-Update-Predict} cycle, the purpose of which is to enhance observations with evidence derived from previous observations and a prediction model. Although especially the \textit{Match} step is quite essential for a real-world system, it is neglected in this thesis for the sake of focusing on the higher-level system architecture. Instead, a simplified version of the process (right) is applied.
-
-Throughout the course of following sections, the above principles are referenced using their respective \textit{\textbf{P}} prefixes.
+\cite{Crowley1993} also presents a "'general framework for dynamic world modeling"', depicted in \cref{fig:dynamic_world_modeling} (left). It illustrates the high-level process to transform heterogeneous types of observations into a unified model using a common vocabulary. The process includes a \textit{Match-Update-Predict} cycle, the purpose of which is to enhance observations with evidence derived from previous observations and a prediction model. Although especially the \textit{Match} step is quite essential for a real-world system, it is neglected in this thesis for the sake of focusing on the higher-level system architecture. Instead, a simplified version of the process (right) is applied.
 
 \begin{figure}
 	\centering
@@ -79,15 +77,15 @@ When attempting to model one's neighboring traffic environment, a mental distinc
 \par
 \bigskip
 
-The very base of the proposed model is made up of cells of an \textbf{occupancy grid} with fixed dimensions. Such can be constructed by any observer (vehicle, RSU, etc.) and derived from any kind of perceptual sensor data. This simplification as a lowest common denominator facilitates universality \textbf{(NF-M1)}. However, these basic information can be enriched with more complex features easily to support expressiveness \textbf{(F-M1)}. This is achieved through the use of a graph-based meta model, as explained in \cref{subsec:concept_design:probabilistic_entity_relationship_model_for_cooperative_perception}.
+The very base of the proposed model is made up of cells of an \textbf{occupancy grid} with fixed dimensions. Such can be constructed by any observer (vehicle, RSU, etc.) and derived from any kind of perceptual sensor data. This simplification as a lowest common denominator facilitates universality (NF-M1). However, these basic information can be enriched with more complex features easily to support expressiveness (F-M1). This is achieved through the use of a graph-based meta model, as explained in \cref{subsec:concept_design:probabilistic_entity_relationship_model_for_cooperative_perception}.
 
-To work towards the perspicuity requirement \textbf{(NF-M2)} and to follow the principle of using a common coordinate system (\textbf{P2}), every cell is identified by a \textbf{QuadKey}. As a consequence, referring to a cell's position is independent from local, per-vehicle coordinates systems and from the GNSS / GPS coordinate frames alike. This prevents network participants from a multitude of expensive transformation operations.
+To work towards the perspicuity requirement (NF-M2) and to follow the principle of using a common coordinate system (\textbf{P2}), every cell is identified by a \textbf{QuadKey}. As a consequence, referring to a cell's position in the world is independent from local, per-vehicle coordinates systems and from the GNSS / GPS coordinate frames alike. This prevents network participants from a multitude of expensive transformation operations.
 
 Following this concept, the entire world map is recursively split into QuadTiles (see \cref{sec:background:geo_tiling}) of a certain precision level (e.g. level 24, corresponding to square tiles of $\sim$ \SI{2.39}{\square\meter}). The precision level should be chosen in a way that it is fine-grained enough to distinguish between single pedestrians or even road signs. However, at the same time, it must not be too exact in order to save bandwidth and computation load.
 
 Every cell of the occupancy grid – one of which is observed locally by every connected participant – then corresponds to a certain QuadTile. Besides its occupancy state, every tile can be augmented with information like the corresponding occupant actor, its relation to the overall road topology, etc. 
 
-\Cref{fig:tiling1} illustrates the proposed \textit{occupancy tile} concept. The blue grid is within the observation range of the turquoise vehicle and inherently part of larger tiles. Each cell's (= each tile's) state is determined through local sensor fusion involving different types of in-vehicle sensors and can be extended by additional information. Eventually, that grid, entailing all relevant information, is shared with other CP participants.
+\Cref{fig:tiling1} illustrates the proposed \textit{occupancy tile} concept. The blue grid is within the observation range of the turquoise vehicle and inherently part of larger tiles. Each cell's (= each tile's) state is determined through local sensor fusion involving different types of in-vehicle sensors and can be augmented with additional information. Eventually, that grid, entailing all relevant information, is shared with other CP participants.
 
 \begin{figure}[h]
 	\centering
@@ -100,12 +98,13 @@ Every cell of the occupancy grid – one of which is observed locally by every c
 \subsection{Probabilistic Entity Relationship Model for Cooperative Perception}
 \label{subsec:concept_design:probabilistic_entity_relationship_model_for_cooperative_perception}
 
-In the simplest case, each observed cell of the previously introduced occupancy grid holds only information on whether it is occupied or not. However, this  piece of data is usually insufficient to extensively describe a road scene. In addition, object-level static- (e.g. type, color and extent) and dynamic (e.g. velocity- and acceleration) information are desirable, e.g. about the respective occupying obstacle. This is in line with the requirements to support expressiveness \textbf{(F-M1)} and openness \textbf{(F-M2)} and can be taken even one step further. To do so, \cite{Kohlhaas2014, Petrich2018} motivate the idea to also include high-level semantic information about the relationships between different entities in a scene to reduce complexity and help generalization. 
+In the simplest case, each observed cell of the previously introduced occupancy grid holds only information on whether it is occupied or not. However, this  small amount of information is usually insufficient to extensively describe a road scene. In addition, object-level static- (e.g. type, color and extent) and dynamic (e.g. velocity- and acceleration) information are desirable, e.g. about the respective occupying obstacle. This is in line with the requirements to support expressiveness (F-M1) and openness (F-M2) and can be taken even one step further. To do so, \cite{Kohlhaas2014, Petrich2018} motivate the idea to also include high-level semantic information about the relationships between different entities in a scene to reduce complexity and help generalization. 
+\par
+\bigskip
 
 Up to this point, it is coarsely specified \textit{what} to incorporate into the model: static and dynamic properties of each entity within the scene on different levels of abstraction – including semantics – using occupancy tiles as base- or root entities. The second step is to specify \textit{how} to represent these. Previous requirements imply a structure in which \textbf{entities} have \textbf{attributes} (or properties, see principle \textbf{P1}) and \textbf{relations} of various types among different entities can exist. Additionally, in order to appropriately meet the inherently uncertain nature of a partially observable environment using imperfect sensory and to comply with principles \textbf{P4} and \textbf{P5}, some notion of \textbf{confidence} needs to be incorporated into the model. Some way is needed to probabilistically model an observer's belief in the truthfulness of a particular property value or the existence of a certain relation between entities. 
 
-These needs lead to the introduction of \textbf{Probabilistic Entity Relationship Models} (PER models). Such are already used by \cite{Petrich2018} for traffic scene representation and can be seen as an extension to regular Entity Relationship Models (ER models). With ER models, an entity can either have an attribute or be relate to another entity. Both entity-attribute combinations and entity-entity relations can be represented as $\langle subject, predicate, object \rangle$ triples $r$ with:
-
+These needs lead to the introduction of \textbf{probabilistic entity relationship models} (PER models). Such are already used by \cite{Petrich2018} for traffic scene representation and can be seen as an extension to regular entity relationship models (ER models). With ER models, an entity can either have an attribute or be relate to another entity. Both entity-attribute combinations and entity-entity relations can be represented as $\langle subject, predicate, object \rangle$ triples $r$ with:
 \begin{gather}
 	r \in \{ \langle s, p, o \rangle | s \in \mathcal{E}, p \in (\mathcal{A} \cup \mathcal{R}), o \in (\mathcal{E} \cup \mathcal{L}) \}
 	\label{eq:triples}
@@ -114,13 +113,12 @@ These needs lead to the introduction of \textbf{Probabilistic Entity Relationshi
 $\mathcal{E}$ is the set of all entities, $\mathcal{A}$ is the set of all attributes, $\mathcal{R}$ is the set of all entity-entity relations and $\mathcal{L}$ denotes a literal, i.e. a number, boolean value or string.
 
 With PER models, as opposed to conventional ER models, every triple is now extended by an additional confidence parameter and thus becomes a \textbf{quadruple} $r$ as part of the set of all potential quadruples $\mathcal{M}$: 
-
 \begin{gather}
 	r \in \mathcal{M} \text{\ with\ }
 	\label{eq:quadruples}
 \end{gather}
 
-\vspace{-11ex}
+\vspace{-8ex}
 
 \begin{gather*}
 	\mathcal{M} := \{ \langle s, p, o, \alpha \rangle | s \in \mathcal{E}, p \in (\mathcal{A} \cup \mathcal{R}), o \in (\mathcal{E} \cup \mathcal{L}), \alpha \in [0, 1] \subset \mathbb{R}^+ \}
@@ -129,14 +127,13 @@ With PER models, as opposed to conventional ER models, every triple is now exten
 With regard to this newly introduced confidence parameter $\alpha$, \cite{Petrich2018} distinguishes between \textit{attribute-} and \textit{structure uncertainty}, where the first describes sensor noise and the latter reflects uncertainty in the relational data. This is analogous to principles \textbf{P4} and \textbf{P5}, which suggest to model uncertainty for properties on the one hand and a confidence factor for entities on the other. However, this distinction is not considered useful in the context of this work and thus both probabilities are subsumed under a single notion of confidence.
 
 An exemplary excerpt from an instantiated PER model, that could have been constructed based on observations of some ego vehicle, might look like this:
-
 \begin{gather*}
 	\langle \textit{obstacle\_25}, \textit{isOfType}, \textit{"'small\_car"'}, 0.921 \rangle \\
 	\langle \textit{obstacle\_25}, \textit{hasVelocity}, (0.65, 0.42, 0), 0.448 \rangle \\
 	\langle \textit{obstacle\_25}, \textit{isStoppedAt}, \textit{traffic\_light\_190}, 0.995 \rangle
 \end{gather*}
 
-In the example, $\texttt{obstacle\_25}$ and $\texttt{traffic\_light\_190}$ are entities, which were perceived, identified and tracked by an intelligent vehicle's sensory. $\texttt{isOfType}$ and $\texttt{hasVelocity}$ are attribute relations with attributes literals (string and three-dimensional numeric vector) and $\texttt{isStoppedAt}$ stands for an entity-entity relation.
+In the example, $\texttt{obstacle\_25}$ and $\texttt{traffic\_light\_190}$ are entities, which were perceived, identified and tracked by an intelligent vehicle's sensory. $\texttt{isOfType}$ and $\texttt{hasVelocity}$ are attribute relations with attribute literals (string and three-dimensional numeric vector) and $\texttt{isStoppedAt}$ stands for an entity-entity relation.
 
 Such relations can be separated into seven classes: \textit{inclusion}, \textit{possession}, \textit{attachment}, \textit{attribution}, \textit{antonym}, \textit{synonym} and \textit{case} \cite{Storey1993}. Three of those are considered relevant for modeling in AD contexts \cite{Petrich2018}:
 
@@ -183,7 +180,9 @@ In addition, the presented model is rich in a way that ...
 	\end{itemize}
 \end{samepage}
 
-A minimal instantiation of this model has to include an \texttt{OccupancyGrid} instance with an observer (\texttt{observedBy}) \texttt{Element} (e.g. a \texttt{Vehicle}) and  $1..n$ \texttt{GridCells}. How many cells exactly a grid consists of (grid size) can be configured and depends on its observer's sensor range. Each cell has to have at least its \texttt{state} and \texttt{positionHash} (as a QuadKey) defined. The ternary state can be represented using two bits. Its \texttt{positionHash} fits into 64 bits when using a QuadKey's integer representation (see \cref{subsec:background:quadkeys}) and the confidence $\alpha$ would usually be implemented as a 32-bit float. Accordingly, one cell could be modeled compact (\textbf{NF-M3}) using 98 bits in an optimal, minimalist case.
+A minimal instantiation of this model has to include an \texttt{OccupancyGrid} instance with an observer (\texttt{observedBy}) element (e.g. a \texttt{Vehicle}) and  $1..n$ \texttt{GridCells}. How many cells a grid exactly consists of (grid size) can be configured and depends on its observer's sensor range. Each cell has to have at least its \texttt{state} and \texttt{positionHash} (as a QuadKey) defined.
+
+The ternary state can be represented using two bits. Its \texttt{positionHash} fits into 64 bits when using a QuadKey's integer representation (see \cref{subsec:background:quadkeys}) and the confidence $\alpha$ would usually be implemented as a 32-bit float. Accordingly, one cell could be modeled compact (NF-M3) using 98 bits in an optimal, minimalist case.
 
 \begin{sidewaysfigure}
 	\centering
@@ -194,11 +193,11 @@ A minimal instantiation of this model has to include an \texttt{OccupancyGrid} i
 
 \subsection{Summary}
 \label{subsec:concept_design:modeling:summary}
-In the previous sections a comprehensive, yet not complete model for dynamic traffic scenes was presented with a focus on cooperative perception use cases (see \cref{fig:final_model}). It enables to describe a scene combining low-level attributes with high-level relational knowledge. It fulfills the requirements stated in \cref{sec:problem_analysis:goals_requirements} and follows the modeling principles introduced in \cref{subsec:concept_design:principle_of_dynamic_world_modeling}. 
+In the previous sections a comprehensive, yet not complete model for dynamic traffic scenes was presented with a focus on cooperative perception use cases (see \cref{fig:final_model}). It enables to describe a scene by combining low-level attributes with high-level relational knowledge. It fulfills the requirements stated in \cref{sec:problem_analysis:goals_requirements} and follows the modeling principles introduced in \cref{subsec:concept_design:principle_of_dynamic_world_modeling}. 
 
-As a result, it is capable of uniformly and universally modeling road scenarios at a high degree of expressiveness, while embracing a notion of uncertainty or confidence and information on different abstraction levels. Key concepts used include \textbf{geo tiling} based on \textbf{QuadKeys} for spatially referencing cells of an \textbf{occupancy grid} and \textbf{Probabilistic Entity Relationship models} as a structural framework.
+As a result, it is capable to uniformly and universally model road scenarios at a high degree of expressiveness, while embracing a notion of uncertainty or confidence and information on different abstraction levels. Key concepts used include \textbf{geo tiling} based on \textbf{QuadKeys} for spatially referencing cells of an \textbf{occupancy grid} and \textbf{probabilistic entity relationship models} as a structural framework.
 
-However, future work in cooperation with expert groups is desirable to further extend it.
+However, future work in cooperation with expert groups is desirable to further extend the meta model.
 
 \section{Cellular Communication}
 \label{sec:concept_design:cellular_communication}
@@ -220,7 +219,7 @@ Moreover, ETSI identified three different main usage scenarios for 5G \cite{ETSI
 	\item \textbf{Ultra-reliable and Low Latency Communications (URLLC)} for safety- and mission-critical applications, like autonomous driving. 
 \end{itemize}
 
-Cooperative perception is a usage scenario that corresponds to the latter, as it requires URLLC and thus especially low latency and high throughput.
+Cooperative perception is a usage scenario that corresponds to the latter, as it especially requires low latency and high throughput. Accordingly, an appropriately capable 5G network infrastructure is essential for the proposed CP system to work.
 
 \begin{figure}[h]
 	\centering
@@ -280,33 +279,33 @@ In conclusion, 5G is a highly promising technology for cooperative perception an
 
 \section{System Architecture}
 \label{sec:concept_design:system_architecture}
-In \cref{sec:concept_design:environment_modeling_state_representation}, a comprehensive environment model and a uniform representation were developed before the use of 5G cellular networks was motivated in \cref{sec:concept_design:cellular_communication}. In this section, the overall software architecture and all of its components are elaborated.
+In \cref{sec:concept_design:environment_modeling_state_representation}, a comprehensive environment model and a uniform representation format were developed before the use of 5G cellular networks was motivated in \cref{sec:concept_design:cellular_communication}. In this section, the overall software architecture and all of its components are elaborated.
 
 While fundamental structures, patterns and interactions are specified, concrete technological choices are deferred to \cref{ch:implementation}, as the purpose of a software architecture is to \textit{"'facilitate development, deployment and operation in a way that leaves as many options open as possible, for as long as possible"'} \cite{Martin2017}.
 
 \subsection{Central Fusion Nodes}
 \label{subsec:concept_design:central_fusion_nodes}
-As mentioned earlier, most existing cooperative perception solutions base on VANETs between their participants. Downsides of this concept with respect to both network technology and communication topology were presented in \cref{sec:problem_analysis:limitations_of_prior_work}. Only Ko-HAF \cite{Hohm2019} constitutes an exception in that the proposed system utilizes cellular networks and involves a central server instance, the \textit{Safety Server}.
+As mentioned earlier, most existing cooperative perception solutions base on VANETs between their participants. Downsides of this concept with respect to both communication technology and network topology were presented in \cref{sec:problem_analysis:limitations_of_prior_work}. Only Ko-HAF \cite{Hohm2019} constitutes an exception in that the proposed system utilizes cellular networks and involves a central server instance, the \textit{Safety Server}.
 
-Following their approach with the goal to overcome the limitations of P2P ad-hoc networks, this system's architecture will fundamentally base on a \textbf{central server component} at its core, also called fusion node or RSU in the following. Instead of P2P connections, the proposed system's topology follows a \textbf{client-server} pattern, potentially involving multiple servers. These will act as data brokers, that are responsible for \textbf{(1) data collection}, \textbf{(2) fusion} and \textbf{(3) redistribution} (or broadcasting). Each of these steps is discussed in the following sections.
+Following their approach with the goal to overcome the limitations of P2P ad-hoc networks, this system's architecture will fundamentally base on a \textbf{central server component} at its core, also called fusion node in the following. Instead of P2P connections, the proposed system's topology follows a \textbf{client-server} communication pattern, potentially involving multiple servers. These will act as data brokers that are responsible for \textbf{(1) data collection}, \textbf{(2) fusion} and \textbf{(3) redistribution} (or broadcasting). Each of these steps is discussed in the following sections.
 
-The approach to have multiple servers is essentially different from Ko-HAF and all other presented designs and results from the advanced requirements for computation performance due to higher frequency and accuracy. While the goal of Ko-HAF is to maintain an always-up-to-date traffic map including static information and incidents, the amount of information exchanged per time is much higher with the present CP system, in which traffic situations are continuously being described and shared in high detail. In Ko-HAF, the amount of data transmitted per kilometer is 14-33 \si{\kilo\byte} \cite{Hohm2019}, while the data rate required for CP is potentially orders of magnitude higher (see \cref{ch:evaluation}). Therefore, one central, global server instance is not sufficient to handle the system's high load.
+The approach to have multiple servers is essentially different from Ko-HAF and all other presented designs and results from the advanced requirements for computation performance due to higher frequency and accuracy. While the goal of Ko-HAF is to maintain an always-up-to-date traffic map including static information and incidents, the amount of information exchanged per time is much higher with the present CP system, in which traffic situations are continuously being described and shared in high detail. In Ko-HAF, the amount of data transmitted per kilometer is 14-33 \si{\kilo\byte} \cite{Hohm2019}, while the data rate required for CP is potentially orders of magnitude higher (see \cref{ch:evaluation}). Therefore, one central, global server instance is not sufficient to handle the system's high load. Also, one of the previously stated requirements is to avoid a single point of failure (NF-C4). 
 
 \subsection{Geographical Partitioning}
 \label{subsec:concept_design:geographical_partitioning}
-To meet the demand for high scalability (\textbf{NF-C2}) and reliability (\textbf{NF-C4}), including the avoidance of a single point-of-failure at system level, the concept of geographical partitioning, or \textbf{geo distribution}, is introduced. It is schematically depicted in \cref{fig:geo_distribution_schema} in appendix \cref{subsec:appendix:texts:concept_design:geographical_partitioning_schema} and mainly enabled through the use of geo tiling (see \cref{sec:background:geo_tiling}) and QuadKeys. While QuadKeys are already incorporated into the model to represent cells of an occupancy grid (see \cref{sec:concept_design:environment_modeling_state_representation}), they also make up an essential part of the system architecture. Instead of having one global fusion node, e.g. per city, per district or per country, the concept is to have \textbf{one fusion node per tile}. A tile, in the sense of QuadKeys, could be of arbitrary size. For instance, a common setup could be to use level 16 tiles for geo distribution. That is, one fusion node / RSU would be deployed every $\sim$ \SI{611}{\square\meter}. All network participants within that area – and potentially those of all adjacent tiles – connect to this server instance and send and receive their data to and from it. When entering one of the adjacent tiles, the cars' connection would be updated to use the node corresponding to the new tile. Accordingly, a fusion node only has to handle a limited number of vehicles (pedestrians, etc.). With this technique, the density of deployed nodes might be adapted according to the expected average traffic density within that area. Usually, the number of fusion nodes per area will be higher in densely populated, urban areas than on the countryside. \Cref{sec:problem_analysis:traffic_volume_estimation} presented a rough estimation for a typical, average amount of concurrent vehicles within an area and can be used as a guideline for deploying nodes. An in-depth evaluation of the fusion nodes' performance is conducted in \cref{ch:evaluation}. Its results can help to choose an appropriate configuration for a system's $\lambda_3$ parameter (see below).
+To meet the demand for high scalability (NF-C2) and reliability (NF-C4), including the avoidance of a single point-of-failure at system level, the concept of geographical partitioning, or \textbf{geo distribution}, is introduced. It is schematically depicted in \cref{fig:geo_distribution_schema} in appendix \cref{subsec:appendix:texts:concept_design:geographical_partitioning_schema} and mainly enabled through the use of geo tiling (see \cref{sec:background:geo_tiling}) and QuadKeys. While QuadKeys are already incorporated into the model to represent cells of an occupancy grid (see \cref{sec:concept_design:environment_modeling_state_representation}), they also make up an essential part of the system architecture. Instead of having one global fusion node, e.g. per city, per district or per country, the concept is to have \textbf{one fusion node per tile}. A tile, in the sense of QuadKeys, could be of arbitrary size. For instance, a common setup could be to use level 16 tiles for geo distribution. That is, one fusion node would be deployed every $\sim$ \SI{611}{\square\meter}. All network participants within that area – and potentially those of all adjacent tiles – connect to this server instance and send and receive their data to and from it. When entering one of the adjacent tiles, the cars' connection would be updated to use the node corresponding to the new tile. Accordingly, a fusion node only has to handle a quite limited number of vehicles (pedestrians, etc.). With this technique, the density of deployed nodes might be adapted according to the expected average traffic density within that area. Usually, the number of fusion nodes per area will be higher in densely populated, urban areas than on the countryside. \Cref{sec:problem_analysis:traffic_volume_estimation} presented a rough estimation for a typical, average amount of concurrent vehicles within an area and can be used as a guideline for deploying nodes. An in-depth evaluation of the fusion nodes' performance is conducted in \cref{ch:evaluation}. Its results can help to choose an appropriate configuration for a system's $\lambda_3$ parameter (see below).
 \par
 \bigskip
 
 Overall, tiles of three different levels ($\lambda$) are used throughout the system.
 
 \begin{itemize}
-	\item \textbf{Type 1} (typically $\lambda_1 \in [22, 24] \subset \mathbb{Z}$): Tiles used for cells of observed occupancy grids.
-	\item \textbf{Type 2} (typically $\lambda_2 \in [17, 20] \subset \mathbb{Z}$): Tiles used for a participant's range of interest, i.e. while a vehicle sends only its own occupancy grid, it receives data for a wider range to extend its perception.
-	\item \textbf{Type 3} (typically $\lambda_3 \in [14, 16] \subset \mathbb{Z}$): Tiles used for geo distribution, i.e. one fusion node (or server, broker, RSU) per each of these tiles.
+	\item \textbf{Type 1} (typically $\lambda_1 \in [22, 24] \subset \mathbb{Z}$): Tiles used for cells of observed occupancy grids (blue cells in \cref{fig:tiling1}).
+	\item \textbf{Type 2} (typically $\lambda_2 \in [17, 20] \subset \mathbb{Z}$): Tiles used for a participant's range of interest, i.e. while a vehicle sends only its own occupancy grid, it receives data for a wider range to extend its perception (orange cells in \cref{fig:tiling1}).
+	\item \textbf{Type 3} (typically $\lambda_3 \in [14, 16] \subset \mathbb{Z}$): Tiles used for geo distribution, i.e. one fusion node (or server, broker) per each of these tiles (green cell in \cref{fig:tiling1}).
 \end{itemize}
 
-In addition, there is a fourth type of geographical area to be considered: the occupancy grid. An occupancy grid does not correspond to tiles of a specific level, because its center position is continuous and its size depends on the observers' sensor range. The occupancy grid's size is larger than type 1 tiles (i.e. larger than its contained cells), but usually smaller than type 2 cells, because otherwise CP would be useless. 
+In addition, there is a fourth type of geographical area to be considered: the occupancy grid (set of all blue cells in \cref{fig:tiling1}). An occupancy grid does not correspond to tiles of a specific level, because its center position is continuous and its size depends on the observers' sensor range. The occupancy grid's size is larger than type 1 tiles (i.e. larger than its contained cells), but usually smaller than type 2 cells, because otherwise CP would be useless. 
 \par
 \bigskip
 
@@ -314,13 +313,13 @@ In addition, there is a fourth type of geographical area to be considered: the o
 
 \subsection{Messaging \& Further Considerations}
 \label{subsec:concept_design:messaging_further_considerations}
-Up to this point, a high-level system architecture was proposed and the concept of geographical partitioning was introduced as a solution to horizontal scalability. Complementing previous design decisions, this section formulates the exact communication pattern between clients (vehicles, pedestrians, etc.) and the fusion node (RSU) from an application-layer perspective. In addition, further considerations regarding the messaging protocol are made.
+Up to this point, a high-level system architecture was proposed and the concept of geographical partitioning was introduced as a solution to horizontal scalability. Complementing previous design decisions, this section formulates the exact communication pattern between clients (vehicles, pedestrians, etc.) and the fusion node from an application-layer perspective. In addition, further considerations regarding the messaging protocol are made.
 \par
 \bigskip
 
 In essence, two different patterns for communication in a client-server architecture can be thought of. First, there is the \textit{request-response} (req/res) pattern, according to which a client explicitly "'asks"' the server for certain information and potentially receives an "'answer"' to its request. This type of communication is unidirectional and most used throughout today's web. The second pattern is \textit{publish-subscribe} (pub/sub). Compared to req/res, it inverts the control flow to some extent. Instead of having the client (repeatedly) asking for new data, the server keeps providing such "'automatically"' and just as it appears after the client had initially expressed its interest once. Depending on the concrete implementation, this type of communication can be uni- or bidirectional. Both patterns come with their respective advantages and downsides and are each suitable for certain use cases.
 
-The system proposed in the context of Ko-HAF \cite{Hohm2019} utilizes both: req/res to send and receive static- and meta information and pub/sub to exchange time-critical data. For CP use cases, most information is time-critical. Assuming observations, i.e. instances of the occupancy grid-based meta model presented in \cref{sec:concept_design:environment_modeling_state_representation}, are continuously produced and fused at a fixed rate of \SI{10}{\hertz} for each observer, data needs to be distributed among the network as quickly as possible. Given these conditions, pub/sub shows to be the more suitable communication pattern, as it inherently supports these types of \textit{data streaming} use cases and avoids additional overhead from repeatedly establishing new connections. As a consequence, communication between OBU and RSU is chosen to follow a \textbf{publish-subscribe} pattern with \textbf{periodic push} in the proposed system. The choice for a concrete pub/sub technology is deferred to \cref{ch:implementation}. However, since pub/sub systems are usually characterized by involving a separate \textbf{message broker}, such is already considered an integral system component. \Cref{fig:architecture} schematically illustrates the overall architecture for the proposed cooperative perception system.
+The system proposed in the context of Ko-HAF \cite{Hohm2019} utilizes both: req/res to send and receive static- and meta information and pub/sub to exchange time-critical data. For CP use cases, most information is time-critical. Assuming observations are continuously produced and fused at a fixed rate of \SI{10}{\hertz} for each observer, data needs to be distributed among the network as quickly as possible. Given these conditions, pub/sub shows to be the more suitable communication pattern, as it inherently supports these types of \textit{data streaming} use cases and avoids additional overhead from repeatedly establishing new connections. As a consequence, communication between OBU and server is chosen to follow a \textbf{publish-subscribe} pattern with \textbf{periodic push} in the proposed system. The choice for a concrete pub/sub technology is deferred to \cref{ch:implementation}. However, since pub/sub systems are usually characterized by involving a separate \textbf{message broker}, such is already considered an integral system component. \Cref{fig:architecture} schematically illustrates the overall architecture for the proposed cooperative perception system.
 
 \begin{figure}
 	\centering
@@ -332,7 +331,7 @@ The system proposed in the context of Ko-HAF \cite{Hohm2019} utilizes both: req/
 \par
 \bigskip
 
-Another important aspect to be agreed upon is the representation format of data on the wire, or, in this case, on a wireless connection. Although \cref{subsec:concept_design:probabilistic_entity_relationship_model_for_cooperative_perception} defined the environment model to be represented in form of a PER graph, no details have been provided on how to present that graph as a data structure. Since bandwidth is limited and latency must be kept low, a compact (\textbf{NF-M3}, \textbf{NF-C3}, cf. \cref{sec:problem_analysis:goals_requirements}) serialization format should be used. While the choice for a concrete technology is done in \cref{ch:implementation}, a \textbf{binary serialization format} might be favored over more verbose, text-based formats like XML or JSON.
+Another important aspect to be agreed upon is the representation format of data on the wire, or, in this case, on a wireless connection. Although \cref{subsec:concept_design:probabilistic_entity_relationship_model_for_cooperative_perception} defined the environment model to be represented in form of a PER graph, no details have been provided on how to present that graph as a data structure. Since bandwidth is limited and latency must be kept low, a compact (NF-M3, NF-C3, cf. \cref{sec:problem_analysis:goals_requirements}) serialization format should be used. While the choice for a concrete technology is done in \cref{ch:implementation}, a \textbf{binary serialization format} might be favored over more verbose, text-based formats like XML or JSON.
 
 
 \subsection{Components Overview}
@@ -349,21 +348,21 @@ After a high-level system architecture and respective communication patterns wer
 \end{figure}
 
 \begin{enumerate}[C1: ]
-	\item \textbf{Simulation Server.} An integral part of this work is to integrate, test and evaluate the proposed solution with a simulator. Although the choice of which particular simulator is deferred to \cref{ch:implementation}, it was early agreed on employing a photo-realistic 3D simulator with a programmable interface. All existing solutions follow a client-server model, i.e. the simulation is executed on a central software component which is controlled by one or more clients through an API. The environment, weather, physics, traffic, sensory and more are simulated on this central server and usually it is also responsible for 3D rendering of the  scenes. Naturally, this component is only required for research purposes and would be omitted in a real-world deployment of the system.
-	\item \textbf{Simulation Client.} This component lives within the \textbf{OBU subsystem}, i.e. is part of the collection of software that runs on-board of vehicles and other connected traffic participants. It belongs to the simulation infrastructure and is the counter-part of the previously mentioned simulation server, whose API it uses. This client acts as an intermediary between simulation environment and the actual CP system and is responsible for receiving and converting sensor- and meta data and sending control commands. It might be implemented as a separate software component or integrated into the on-board software suite as a module and is supposed to be implemented in a way that it abstracts from an actual underlying perception system. In other words, it simulates a real in-vehicle perception system and therefore is also responsible for low-level sensor fusion. Ideally, the interface, including inputs and outputs, is so generic that the fact of it being part of a simulation is transparent from the outside. Therefore, this component would be best realized following the \textit{Bridge} and \textit{Facade} design patterns (cf. \cite{EricFreemanElisabethFreemanBertBates2013}).
+	\item \textbf{Simulation Server.} An integral part of this work is to integrate, test and evaluate the proposed solution with a simulator. Although the choice for a particular simulator is deferred to \cref{ch:implementation}, it was early agreed on employing a photo-realistic 3D simulator with a programmable interface. All existing solutions follow a client-server model, i.e. the simulation is executed on a central software component which is controlled by one or more clients through an API. The environment, weather, physics, traffic, sensory and more are simulated on this central server and usually it is also responsible for 3D rendering of the  scenes. Naturally, this component is only required for research purposes and would be omitted in a real-world deployment of the system.
+	\item \textbf{Simulation Client.} This component lives within the \textbf{OBU subsystem}, i.e. is part of the collection of software that runs on-board of vehicles and other connected traffic participants. It belongs to the simulation infrastructure and is the counter-part of the previously mentioned simulation server, whose API it consumes. This client acts as an intermediary between simulation environment and the actual CP system and is responsible for receiving and converting sensor- and meta data and sending control commands. It might be implemented as a separate software component or integrated into the on-board software suite as a module and is supposed to be implemented in a way that it abstracts from an actual underlying perception system. In other words, it simulates a real in-vehicle perception system and therefore is also responsible for low-level sensor fusion. Ideally, the interface, including inputs and outputs, is so generic that the fact of it being part of a simulation is transparent from the outside. This component would be best realized following the \textit{Bridge} and \textit{Facade} design patterns (cf. \cite{EricFreemanElisabethFreemanBertBates2013}).
 	\item \textbf{Talky Client.} As a core part of the actual CP system on the vehicle side, this component fulfills a variety of tasks. First, it is responsible for reading locally fused sensor data from the simulation client and building an occupancy grid from it. After being augmented with additional meta information about the observer and context, the grid is eventually embedded into an instance of the previously mentioned PER model, then serialized and sent to the currently responsible message broker. Simultaneously, the Talky client listens for new incoming messages from that broker, i.e. new cooperative perception messages originating from surrounding network participants, that were aggregated and fused at the server. These messages are then deserialized into a PER model instance again to reconstruct the shared scene representation and then, once again, fused with the latest local observation. Details on how the fusion process exactly looks like are presented in \cref{sec:concept_design:fusion}. In a real-world use case, the resulting fused scene representation would eventually be input to the planning module within the AD pipeline (cf. \cref{subsec:background:autonomous_driving_pipeline}) to help control the car more reliably. In this work, it is instead fed into the evaluation system directly to get insights about CP performance and more.
-	\item \textbf{Message Broker.} The message broker is the first component to "'sit"' on the server-side of the system, i.e. "'on the other side"' of the intermediary 5G connection or, in other words, on the \textbf{RSU subsystem} in the above schema. It should be physically close to both the cell tower and the edge node (see below) to achieve low latency. In pub/sub systems a message broker is commonly employed in the middle between multiple applications that communicate among each other via messaging. In essence, it is responsible for maintaining layer 4 network connections with all connected devices and receiving and properly forwarding messaging according to pre-defined policies. It abstracts low-level, messaging-related tasks, including authentication and authorization, from business applications. Several implementations already exist, however, which one to use usually depends on which pub/sub protocol is chosen. Examples include, but are not limited to different AMQP\footnote{http://www.amqp.org}- and MQTT\footnote{http://mqtt.org} brokers and are discussed in greater detail in \cref{ch:implementation}.
-	\item \textbf{Talky Edge Node.} Also referred to as fusion node or RSU, this component implements the concept of an edge server in the sense of edge computing (cf. \cref{sec:background:edge_computing}) and is the second core part of the presented CP system besides the above mentioned Talky client. It is the central server instance that is deployed once per type 3 tile as a \textit{geo partition}. Its core responsibilities include to aggregate every connected participant's state representation (via the message broker) and fuse all of them to a single, combined state representation, which is eventually published back to all connected Talky clients again, following a \textit{periodic push} pattern. As all PER models produced within the corresponding type 3 tile at a rate of 5-20 \si{\hertz} are gathered here, this component has to be highly available, reliable, performant and equipped with a fast network connection.
+	\item \textbf{Message Broker.} The message broker is the first component to "'sit"' on the server-side of the system, i.e. "'on the other side"' of the intermediary 5G connection or, in other words, on the \textbf{RSU subsystem} (or server subsystem) in the above schema. It should be physically close to both the cell tower and the edge node (see below) to achieve low latency. In pub/sub systems a message broker is commonly employed in the middle between multiple applications that communicate among each other via messaging. In essence, it is responsible for maintaining layer 4 network connections with all connected devices and receiving and properly forwarding messages according to pre-defined policies. It abstracts from low-level, messaging-related tasks, including authentication and authorization, from business applications. Several implementations already exist, however, which one to use usually depends on which pub/sub protocol is chosen. Examples include, but are not limited to different AMQP\footnote{http://www.amqp.org}- and MQTT\footnote{http://mqtt.org} brokers and are discussed in greater detail in \cref{ch:implementation}.
+	\item \textbf{Talky Edge Node.} Also referred to as fusion node, this component implements the concept of an edge server in the sense of edge computing (cf. \cref{sec:background:edge_computing}) and is the second core part of the presented CP system besides the above mentioned Talky client. It is the central server instance that is deployed once per type 3 tile ()or \textit{geo partition}). Its core responsibilities include to aggregate every connected participant's state representation (via the message broker) and fuse all of them to a single, combined state representation, which is eventually published back to all connected Talky clients again, following a \textit{periodic push} pattern. As all PER models produced within the corresponding type 3 tile at a rate of 5-20 \si{\hertz} are gathered here, this component has to be highly available, reliable, performant and equipped with a fast network connection.
 	\item \textbf{Talky Cloud Node.} This component is part of a further level of abstraction on top of the previously presented edge node. Although it is optional and was not implemented as part of this thesis, it might be desirable in a real-world scenario. Similar to what the authors of \cite{Calvo2017} presented as third level of their multi-level cooperative perception scheme, the cloud node might be used for high-level tasks like navigation, traffic reporting or further analyses based on aggregated data from a multitude of different type 3 tiles. It could also be used as a central data lake for persistence. As the name suggests, this component would usually be deployed as one or few instances on the cloud and is another integral part of a typical edge computing architecture. 
 \end{enumerate}
 
 \subsection{Summary}
 \label{subsec:concept_design:summary}
-Unlike most previous takes on cooperative perception, the proposed system implements a client-server architecture with central fusion nodes to decrease network utilization and relieve the computational load on individual vehicles. To help scalability and reliability, the novel concept of geo partitioning using QuadKeys is introduced and in accordance with requirement \textbf{NF-C4} (see \cref{sec:problem_analysis:goals_requirements}) the system also allows for redundancy, i.e. multiple fusion nodes per type 3 tile, to avoid a single point-of-failure at the partition level. Communication between network participants happens on a publish-subscribe basis with the central fusion node implementing periodic push.
+Unlike most previous takes on cooperative perception, the proposed system implements a client-server architecture with central fusion nodes to decrease network utilization and relieve the computational load on individual vehicles. To help scalability and reliability, the novel concept of geo partitioning using QuadKeys is introduced and in accordance with requirement NF-C4 (see \cref{sec:problem_analysis:goals_requirements}) the system also allows for redundancy, i.e. multiple fusion nodes per type 3 tile, to avoid a single point-of-failure at the partition level. Communication between network participants happens on a publish-subscribe basis with the central fusion node implementing periodic push.
 
 \section{Fusion}
 \label{sec:concept_design:fusion}
-In addition to a model specification (\cref{sec:concept_design:environment_modeling_state_representation}) and a communication- (\cref{sec:concept_design:cellular_communication}) and overall system architecture (\cref{sec:concept_design:system_architecture}), a concept on how to perform high-level sensor data fusion is required. Although this part is not particularly focused on in this work and might be elaborated in much greater detail and with more advanced methods in future research, basic considerations are still being discussed and an elementary concept is proposed. For the sake of clarity it is worth emphasizing that this section only concerns about the high-level fusion performed on client (C3) and edge node (C5), as opposed to low-level sensor fusion within the on-board perception module or, in this case, the simulation client (C1).
+In addition to a model specification (\cref{sec:concept_design:environment_modeling_state_representation}) and a communication- (\cref{sec:concept_design:cellular_communication}) and overall system architecture (\cref{sec:concept_design:system_architecture}), a concept on how to perform high-level sensor data fusion is required. Although this part is not a central aspect in this work and might be elaborated in much greater detail and with more advanced methods in future research, basic considerations are still being discussed and an elementary concept is proposed. For the sake of clarity it is worth emphasizing that this section only concerns with the high-level fusion performed on client (C3) and edge node (C5), as opposed to low-level sensor fusion within the on-board perception module or, in this case, the simulation client (C1).
 
 \subsection{Goals}
 \label{subsec:concept_design:fusion_goals}
@@ -392,14 +391,13 @@ While confidences were omitted for the sake of simplicity in the first example, 
 
 \subsection{Problem Statement}
 \label{subsec:concept_design:fusion_problem_statement}
-Complementing the previous section, which informally stated the goals of fusion in the context of CP and provided two illustrative examples, a bit more formal problem definition is presented in the following.
+Complementing the previous section, which informally stated the goals of fusion in the context of CP and provided two illustrative examples, a more formal problem definition is presented in the following.
 
 As already mentioned in \cref{subsec:background:sensor_fusion}, Elmenreich et al. define the problem of sensor fusion as \textit{"'the combining of sensory data or data derived from sensory data such that the resulting information is in some sense better than would be possible when these sources were used individually"'} \cite{Elmenreich2002}.
 \par
 \bigskip
 
-More formally, for every type 3 tile with $n$ participants (e.g. vehicles), let $M^{loc}_i(t), i \in [0..n]$ denote the model instance that was obtained at vehicle $i$ at time $t$ and assume the participant with $i = 0$ is the ego vehicle, whose perspective is taken in the following. As explained in \cref{subsec:concept_design:probabilistic_entity_relationship_model_for_cooperative_perception}, the model $M$ essentially consist of a set of quadruples $r$, which correspond to probabilistic relations of a graph. That is:
-
+More formally, for every type 3 tile with $n$ participants (e.g. vehicles), let $M^{loc}_i(t), i \in [0..n]$ denote the model instance that was obtained by vehicle $i$ at time $t$ and assume the participant with $i = 0$ is the ego vehicle, whose perspective is taken in the following. As explained in \cref{subsec:concept_design:probabilistic_entity_relationship_model_for_cooperative_perception}, the model $M$ is essentially a set of quadruples $r$, which correspond to probabilistic relations of a graph. That is:
 \begin{gather*}
 	M^{loc}_i(t) := \{r_{i,0}(t) \ .. \ r_{i,m}(t)\} \subseteq \mathcal{M}
 \end{gather*}
@@ -434,18 +432,16 @@ Taking a CWA means that – generally speaking – a logical statement, that is 
 
 With respect to high-level fusion for CP, OWA vs. CWA plays an essential role when deciding what kind of fusion mechanism to use for different attribute classes. More precisely, it influences the way how confidences for entity-attribute or entity-entity relations are interpreted. 
 
-Generally, one could distinguish between attributes, whose domain is known and such, whose domain is not known. For the former, one could apply either CWA or OWA, while for the latter, the OWA has to be taken as a basis. For instance, while the domain for a ternary occupancy state is completely known (\textit{free}, \textit{occupied} and \textit{unknown}), the number of possible "'attribute"' values (i.e. entities as objects in a quadruple) is infinite for an entity-entity relation between different road participants. During the fusion, it is unknown how many potential vehicles, pedestrians and other traffic participants are in a scene and could potentially occupy a certain cell or not.
+Generally, one could distinguish between attributes, whose domain is known and such, whose domain is not known. For the former, one could apply either CWA or OWA, while for the latter, the OWA has to be taken as a basis. For instance, while the domain for a ternary occupancy state is completely known (\textit{free}, \textit{occupied} and \textit{unknown}), the number of possible "'attribute"' values (i.e. entities as objects in a quadruple) is infinite for an entity-entity relation between different road participants. During the fusion, it is unknown how many potential vehicles, pedestrians and other traffic participants are in a scene and could potentially occupy a certain cell or not, so only the OWA is appropriate.
 
 \subsubsection{Example}
 Assume the observations from two different observers for the same situation are present and their estimations of the occupancy state of a certain cell shall be fused. According to the previous model definition, both observers report exactly one quadruple for this cell's state each. Observer A reports $r_{1,A} = \langle \textit{cell}_i, \textit{hasState}, \textit{free}, 0.9 \rangle$ and observer B reports $r_{1,B} = \langle \textit{cell}_i, \textit{hasState}, \textit{occupied}, 0.8 \rangle$. Taking the CWA, the reported confidences may be interpreted as probabilities and since all possible states are known, the trivial assumption could be made that the two remaining unknown state values equally share the remaining probability mass. As a consequence, the following quadruples could be inferred:
-
 \begin{gather*}
 	r_{2,A} = \langle \textit{cell}_i, \textit{hasState}, \textit{occupied}, 0.05 \rangle \\
 	r_{3,A} = \langle \textit{cell}_i, \textit{hasState}, \textit{unknown}, 0.05 \rangle \\
 	r_{2,B} = \langle \textit{cell}_i, \textit{hasState}, \textit{free}, 0.1 \rangle \\
 	r_{3,B} = \langle \textit{cell}_i, \textit{hasState}, \textit{unknown}, 0.1 \rangle \\
 \end{gather*}
-
 Applying a simple arithmetic average over the confidences of all observations for each possible state yields:
 \begin{gather*}
 	r_{1,\text{fused}} = \langle \textit{cell}_i, \textit{hasState}, \textit{free}, \alpha_1 \rangle \\
@@ -454,17 +450,17 @@ Applying a simple arithmetic average over the confidences of all observations fo
 	\text{with\ } \alpha_1 = 0.5, \alpha_2 = 0.425, \alpha_3 = 0.075 \\
 \end{gather*}
 
-Taking the OWA, confidences can not be interpreted as probabilities, as the potential number of values is infinite. Instead, the trivial fusion approach from above would yield these quadruples when assuming an open world:
+Taking the OWA, confidences can not be interpreted as probabilities, as the potential number of values is infinite. Instead, the trivial fusion approach from above would yield these confidences when assuming an open world:
 $$\alpha_1 = 0.45, \alpha_2 = 0.4, \alpha_3 = 0$$
 
 As mentioned earlier, only the fusion of occupancy states is implemented in this thesis, for which the open-world assumption is used consistently.
 
 \subsection{Mechanism: Time-Decayed Weighted Average}
 \label{subsec:concept_design:fusion_mechanism}
-This section describes how multiple observations for a single discrete, categorical attribute are fused. For convenience, continuous attributes are disregarded and the focus is placed particularly on the fusion of cells' occupancy states. This state attribute's domain is discrete and finite (ternary). For instance, the statement that a cells is \textit{free} is either true or false and an additional notion of uncertainty is incorporated by passing along a confidence value. The confidence value represents either attribute- or structure uncertainty (cf. \cref{subsec:concept_design:probabilistic_entity_relationship_model_for_cooperative_perception}).
-Despite this confidence, a fusion function also needs to respect the observation's temporal delay, i.e. its "'age"'. In a cooperative perception system, the presence of a transmission lag is inevitable and mainly arises from network latency. Accordingly, an observation is always outdated already when being fused. This degree of "'outdatedness"' is referred to as \textit{Reliability of Perception} by \cite{liu2013motion}, whose authors suggest to exponentially decrease it with increasing transmission lag. The description of a scene that is a few milliseconds old might still be quite accurate, but as it gets older – potentially several seconds – the scene has most likely changed too much to still rely on that state representation. 
+This section describes how multiple observations for a single discrete, categorical attribute are fused. For convenience, continuous attributes are disregarded and the focus is placed solely on the fusion of cells' occupancy states. This attribute's domain is discrete and finite (ternary). For instance, the statement that a cells is \textit{free} is either true or false and an additional notion of uncertainty is incorporated by passing along a confidence value. The confidence value represents either attribute- or structure uncertainty (cf. \cref{subsec:concept_design:probabilistic_entity_relationship_model_for_cooperative_perception}).
+Despite this confidence, a fusion function also needs to respect the observation's temporal delay, i.e. its "'age"'. In a cooperative perception system, the presence of a transmission lag is inevitable and mainly arises from network latency. Accordingly, an observation is always outdated already when being fused. This degree of "'outdatedness"' is referred to as "'reliability of perception"' by \cite{liu2013motion}, whose authors suggest to exponentially decrease it with increasing transmission lag. The description of a scene that is a few milliseconds old might still be quite accurate, but as it gets older – potentially several seconds – the scene has most likely changed too much to still rely on that state representation. 
 
-The fusion function $\varphi$ is defined as a mapping from a set of model instances $\mathcal{M}$ (cf. \cref{subsec:concept_design:probabilistic_entity_relationship_model_for_cooperative_perception}) – i.e. collections of semantic quadruples from $n$ observers over multiple time steps – and corresponding discrete temporal delays $\Delta t = t_{now} - t_{obs}$ to a new model instance.
+The fusion function $\varphi$ is defined as a mapping from a set of model instances drawn from $\mathcal{M}$ (cf. \cref{subsec:concept_design:probabilistic_entity_relationship_model_for_cooperative_perception}) – i.e. collections of semantic quadruples from $n$ observers over multiple time steps – and corresponding discrete temporal delays $\Delta t = t_{now} - t_{obs}$ to a new model instance.
 \begin{gather}
 	\varphi: \mathcal{M}^n \times \mathbb{N}^n \rightarrow \mathcal{M}
 \end{gather}
@@ -474,16 +470,23 @@ For illustration purposes, let $S(t)$ be an aggregated set of tuples of model in
 	S(t) = \bigcup^n_{i = 0} \bigcup^t_{u = t - \delta t^{max}} \langle M^{loc}_i(u), t-t_i \rangle
 	\label{eq:S}
 \end{gather}
+\par
+\medskip
 
-$n$ denotes the number of observers and $\delta t^{max}$ is a user-defined parameter that specifies the maximum age of observations to include during fusion. Consequently, it consists of all present observations (= PER model instances) from all present observers within the last $t - \delta t^{max}$ time steps. A fused model instance at time $t$ is then given as:
+$n$ denotes the number of observers and $\delta t^{max}$ is a user-defined parameter that specifies the maximum age of observations to include during fusion. Consequently, the set $S(t)$ consists of all present observations (= PER model instances) from all present observers within the last $t - \delta t^{max}$ time steps. A fused model instance at time $t$ is then given as:
 \begin{gather}
 	M^{glob}(t) = \varphi(S(t))
 \end{gather}
 
-Evaluating $\varphi$ involves to evaluate the respective "'sub-"'functions to fuse the values of all certain entity-attribute ($\langle e, a \rangle$) or entity-entity ($\langle e1, e2 \rangle$) combinations. Moreover, the following function is defined to determine a \textbf{temporal decay factor} for every observation to weigh it by its degree of "'outdatedness"', just as proposed above.
+Evaluating $\varphi$ involves to evaluate the respective "'sub-"'functions responsible for fusing the values of all certain entity-attribute ($\langle e, a \rangle$) or entity-entity ($\langle e1, e2 \rangle$) combinations. Moreover, the following function is defined to determine a \textbf{temporal decay factor} for every observation to weigh it by its degree of "'outdatedness"', just as proposed above.
 \begin{gather}
-	\textit{decay}(t_i) = \exp^{-\lambda * \Delta t} = \exp^{-\lambda * (t_{now} - t_i)}
+	\textit{decay}(t_i) = e^{-\lambda * \Delta t} = e^{-\lambda * (t_{now} - t_i)}
+	\label{eq:decay}
 \end{gather}
+\vspace{-8ex}
+\begin{gather*}
+	\text{with\ } \lambda > 0
+\end{gather*}
 
 In this thesis, the above function is used globally throughout the entire fusion procedure to incorporate transmission lag.
 \par
@@ -496,7 +499,6 @@ For a $\langle e, a \rangle$-combination whose value domain is categorical and f
 \end{gather*}
 
 In the above equation, the function $\textit{OWA}$ is defined as
-
 $$
 \textit{OWA}(i, v) = 
 	\begin{cases}
@@ -504,21 +506,17 @@ $$
 	0 & else
 	\end{cases}
 $$
-
 and responsible for returning either the \textit{i}-th quadruple's confidence, if the quadruple's attribute value (e.g. \textit{free} in the case of a \textit{state} attribute) equals $v$ or zero otherwise. Moreover, $m$ is the number of observations to be included in the current fusion round. Sticking to the previous notation, $\alpha_i$ is the confidence value (fourth component) of a relation quadruple, which again in part of a model instance $M$.
 
 The fused quadruple for this specific $\langle e, a \rangle$-combination would be:
-
-$$
-r_{i,fused} = \langle e, a, \textit{maxval}_{e,a}, \textit{maxconf}_{e,a} \rangle
-$$
+$$ r_{i,fused} = \langle e, a, \textit{maxval}_{e,a}, \textit{maxconf}_{e,a} \rangle $$
 
 \subsection{Architecture: Doubly Updated Merging}
 \label{subsec:concept_design:fusion_architecture}
 
 While the previous section gave a thorough description of how a single entity-attribute combination might be fused, this section returns back to a higher-level perspective and examines the fusion process in its whole again.
 
-The concept of \textit{doubly updated merging} is introduced as a technique to address the fact that an observation is delayed twice on its way through the CP system. First, as a local observation $M^{loc}_i(t)$, it experiences a transmission lag $\Delta t_1$ while being transferred from the on-board Talky client via the message broker to the fusion- / or edge node. After it was fused at the server and became part of $M^{glob}(t+\Delta t_1+\epsilon_1)$ it is transmitted all the way back to the client, which causes another delay $\Delta t_2$. While the server considered $\Delta t_1$ as a decay factor during fusion, the client needs to incorporate $\Delta t_2$ as well. Therefore, the client performs another round of fusion, in which $M^{glob}(t+\Delta t_1+\epsilon_1)$ and its latest local $M^{loc}_i(t+\Delta t_1+\epsilon_1+\Delta t_2+\epsilon_2)$ are merged into the final $M^{final}_i$. This process is depicted as a sequential schema in \cref{fig:sequence}.
+The concept of \textit{doubly updated merging} is introduced as a technique to address the fact that an observation is delayed twice on its way through the CP system. First, as a local observation $M^{loc}_i(t)$, it experiences a transmission lag $\Delta t_1$ while being transferred from the on-board Talky client via the message broker to the fusion- / or edge node. After it was fused at the server and became part of $M^{glob}(t+\Delta t_1+\epsilon_1)$ it is transmitted all the way back to the client, which causes another delay $\Delta t_2$. While the server considered $\Delta t_1$ as a decay factor during fusion, the client needs to incorporate $\Delta t_2$ in addition. Therefore, the client performs another round of fusion, in which $M^{glob}(t+\Delta t_1+\epsilon_1)$ and its latest local $M^{loc}_i(t+\Delta t_1+\epsilon_1+\Delta t_2+\epsilon_2)$ are merged into the final $M^{final}_i$. This process is depicted as a sequential schema in \cref{fig:sequence}.
 
 \begin{figure}[H]
 	\centering
@@ -533,6 +531,7 @@ Given the definition of relation quadruples $r$ in \cref{eq:quadruples} and the 
 	\textbf{Local:\ } &\  M^{loc}_i(t_0) = \{ r_{i,0}(t_0)\ ...\ r_{i,m}(t_0)\} \subset \mathcal{M} \\
 	\textbf{Globally Fused:\ } &\  M^{glob}(t_1) = \varphi(S(t_1)) \\
 	\textbf{Locally Double-Fused:\ } &\  M^{final}_i(t_2) = \varphi(M^{glob}(t_1) \cup \{ M_i^{loc}(t_2) \})
+	\label{eq:fusion_models_overview}
 \end{align}
 \begin{gather*}
 	\text{with\ } \delta t^{max} > 0, t_2 > t_1 > t_0
@@ -542,8 +541,8 @@ Given the definition of relation quadruples $r$ in \cref{eq:quadruples} and the 
 \label{subsec:concept_design:fusion_summary}
 Previous sections presented a very basic concept of how to perform high-level sensor fusion in a cooperative perception system, which is later implemented and evaluated in \cref{ch:implementation} and \cref{ch:evaluation}. 
 
-However, since fusion is not the core aspect of this thesis, the previously presented techniques are only rudimentary and could be advanced dramatically. Current limitations include that fusion was only defined for one type of properties. Also, the above fusion approach assumes that every time lag is precisely known, i.e. all involved devices' clocks are perfectly synchronized and additional delays (e.g. from sensor to controller) are disregarded. Elaborate methods to account for unknown time already exist in literature \cite{Julier} and could be applied as part of future work. Moreover, tracking and matching of entities across multiple frames and multiple observers is not considered at all. Finally, while the taken approach to decrease the influence of temporally "'old"' observations is the simplest, better performance might be achieved through imputation of missing data or extrapolation of past measurements to current time \cite{Chen2019}. 
+However, since fusion is not the core aspect of this thesis, the previously presented techniques are only rudimentary and could be advanced significantly. Current limitations include that fusion was only defined for one type of properties. Also, the above fusion approach assumes that every time lag is precisely known, i.e. all involved devices' clocks are perfectly synchronized and additional delays (e.g. from sensor to controller) are disregarded. Elaborate methods to account for unknown time already exist in literature \cite{Julier} and could be applied as part of future work. Moreover, tracking and matching of entities across multiple frames and multiple observers is not considered at all. Finally, while the taken approach to simply decrease the influence of temporally "'old"' observations is the simplest, better performance might be achieved through imputation of missing data or extrapolation of past measurements to current time \cite{Chen2019}. 
 
 \section{Conclusion}
 \label{sec:concept_design:conclusion}
-Previous sections conceptualized the end-to-end design of a cooperative perception system with regard to all relevant aspects. First, a modeling approach and an accompanying representation format for dynamic traffic scenes was proposed. Subsequently, the use of cellular communication and a client-server network topology was motivated before a comprehensive distributed software architecture was proposed. Eventually, an elementary concept for high-level sensor fusion to be integrated with the new model and system architecture was presented. The proposed system design addresses all requirements stated in \cref{sec:problem_analysis:goals_requirements}. Especially, it is holistic (\textbf{F-C1}) in such that covered aspects range from message representation over communication, scalability and fault-tolerance throughout to high-level sensor fusion. \Cref{ch:implementation} explains how all of these concepts were implemented in software. 
+Previous sections conceptualized the end-to-end design of a cooperative perception system with regard to all relevant aspects. First, a modeling approach and an accompanying representation format for dynamic traffic scenes was proposed. Subsequently, the use of cellular communication and a client-server network topology was motivated before a comprehensive distributed software architecture was proposed. Eventually, an elementary concept for high-level sensor fusion to be integrated with the new model and system architecture was presented. The proposed system design addresses all requirements stated in \cref{sec:problem_analysis:goals_requirements}. Especially, it is holistic (F-C1) in such that covered aspects range from message representation over communication, scalability and fault-tolerance throughout to high-level sensor fusion. \Cref{ch:implementation} explains how all of these concepts were implemented in software. 

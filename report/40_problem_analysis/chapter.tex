@@ -11,28 +11,29 @@ One of them is a \textbf{lack of comprehensiveness}. While the shown studies eac
 \par
 \bigskip
 
-Moreover, \textbf{no standardized, uniform, yet expressive environment model} and state representation for traffic scenes exists, yet. While the efforts taken by \cite{EuropeanTelecommunicationsStandardsInstituteETSI2019} to specify a standard for CPMs are promising, at this point, there is nothing like that available to be used in CP systems. Current models are either incomplete, proprietary and non-transparent or not suitable for interoperability between heterogeneous systems. 
+Moreover, \textbf{no standardized, uniform, yet expressive environment model} and state representation for traffic scenes exists in literature, yet. While the efforts taken by \cite{EuropeanTelecommunicationsStandardsInstituteETSI2019} to specify a standard for CPMs are promising, at this point, there is nothing like that available to be used in CP systems. Current models are either incomplete, proprietary and non-transparent or not suitable for interoperability between heterogeneous systems. 
 \par
 \bigskip
 
 Another significant issue arises from limitations regarding \textbf{scalability of VANET-based cooperative perception systems}.
 
-One essential challenge is the limited \textbf{throughput} and \textbf{range} of DSRC networks, which are usually based on IEEE 802.11p technology. \cite{5GAutomotiveAssociation2018} found DSRC to be 90 \% reliable at \SI{675}{\meter} distance between sender and receiver in line-of-sight scenarios and \SI{375}{\meter} in non-line-of-sight situations. As a comparison, 5G showed 90 \% reliability at \SI{1175}{\meter} and \SI{875}{\meter}, respectively. Although the absolute result values of these tests are debatable (\cite{Mangel2011} found DSRC NLOS reception to be only 50 \% at \SI{50}{\meter} distance) it is clear that 5G technology generally yields better performance. Measurements concerning maximum throughput with IEEE 802.11p range from \SI{2.7}{\mega\bit\per\second} to \SI{11}{\mega\bit\per\second} per channel \cite{Chen2016, Wang2013}. Average latency in typical CP use cases was measured by \cite{Rauch2011} to range from \SI{3}{\milli\second} to \SI{22}{\milli\second} for small message sizes ($\sim$ \SI{1.3}{\kilo\byte}).
+One essential challenge is the limited \textbf{throughput} and \textbf{range} of DSRC networks, which are usually based on IEEE 802.11p technology. \cite{5GAutomotiveAssociation2018} found DSRC to be 90 \% reliable at \SI{675}{\meter} distance between sender and receiver in line-of-sight scenarios and \SI{375}{\meter} in non-line-of-sight situations. However, Mangel et al. \cite{Mangel2011} showed that reception can significantly degrade under certain conditions. As a comparison, 5G showed 90 \% reliability at \SI{1175}{\meter} and \SI{875}{\meter}, respectively. Although a universally valid statement about DSRC and 5G range and reliability can barely be made, since they heavily dependent on a variety of different influence factors, it can still be concludes that 5G technology generally yields better performance.
 
-Despite limited performance of DSRC, VANET-topology-based CP systems face another problem, which is related to \textbf{network utilization}. Usually, these networks establish complete pair-wise P2P connections among all participants. Consequently, the number of connections is given as $N = \frac{n(n-1)}{2 }$ according to \textit{Metcalfe's law}, as opposed to $N = n$ when using a topology that involves a central server instance.
+Measurements concerning maximum throughput with IEEE 802.11p range from \SI{2.7}{\mega\bit\per\second} to \SI{11}{\mega\bit\per\second} per channel \cite{Chen2016, Wang2013}. Average latency in typical CP use cases was measured by \cite{Rauch2011} to range from \SI{3}{\milli\second} to \SI{22}{\milli\second} for small message sizes ($\sim$ \SI{1.3}{\kilo\byte}).
 
-Due to these inherent restrictions of DSRC, recent publications tend to favor upcoming 5G technology \cite{Briegleb2019, 5GAutomotiveAssociation2016}. For instance, \cite{Wevers2017} claims that \textit{"'development of V2X services in 5G makes much sense, and holds promises for the future"'}.
+Despite limited performance of DSRC, current CP systems face another problem, which is related to \textbf{network utilization} with VANET topologies. Usually, clients in these networks establish complete pair-wise P2P connections among each other. Consequently, the number of connections is given as $N = \frac{n(n-1)}{2 }$ according to \textit{Metcalfe's law}, as opposed to $N = n$ when using a topology that involves a central server instance.
+
+Due to these restrictions, recent publications tend to favor upcoming 5G technology \cite{Briegleb2019, 5GAutomotiveAssociation2016} over DSRC. For instance, \cite{Wevers2017} claims that \textit{"'development of V2X services in 5G makes much sense, and holds promises for the future"'}.
 
 A more detailed comparison between DSRC and 5G is presented in \cref{sec:concept_design:cellular_communication}.
 
 \section{Traffic Volume Estimation}
 \label{sec:problem_analysis:traffic_volume_estimation}
-
-To be able to formulate scalability requirements for a cooperative perception system, a quantification of common traffic volumes is required. More precisely, this section aims to determine an average-case approximation of how many concurrent vehicles will usually be situated within a certain geographical area. Focus is placed on urban, inner-city scenarios. 
+This paragraph is to be seen as an excursion as its findings are a prerequisite for following sections. In order to formulate the scalability requirements for a cooperative perception system in \cref{sec:problem_analysis:goals_requirements}, a quantification of common traffic volumes is required. More precisely, this section aims to determine an average-case approximation of how many concurrent vehicles will usually be situated within a certain geographical area. Focus is placed on urban, inner-city scenarios. 
 
 \subsection{Methodology \& Results}
 \label{subsec:problem_analysis:methodology_results}
-An average-case value for the average number of concurrent vehicles within \SI{1}{\square\kilo\meter} of urban area is to be determined. For its calculation, a heuristic two-step approach is employed. Although based on many assumptions, this rough approximation is sufficient for this work's purpose as there is no need for a precise quantity. 
+An average-case value for the number of concurrent vehicles within \SI{1}{\square\kilo\meter} of urban area is to be determined. For its calculation, a heuristic two-step procedure is employed. Although based on many assumptions, this rough approximation is sufficient for this work's purpose as there is no need for a very precise quantity. 
 
 The city of Berlin is used as an example, as suitable open data is available for it. OpenStreetMap data files for Berlin\footnote{\url{http://download.geofabrik.de/europe/germany/berlin.html}} serve as a basis to compute road network length and average number of street lanes. They were fed into a PostgreSQL\footnote{\url{https://postgresql.org/}} database with the PostGIS\footnote{\url{http://postgis.net/}} extension using \textit{osm2pgsql}\footnote{\url{https://github.com/openstreetmap/osm2pgsql}} and queried using SQL.
 
@@ -43,17 +44,17 @@ The following assumptions are made.
 \begin{enumerate}
 	\item Average inner-city \textbf{driving speed} is \SI{24}{\kilo\meter\per\hour} \cite{Forbes2008}
 	\item Vehicles keep a \textbf{distance} of $s \ [m] = v \ [\frac{m}{sec}] * 1.8 \ [sec] = v \  [\frac{km}{h}] * 0.5 \ [h]$ \cite{wiki:sicherheitsabstand}
-	\item Average \textbf{vehicle length} is \SI{4.2}{\meter}
-	\item \textbf{Area} of Berlin Mitte is \SI{21.25}{\square\kilo\meter} (see appendix \cref{sec:appendix:source_code:traffic_volume})
-	\item Total \textbf{length of road network} in Berlin Mitte is \SI{159.13}{\kilo\meter} (see appendix \cref{sec:appendix:source_code:traffic_volume})
-	\item Average number of \textbf{driving lanes} in Berlin Mitte is 2.4 (see appendix \cref{sec:appendix:source_code:traffic_volume})
+	\item An average \textbf{vehicle's length} is \SI{4.2}{\meter}
+	\item The \textbf{area} of Berlin Mitte is \SI{21.25}{\square\kilo\meter} (see appendix \cref{sec:appendix:source_code:traffic_volume})
+	\item The total \textbf{length of the road network} in Berlin Mitte is \SI{159.13}{\kilo\meter} (see appendix \cref{sec:appendix:source_code:traffic_volume})
+	\item The average number of \textbf{driving lanes} in Berlin Mitte is 2.4 (see appendix \cref{sec:appendix:source_code:traffic_volume})
 \end{enumerate}
 \end{samepage}
 
 \subsubsection{Step 1: Worst-case density at maximum utilization}
-First, a scenario is presumed in which the inner-city traffic network is at maximum utilization, that is, all driveable roads are occupied.
+First, a scenario is presumed in which the inner-city traffic network is at maximum utilization, that is, all driveable roads are completely occupied.
 
-Given that every car drives the assumed average speed and keeps its minimum safety distance, the virtual length of every car is: $$l_{virt} = \SI{4.2}{\meter} + (\SI{24}{\meter\per\second} * \frac{1}{3.6} * 1.8) = \SI{4.2}{\meter} + \SI{12}{\meter} = \SI{16.2}{\meter} = \SI{0.0162}{\km}$$
+Given that every car drives the assumed average speed and keeps its minimum safety distance, the virtual length of every car is: $$l_{virt} = \SI{4.2}{\meter} + (\SI{24}{\kilo\meter\per\hour} * 3.6^{-1} * 1.8) = \SI{4.2}{\meter} + \SI{12}{\meter} = \SI{16.2}{\meter} = \SI{0.0162}{\km}$$
 
 In addition, the total length of driveable lanes is:
 $$l_{road} = \frac{\SI{159.13}{\km}}{\SI{21.25}{\square\km}} * 2.4 = \SI{17.97}{\km\per\square\km}$$
@@ -71,7 +72,7 @@ While the previous value of 1109 concurrent connected cars per \si{\square\kilo\
 	\label{fig:berlin_traffic_map}
 \end{figure}
 
-\Cref{fig:berlin_traffic_map} depicts an excerpt from that traffic census map, where the red rectangle marks the \SI{21.25}{\square\km} area used in this evaluation. Red circles indicate five measuring points that were randomly selected for calculation of the average utilization factor. For each of these points a daily vehicle count is given as $N_{i}$ in $\frac{vehicles}{24 h}$, alongside the number of driving lanes $m_i$ at that location.
+\Cref{fig:berlin_traffic_map} depicts an excerpt from the traffic census map, where the red rectangle marks the \SI{21.25}{\square\km} area used in this evaluation. Red circles indicate five measuring points that were randomly selected for calculation of the average utilization factor. For each of these points a daily vehicle count is given as $N_{i}$ in $\frac{vehicles}{24 h}$, alongside the number of driving lanes $m_i$ at that location.
 
 \begin{gather*}
 N_1 = 32,000; \  m_1 = 6 \\
@@ -80,8 +81,6 @@ N_3 = 16,000; \  m_3 = 2 \\
 N_4 = 8,000; \  m_4 = 2 \\
 N_5 = 24,000; \  m_5 = 4
 \end{gather*}
-
-For more accurate estimation it would have been desirable to have the amount of vehicles per measuring point be modeled as an in-homogeneous Poisson process. However, data is only given in per-day resolution. 
 
 Given the above assumptions for speed, vehicle length and safety distance, the time that one vehicle takes to pass a measurement point can be calculated: $$\Delta t_{pass} = \frac{\SI{0.0162}{\km}}{\SI{24}{\km\per\hour}} = \SI{0.000675}{\hour} = \SI{2.43}{\second}$$
 
@@ -103,40 +102,46 @@ It can be concluded that, given the average load factor, an optimistic estimate 
 
 \subsection{Conclusion}
 \label{subsec:problem_analysis:conclusion}
-Assuming that all cars were connected and participating in cooperative perception, \textbf{$N_{norm} = \SI[detect-weight]{202}{cars\per\square\km}$} is the amount of vehicles the system should, at minimum, be able to handle. A more pessimistic value, while neglecting the participation of pedestrians and road infrastructure for simplicity, is given by \textbf{$N_{max} = \SI[detect-weight]{1109}{cars\per\square\km}$}.
+Assuming that all cars were connected and participating in cooperative perception, \textbf{$N_{norm} = \SI[detect-weight]{202}{cars\per\square\km}$} is the amount of vehicles the system should, at minimum, be able to handle. For simplicity, this neglects the potential participation of pedestrians, cyclists, road infrastructure, etc. in CP. A more pessimistic value is given by \textbf{$N_{max} = \SI[detect-weight]{1109}{cars\per\square\km}$}.
 
 \section{Goals \& Requirements}
 \label{sec:problem_analysis:goals_requirements}
-Overall goal of this thesis is to propose, implement and evaluate a cooperative perception system, that facilitates the improvement of connected, autonomous vehicles' average perception quality. However, it is crucial that CP is always only used as extension for an already working, reliably and secure AD system. \textbf{The presence of cooperative perception must under no circumstances be required for the proper functioning of a self-driving car.}
+Overall goal of this thesis is to propose, implement and evaluate a cooperative perception system, that facilitates the improvement of connected, autonomous vehicles' average perception quality. However, it is crucial that CP is always only used as extension for an already working, reliably and secure AD system. 
+\par
+\medskip
 
-The presented architecture is supposed to overcome previous systems' limitation discussed in \cref{sec:problem_analysis:limitations_of_prior_work} and be able to handle, at minimum, the average expected load determined in \cref{sec:problem_analysis:traffic_volume_estimation}. Therefor, functional (\textbf{F}) and non-functional (\textbf{NF}) requirements for both parts are defined, which this work is structurally separated into.
+\textbf{The presence of cooperative perception must under no circumstances be required for the proper functioning of a self-driving car.}
+\par
+\medskip
+
+The presented architecture is supposed to overcome previous systems' limitations discussed in \cref{sec:problem_analysis:limitations_of_prior_work} and be able to handle, at minimum, the average expected load determined in \cref{sec:problem_analysis:traffic_volume_estimation}. Therefor, functional (\textbf{F}) and non-functional (\textbf{NF}) requirements are defined for both parts of this work, namely environment modeling on the one hand and overall system architecture on the other.
 
 \subsection{Environment Modeling \& State Representation}
 \label{subsec:problem_analysis:environment_modeling_state_representation}
 
-Goal is to propose a modeling approach for traffic scenes, that fulfills the following requirements. 
+One milestone of this work is to propose a suitable meta model for traffic scenes alongside an appropriate representation format, both of which are expected to fulfill the following requirements. 
 
 \begin{enumerate}[F-M1:\ \ ]
-	\item \textbf{Expressiveness.} The model should be expressive enough to capture all relevant information about a traffic scene, that is necessary to re-construct it with sufficient precision.
+	\item \textbf{Expressiveness.} The model should be expressive enough to capture all relevant aspects about a traffic scene, that are necessary to re-construct it with sufficient precision.
 	\item \textbf{Openness.} The model should be open to include information on different levels of abstraction and allow for extension.
 \end{enumerate}
 \begin{enumerate}[NF-M1:]
 	\item \textbf{Universality.} The model should be universal in such that it is independent of type (e.g. vehicle, pedestrian, RSUs, ...) and sensory of its observer and the involved fusion algorithms.
-	\item \textbf{Perspicuity.} The model should be globally valid and understandable, without requiring additional information about the observer.
+	\item \textbf{Perspicuity.} The model should be globally valid and understandable, without requiring additional information about the observer, e.g. its local reference coordinate frame. 
 	\item \textbf{Compactness.} The model should be efficient in terms of size.
 \end{enumerate}
 
 \subsection{Cooperative Perception System}
 \label{subsec:problem_analysis:cooperative_perception_system}
 
-Goal is to propose an end-to-end solution for a cooperative perception system architecture and implementation, that fulfills the following requirements. 
+The second major concern of this work is to propose an end-to-end solution for a cooperative perception system architecture and implementation, that fulfills the following requirements. 
 
 \begin{enumerate}[F-C1:\ \ ]
 	\item \textbf{Holism.} The system should enable for end-to-end cooperative perception, including message exchange and sensor fusion, for different network patterns, including V2V, V2I and V2P.
 	\end{enumerate}
 \begin{enumerate}[NF-C1:]
-	\item \textbf{Range.} The system should enable for communication over at least \SI{600}{\meter}in NLOS scenarios.
-	\item \textbf{Scalability.} The system should be able to handle at least 202 concurrent network participants per \si{\square\kilo\meter} (see \cref{sec:problem_analysis:traffic_volume_estimation}) at a tick rate of \SI{10}{\hertz} (considered sufficient by \cite{Rauch2011, Thandavarayan2019})
+	\item \textbf{Range.} The system should enable for communication over at least \SI{600}{\meter} in NLOS scenarios.
+	\item \textbf{Scalability.} The system should be able to handle at least 202 concurrent network participants per \si{\square\kilo\meter} (see \cref{sec:problem_analysis:traffic_volume_estimation}) at an update frequency of \SI{10}{\hertz} (considered sufficient by \cite{Rauch2011, Thandavarayan2019})
 	\item \textbf{Efficiency.} The system should aim for low latency and low on-vehicle computation load.
 	\item \textbf{Reliability.} The system should avoid to have a single-point-of-failure. 
 \end{enumerate}
@@ -145,13 +150,13 @@ Goal is to propose an end-to-end solution for a cooperative perception system ar
 \label{sec:problem_analysis:scope}
 As stated in \cref{sec:problem_analysis:goals_requirements}, it is within the scope of this thesis to design a comprehensive proposal, functioning implementation and realistic simulation of cooperative perception.
 
-However, the following is explicitly \textbf{out of scope}.
+However, the following is explicitly \textbf{out of scope}:
 \begin{itemize}
-	\item The implementation does not have the extent and quality of a production-ready, well-tested system.
-	\item While the proposed meta model allows for easy extension, for the sake of briefness, it is not complete in a sense that all potentially relevant classes, entities, attributes and relations are specified and implemented.
+	\item The implementation does not have the extent, quality and resilience of a production-ready, well-tested system.
+	\item While the proposed meta model allows for easy extension it is not complete in a sense that all potentially relevant classes, entities, attributes and relations are specified and implemented.
 	\item Any aspects related to security, authentication, data integrity and extensive validation are disregarded.
 	\item This thesis does conduct experiments or low-level investigations about 5G-, LTE- or DSRC network characteristics. Existing publications are used for reference instead.
-	\item While a working proof-of-concept system is proposed that fulfills the stated requirements (see \cref{sec:problem_analysis:goals_requirements}), elaborate (performance-related) optimizations of particular aspects (e.g. fusion, message generation, compression, ...) are out of scope.
-	\item For the sake of simplicity, only two-dimensional environments are assumed, that is, vertically overlapping road scenes (e.g. with highway bridges) are not supported. However, the system could be extended to do so.
+	\item While a working proof-of-concept system is presented that fulfills the stated requirements (see \cref{sec:problem_analysis:goals_requirements}), elaborate (performance-related) optimizations of particular aspects (e.g. fusion, message generation, compression, ...) are out of scope.
+	\item For the sake of simplicity, only two-dimensional environments are assumed. That is, vertically overlapping road scenes (e.g. with highway bridges) are not supported. However, the system could be extended to do so.
 	\item Since detailed, realistic, 3D simulations are used for evaluation, no additional real-world experiments are conducted.
 \end{itemize}
