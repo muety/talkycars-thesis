@@ -95,7 +95,7 @@ First, a set of experiments are conducted to get insights about the Talky edge n
 
 \begin{figure}
 	\centering
-	\includegraphics[width=1.0\linewidth]{98_images/performance_evaluation_chart1}
+	\includegraphics[width=1.0\linewidth]{98_images/performance_evaluation_chart1.pdf}
 	\caption{Average Measured Fusion Rate}
 	\label{fig:performance_evaluation:fusion_rates}
 \end{figure}
@@ -177,7 +177,7 @@ With respect to communication efficiency, the present evaluation found that, giv
 
 As a result to investigating a CP iteration's total latency and how it is composed, an average "'outdatedness"' of shared observations of $\sim$ \SI{289}{\milli\second} was found, when disregarding the local measuring process. Future optimizations might minimize the idle delay caused by the system running at a fixed rate and therefore further reduce the total delay to \SI{189}{\milli\second}. Whether or not this is a suitable delay for a CP system is discussed in the next \cref{sec:evaluation:perception_evaluation}.
 
-\section{End-to-end Perception Evaluation}
+\section{End-to-end Evaluation}
 \label{sec:evaluation:perception_evaluation}
 This part of the evaluation analyzes the proposed system's cooperative perception performance in and end-to-end fashion. Goal is to determine to what degree autonomous connected cars can improve their perception quality through cooperatively sharing their local belief about the environment. While the performance evaluation in \cref{sec:evaluation:performance_evaluation} examined certain characteristics of the system itself, in this part it is rather viewed as a black box to measure its impact end to end. 
 \par
@@ -322,19 +322,19 @@ It was mentioned before that the first step involves evaluating whether percepti
 
 \begin{figure}
 	\centering
-	\begin{subfigure}[b]{1\textwidth}
+	\begin{subfigure}[b]{0.9\textwidth}
 		\includegraphics[width=1\linewidth]{98_images/eval_boxplot_2}
 		\caption{Average MSE for \texttt{N\_VEHICLES = 6} (lower is better)}
 		\label{fig:eval_boxplot_2} 
 	\end{subfigure}
 	
-	\begin{subfigure}[b]{1\textwidth}
+	\begin{subfigure}[b]{0.9\textwidth}
 		\includegraphics[width=1\linewidth]{98_images/eval_boxplot_3}
 		\caption{Average recall for \texttt{N\_VEHICLES = 6} (higher is better)}
 		\label{fig:eval_boxplot_3}
 	\end{subfigure}
 
-	\begin{subfigure}[b]{1\textwidth}
+	\begin{subfigure}[b]{0.9\textwidth}
 		\includegraphics[width=1\linewidth]{98_images/eval_boxplot_1}
 		\caption{Average percentage of \textit{unknown} cells for \texttt{N\_VEHICLES = 6} (lower is better)}
 		\label{fig:eval_boxplot_1}
