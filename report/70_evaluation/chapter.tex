@@ -12,11 +12,11 @@ First, one or more metrics need to be determined with respect to which the evalu
 \par
 \bigskip
 
-Message size (Q3) is constant per vehicle and its determination can be done trivially by inspecting and aggregating the individual sizes of incoming messages at the fusion node without any special setup. For better comparison, an additional boolean parameter \texttt{WITH\_OCCUPANT} is introduced to denote whether or not an occupancy cell should include information about its potential occupant in addition to its pure state.
+Message size (Q3) is constant per vehicle and can be determined trivially by inspecting and aggregating the individual sizes of incoming messages at the fusion node without any special setup. For better comparison, an additional boolean parameter \texttt{WITH\_OCCUPANT} is introduced to denote whether or not an occupancy cell should include information about its potential occupant in addition to its pure state.
 \par
 \bigskip
 
-Concerning latency (Q2), the primary interest lies on how it is composed. Instead of trying to estimate total latency as a function of traffic density / number of network participants, the focus is rather on getting insights about which parts of the fusion process are the most temporally critical ones to help later optimization of certain system components and functions. Accordingly, the relative durations $d_{i \in [0..6]}$ between relevant instants $t_{j \in [0..7]}$ of the fusion process, schematically depicted in \cref{fig:communication_timeline}, are to be determined for a fixed parameter configuration. To help that, existing code is extended in various placed across Talky edge node and Talky client to add time measuring functionality.
+Concerning latency (Q2), the primary interest is to get insights about how it is composed. Instead of trying to estimate total latency as a function of traffic density / number of network participants, the focus is rather on getting insights about which parts of the fusion process are the most temporally critical ones to help later optimization of certain system components and functions. Accordingly, the relative durations $d_{i \in [0..6]}$ between relevant instants $t_{j \in [0..7]}$ of the fusion process, schematically depicted in \cref{fig:communication_timeline}, are to be determined for a fixed parameter configuration. To help that, existing code is extended in various placed across Talky edge node and Talky client to add time measuring functionality.
 \par
 \bigskip
 
